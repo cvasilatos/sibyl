@@ -1,6 +1,6 @@
 """Comparison and evaluation of multiple LLM reviews."""
 
-from typing import List, Dict
+from typing import List, Dict, Any
 from statistics import mean, stdev
 from .reviewer import PaperReview
 
@@ -114,7 +114,7 @@ class ReviewComparison:
 
         return "\n".join(lines)
 
-    def get_comparative_analysis(self) -> Dict[str, any]:
+    def get_comparative_analysis(self) -> Dict[str, Any]:
         """Get a structured comparative analysis.
 
         Returns:

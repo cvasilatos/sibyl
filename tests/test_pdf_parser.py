@@ -11,12 +11,5 @@ def test_pdf_parser_file_not_found():
         PDFParser("/nonexistent/file.pdf")
 
 
-def test_pdf_parser_init():
-    """Test PDFParser initialization."""
-    # Create a mock test to check initialization works
-    # In a real scenario, you'd have a sample PDF file
-    pass
-
-
 # Note: Full PDF parsing tests would require sample PDF files
-# These tests demonstrate the testing structure
+# Additional tests can be implemented when sample PDFs are available
