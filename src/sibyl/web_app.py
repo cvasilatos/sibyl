@@ -19,6 +19,7 @@ from .config import SibylConfig
 from .llm_client import create_client
 from .pdf_parser import PDFParser
 from .reviewer import PaperReview, ReviewSystem
+from .storage import ReviewStorage
 
 # Create FastAPI app
 app = FastAPI(
@@ -38,6 +39,9 @@ app.add_middleware(
 
 # Store active review sessions
 review_sessions: Dict[str, Dict] = {}
+
+# Initialize storage
+storage = ReviewStorage()
 
 
 class ReviewRequest(BaseModel):
@@ -237,6 +241,89 @@ async def root():
                         padding: 20px;
                     }
                 }
+                .tabs {
+                    display: flex;
+                    gap: 10px;
+                    margin-bottom: 20px;
+                    border-bottom: 2px solid #e0e0e0;
+                }
+                .tab {
+                    padding: 10px 20px;
+                    cursor: pointer;
+                    border: none;
+                    background: none;
+                    font-size: 16px;
+                    color: #666;
+                    transition: all 0.3s;
+                }
+                .tab.active {
+                    color: #667eea;
+                    border-bottom: 3px solid #667eea;
+                    margin-bottom: -2px;
+                }
+                .tab-content {
+                    display: none;
+                }
+                .tab-content.active {
+                    display: block;
+                }
+                .search-container {
+                    margin-bottom: 20px;
+                }
+                .search-input {
+                    width: 100%;
+                    padding: 12px;
+                    font-size: 16px;
+                    border: 2px solid #667eea;
+                    border-radius: 6px;
+                    margin-bottom: 10px;
+                }
+                .search-btn {
+                    width: 100%;
+                }
+                .library-stats {
+                    background: #f8f9ff;
+                    padding: 15px;
+                    border-radius: 8px;
+                    margin-bottom: 20px;
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                    gap: 15px;
+                }
+                .stat-item {
+                    text-align: center;
+                }
+                .stat-value {
+                    font-size: 24px;
+                    font-weight: bold;
+                    color: #667eea;
+                }
+                .stat-label {
+                    font-size: 14px;
+                    color: #666;
+                }
+                .review-list-item {
+                    background: #f8f9ff;
+                    padding: 15px;
+                    border-radius: 8px;
+                    margin-bottom: 10px;
+                    border-left: 4px solid #667eea;
+                    cursor: pointer;
+                    transition: transform 0.2s;
+                }
+                .review-list-item:hover {
+                    transform: translateX(5px);
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                }
+                .similarity-badge {
+                    display: inline-block;
+                    background: #667eea;
+                    color: white;
+                    padding: 2px 8px;
+                    border-radius: 12px;
+                    font-size: 12px;
+                    margin-left: 10px;
+                }
             </style>
         </head>
         <body>
@@ -244,23 +331,54 @@ async def root():
                 <h1>🔮 Sibyl</h1>
                 <p class="subtitle">AI-Powered Research Paper Review System</p>
                 
-                <div class="upload-area" id="uploadArea">
-                    <div>📄</div>
-                    <p>Drag and drop a PDF file here or click to browse</p>
-                    <p style="color: #999; font-size: 14px;">Supports research papers in PDF format</p>
-                    <input type="file" id="fileInput" accept=".pdf">
+                <div class="tabs">
+                    <button class="tab active" onclick="switchTab('review')">Review Paper</button>
+                    <button class="tab" onclick="switchTab('search')">Search Library</button>
                 </div>
                 
-                <button id="reviewBtn" disabled>Start Review</button>
-                
-                <div class="progress-container" id="progressContainer">
-                    <div class="progress-bar">
-                        <div class="progress-fill" id="progressFill"></div>
+                <div id="reviewTab" class="tab-content active">
+                    <div class="upload-area" id="uploadArea">
+                        <div>📄</div>
+                        <p>Drag and drop a PDF file here or click to browse</p>
+                        <p style="color: #999; font-size: 14px;">Supports research papers in PDF format</p>
+                        <input type="file" id="fileInput" accept=".pdf">
                     </div>
-                    <p id="progressMessage">Initializing...</p>
+                    
+                    <button id="reviewBtn" disabled>Start Review</button>
+                    
+                    <div class="progress-container" id="progressContainer">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                        <p id="progressMessage">Initializing...</p>
+                    </div>
+                    
+                    <div class="results" id="results"></div>
                 </div>
                 
-                <div class="results" id="results"></div>
+                <div id="searchTab" class="tab-content">
+                    <div class="library-stats" id="libraryStats">
+                        <div class="stat-item">
+                            <div class="stat-value" id="statTotal">-</div>
+                            <div class="stat-label">Total Reviews</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="statAvgScore">-</div>
+                            <div class="stat-label">Avg Score</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="statPapers">-</div>
+                            <div class="stat-label">Unique Papers</div>
+                        </div>
+                    </div>
+                    
+                    <div class="search-container">
+                        <input type="text" id="searchInput" class="search-input" placeholder="Search for papers... (e.g., 'neural networks', 'quantum computing')">
+                        <button class="search-btn" onclick="searchReviews()">🔍 Search</button>
+                    </div>
+                    
+                    <div id="searchResults"></div>
+                </div>
             </div>
             
             <script>
@@ -463,6 +581,205 @@ async def root():
                     results.innerHTML = html;
                     results.style.display = 'block';
                 }
+                
+                // Tab switching
+                function switchTab(tab) {
+                    const tabs = document.querySelectorAll('.tab');
+                    const tabContents = document.querySelectorAll('.tab-content');
+                    
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tabContents.forEach(tc => tc.classList.remove('active'));
+                    
+                    if (tab === 'review') {
+                        tabs[0].classList.add('active');
+                        document.getElementById('reviewTab').classList.add('active');
+                    } else if (tab === 'search') {
+                        tabs[1].classList.add('active');
+                        document.getElementById('searchTab').classList.add('active');
+                        loadStatistics();
+                        loadRecentReviews();
+                    }
+                }
+                
+                // Load statistics
+                async function loadStatistics() {
+                    try {
+                        const response = await fetch('/api/statistics');
+                        const stats = await response.json();
+                        
+                        document.getElementById('statTotal').textContent = stats.total_reviews;
+                        document.getElementById('statAvgScore').textContent = stats.avg_score.toFixed(1);
+                        document.getElementById('statPapers').textContent = stats.unique_papers;
+                    } catch (error) {
+                        console.error('Error loading statistics:', error);
+                    }
+                }
+                
+                // Load recent reviews
+                async function loadRecentReviews() {
+                    try {
+                        const response = await fetch('/api/reviews?limit=10');
+                        const data = await response.json();
+                        
+                        displayReviewList(data.reviews, 'Recent Reviews');
+                    } catch (error) {
+                        console.error('Error loading reviews:', error);
+                    }
+                }
+                
+                // Search reviews
+                async function searchReviews() {
+                    const query = document.getElementById('searchInput').value;
+                    if (!query) {
+                        loadRecentReviews();
+                        return;
+                    }
+                    
+                    try {
+                        const response = await fetch('/api/search', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({query: query, limit: 20})
+                        });
+                        const data = await response.json();
+                        
+                        displayReviewList(data.results, `Search Results for "${query}"`, true);
+                    } catch (error) {
+                        console.error('Error searching:', error);
+                        document.getElementById('searchResults').innerHTML = 
+                            '<div class="error">Error searching reviews. Please try again.</div>';
+                    }
+                }
+                
+                // Display review list
+                function displayReviewList(reviews, title, showSimilarity = false) {
+                    const container = document.getElementById('searchResults');
+                    
+                    if (reviews.length === 0) {
+                        container.innerHTML = '<p style="text-align: center; color: #666;">No reviews found.</p>';
+                        return;
+                    }
+                    
+                    let html = `<h3>${title}</h3>`;
+                    
+                    reviews.forEach(review => {
+                        const recClass = review.recommendation.toLowerCase().includes('accept') ? 'accept' :
+                                       review.recommendation.toLowerCase().includes('reject') ? 'reject' : 'revise';
+                        const similarity = showSimilarity && review.similarity_score ? 
+                            `<span class="similarity-badge">${(review.similarity_score * 100).toFixed(0)}% match</span>` : '';
+                        
+                        html += `
+                            <div class="review-list-item" onclick="viewReview('${review.id}')">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                    <strong>${review.paper_title}</strong>
+                                    ${similarity}
+                                </div>
+                                <div style="font-size: 14px; color: #666; margin-bottom: 5px;">
+                                    ${review.pdf_filename} • ${review.reviewer_model}
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <span class="score">${review.overall_score}/10</span>
+                                    <span class="recommendation ${recClass}">${review.recommendation}</span>
+                                    <span style="color: #999; font-size: 14px;">${new Date(review.created_at).toLocaleDateString()}</span>
+                                </div>
+                                <div style="margin-top: 10px; font-size: 14px; color: #666;">
+                                    ${review.review_summary}
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    container.innerHTML = html;
+                }
+                
+                // View full review
+                async function viewReview(reviewId) {
+                    try {
+                        const response = await fetch(`/api/reviews/${reviewId}`);
+                        const review = await response.json();
+                        
+                        // Display full review in results area
+                        switchTab('review');
+                        results.innerHTML = '';
+                        
+                        const criteria = review.criteria;
+                        const recClass = criteria.recommendation.toLowerCase().includes('accept') ? 'accept' :
+                                       criteria.recommendation.toLowerCase().includes('reject') ? 'reject' : 'revise';
+                        
+                        const html = `
+                            <div class="review-card">
+                                <div class="review-header">
+                                    <h3>${review.paper_title}</h3>
+                                    <div>
+                                        <span class="score">${criteria.overall_score}/10</span>
+                                        <span class="recommendation ${recClass}">${criteria.recommendation}</span>
+                                    </div>
+                                </div>
+                                <p style="color: #999; font-size: 14px;">
+                                    ${review.pdf_filename} • ${review.reviewer_model} • ${new Date(review.created_at).toLocaleDateString()}
+                                </p>
+                                
+                                <div class="section">
+                                    <div class="section-title">Novelty</div>
+                                    <div class="section-content">${criteria.novelty}</div>
+                                </div>
+                                
+                                <div class="section">
+                                    <div class="section-title">Methodology</div>
+                                    <div class="section-content">${criteria.methodology}</div>
+                                </div>
+                                
+                                <div class="section">
+                                    <div class="section-title">Results</div>
+                                    <div class="section-content">${criteria.results}</div>
+                                </div>
+                                
+                                <div class="section">
+                                    <div class="section-title">Clarity</div>
+                                    <div class="section-content">${criteria.clarity}</div>
+                                </div>
+                                
+                                <div class="section">
+                                    <div class="section-title">Impact</div>
+                                    <div class="section-content">${criteria.impact}</div>
+                                </div>
+                                
+                                <div class="section">
+                                    <div class="section-title">Strengths</div>
+                                    <div class="section-content">${criteria.strengths}</div>
+                                </div>
+                                
+                                <div class="section">
+                                    <div class="section-title">Limitations</div>
+                                    <div class="section-content">${criteria.limitations}</div>
+                                </div>
+                                
+                                <div class="section">
+                                    <div class="section-title">Detailed Feedback</div>
+                                    <div class="section-content">${criteria.detailed_feedback}</div>
+                                </div>
+                            </div>
+                        `;
+                        
+                        results.innerHTML = html;
+                        results.style.display = 'block';
+                        window.scrollTo({top: 0, behavior: 'smooth'});
+                    } catch (error) {
+                        console.error('Error loading review:', error);
+                    }
+                }
+                
+                // Allow Enter key to trigger search
+                document.addEventListener('DOMContentLoaded', () => {
+                    const searchInput = document.getElementById('searchInput');
+                    if (searchInput) {
+                        searchInput.addEventListener('keypress', (e) => {
+                            if (e.key === 'Enter') {
+                                searchReviews();
+                            }
+                        });
+                    }
+                });
             </script>
         </body>
         </html>
@@ -611,11 +928,28 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
 
         # Generate comparison
         await websocket.send_json(
-            {"status": "progress", "progress": 95, "message": "Comparing reviews..."}
+            {"status": "progress", "progress": 90, "message": "Comparing reviews..."}
         )
 
         comparison = ReviewComparison(reviews)
         comparison_data = comparison.get_comparative_analysis()
+
+        # Save reviews to storage
+        await websocket.send_json(
+            {"status": "progress", "progress": 95, "message": "Saving to storage..."}
+        )
+        
+        for review in reviews:
+            try:
+                storage.save_review(
+                    review=review,
+                    pdf_filename=session["filename"],
+                    pdf_path=session["pdf_path"],
+                    paper_text=paper_text,
+                )
+            except Exception as e:
+                # Log error but don't fail the whole operation
+                print(f"Error saving review to storage: {e}")
 
         # Convert reviews to dict
         reviews_dict = [
@@ -649,11 +983,9 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
     except Exception as e:
         await websocket.send_json({"status": "error", "message": str(e)})
     finally:
-        # Clean up temporary file
-        if os.path.exists(session["pdf_path"]):
-            try:
-                os.remove(session["pdf_path"])
-            except Exception:
+        # Note: Don't delete PDF as it's stored now
+        # Clean up temporary file only if save failed
+        pass
                 pass
 
 
@@ -686,9 +1018,108 @@ async def health_check():
             "status": "healthy",
             "providers": providers,
             "ollama_base_url": ollama_url,
+            "storage_count": storage.count_reviews(),
         }
     except Exception as e:
         return {"status": "unhealthy", "error": str(e)}
+
+
+class SearchRequest(BaseModel):
+    """Request model for search."""
+
+    query: str
+    limit: int = 10
+
+
+@app.post("/api/search")
+async def search_reviews(request: SearchRequest):
+    """Search reviews using semantic similarity.
+    
+    Args:
+        request: Search request with query and limit
+        
+    Returns:
+        List of matching reviews with similarity scores
+    """
+    try:
+        results = storage.search_reviews(request.query, limit=request.limit)
+        return {
+            "query": request.query,
+            "results": [r.model_dump() for r in results],
+            "count": len(results),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/reviews")
+async def list_reviews(limit: int = 50, offset: int = 0):
+    """List all stored reviews with pagination.
+    
+    Args:
+        limit: Maximum number of reviews to return
+        offset: Number of reviews to skip
+        
+    Returns:
+        List of stored reviews
+    """
+    try:
+        reviews = storage.list_reviews(limit=limit, offset=offset)
+        total = storage.count_reviews()
+        return {
+            "reviews": [r.model_dump() for r in reviews],
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/reviews/{review_id}")
+async def get_review_details(review_id: str):
+    """Get full details of a specific review.
+    
+    Args:
+        review_id: ID of the review to retrieve
+        
+    Returns:
+        Full review details including criteria
+    """
+    review = storage.get_review(review_id)
+    if not review:
+        raise HTTPException(status_code=404, detail="Review not found")
+    return review
+
+
+@app.delete("/api/reviews/{review_id}")
+async def delete_review(review_id: str):
+    """Delete a review by ID.
+    
+    Args:
+        review_id: ID of the review to delete
+        
+    Returns:
+        Success message
+    """
+    deleted = storage.delete_review(review_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Review not found")
+    return {"message": "Review deleted successfully", "id": review_id}
+
+
+@app.get("/api/statistics")
+async def get_statistics():
+    """Get statistics about stored reviews.
+    
+    Returns:
+        Statistics dictionary
+    """
+    try:
+        stats = storage.get_statistics()
+        return stats
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 def run_server(host: str = "0.0.0.0", port: int = 8000):

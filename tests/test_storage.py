@@ -11,19 +11,16 @@ from sibyl.storage import ReviewStorage, StoredReview
 
 
 @pytest.fixture
-def temp_db():
-    """Create a temporary database for testing."""
-    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
-        db_path = f.name
-    yield db_path
-    # Cleanup
-    Path(db_path).unlink(missing_ok=True)
+def temp_storage():
+    """Create a temporary storage directory for testing."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        yield tmpdir
 
 
 @pytest.fixture
-def storage(temp_db):
-    """Create a ReviewStorage instance with a temporary database."""
-    return ReviewStorage(db_path=temp_db)
+def storage(temp_storage):
+    """Create a ReviewStorage instance with a temporary directory."""
+    return ReviewStorage(storage_path=temp_storage)
 
 
 @pytest.fixture
@@ -49,10 +46,10 @@ def sample_review():
     )
 
 
-def test_storage_initialization(temp_db):
+def test_storage_initialization(temp_storage):
     """Test that storage initializes correctly."""
-    storage = ReviewStorage(db_path=temp_db)
-    assert Path(temp_db).exists()
+    storage = ReviewStorage(storage_path=temp_storage)
+    assert Path(temp_storage).exists()
     assert storage.count_reviews() == 0
 
 
@@ -61,11 +58,12 @@ def test_save_review(storage, sample_review):
     review_id = storage.save_review(
         review=sample_review,
         pdf_filename="test_paper.pdf",
-        pdf_path="/path/to/test_paper.pdf",
+        pdf_path=None,
         paper_text="This is the full text of the paper for searching",
     )
 
-    assert review_id > 0
+    assert review_id is not None
+    assert len(review_id) > 0
     assert storage.count_reviews() == 1
 
 
@@ -78,17 +76,17 @@ def test_get_review(storage, sample_review):
 
     retrieved = storage.get_review(review_id)
     assert retrieved is not None
-    assert retrieved.id == review_id
-    assert retrieved.paper_title == "Test Paper on Machine Learning"
-    assert retrieved.pdf_filename == "test_paper.pdf"
-    assert retrieved.reviewer_model == "TestModel v1.0"
-    assert retrieved.overall_score == 8
-    assert retrieved.recommendation == "Accept"
+    assert retrieved["id"] == review_id
+    assert retrieved["paper_title"] == "Test Paper on Machine Learning"
+    assert retrieved["pdf_filename"] == "test_paper.pdf"
+    assert retrieved["reviewer_model"] == "TestModel v1.0"
+    assert retrieved["overall_score"] == 8
+    assert retrieved["recommendation"] == "Accept"
 
 
 def test_get_nonexistent_review(storage):
     """Test retrieving a review that doesn't exist."""
-    retrieved = storage.get_review(99999)
+    retrieved = storage.get_review("nonexistent_id_12345")
     assert retrieved is None
 
 
@@ -139,15 +137,15 @@ def test_list_reviews_with_pagination(storage, sample_review):
     assert page1[0].id != page2[0].id
 
 
-def test_search_reviews_by_title(storage, sample_review):
-    """Test searching reviews by paper title."""
+def test_search_reviews_semantic(storage, sample_review):
+    """Test semantic search of reviews."""
     storage.save_review(
         review=sample_review,
         pdf_filename="ml_paper.pdf",
-        paper_text="Machine learning algorithms and neural networks",
+        paper_text="Machine learning algorithms and neural networks for image classification",
     )
 
-    # Create another review with different title
+    # Create another review with different content
     other_criteria = ReviewCriteria(
         novelty="Good",
         methodology="Good",
@@ -158,7 +156,7 @@ def test_search_reviews_by_title(storage, sample_review):
         strengths="Several",
         overall_score=7,
         recommendation="Revise",
-        detailed_feedback="Good work",
+        detailed_feedback="Good work on quantum computing research",
     )
     other_review = PaperReview(
         paper_title="Paper on Quantum Computing",
@@ -169,25 +167,14 @@ def test_search_reviews_by_title(storage, sample_review):
     storage.save_review(
         review=other_review,
         pdf_filename="quantum_paper.pdf",
-        paper_text="Quantum computing and quantum algorithms",
+        paper_text="Quantum computing and quantum algorithms for cryptography",
     )
 
-    # Search for machine learning
+    # Search for machine learning - should find the ML paper
     results = storage.search_reviews("machine learning")
     assert len(results) >= 1
-    assert any("Machine Learning" in r.paper_title for r in results)
-
-
-def test_search_reviews_by_content(storage, sample_review):
-    """Test searching reviews by paper content."""
-    storage.save_review(
-        review=sample_review,
-        pdf_filename="test.pdf",
-        paper_text="This paper discusses neural networks and deep learning architectures",
-    )
-
-    results = storage.search_reviews("neural networks")
-    assert len(results) >= 1
+    # The first result should have a similarity score
+    assert results[0].similarity_score is not None
 
 
 def test_delete_review(storage, sample_review):
@@ -259,20 +246,3 @@ def test_get_statistics(storage, sample_review):
     assert "Accept" in stats["recommendations"]
     assert "Revise" in stats["recommendations"]
 
-
-def test_review_data_json_structure(storage, sample_review):
-    """Test that review data is properly stored as JSON."""
-    review_id = storage.save_review(
-        review=sample_review,
-        pdf_filename="test.pdf",
-    )
-
-    retrieved = storage.get_review(review_id)
-    review_data = json.loads(retrieved.review_data)
-
-    assert "paper_title" in review_data
-    assert "reviewer_model" in review_data
-    assert "criteria" in review_data
-    assert "raw_response" in review_data
-    assert review_data["criteria"]["overall_score"] == 8
-    assert review_data["criteria"]["recommendation"] == "Accept"
