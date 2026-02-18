@@ -5,37 +5,211 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sibyl - AI Research Paper Review</title>
     <link rel="stylesheet" href="/static/style.css">
+    <style>
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 16px;
+            color: #666;
+            transition: all 0.3s;
+        }
+        .tab.active {
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+            margin-bottom: -2px;
+            font-weight: 600;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .library-stats {
+            background: linear-gradient(135deg, #f8f9ff 0%, #e8eaff 100%);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+        }
+        .stat-item {
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .search-container {
+            margin-bottom: 20px;
+        }
+        .search-input {
+            width: 100%;
+            padding: 15px;
+            font-size: 16px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            transition: all 0.3s;
+        }
+        .search-input:focus {
+            outline: none;
+            border-color: #764ba2;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .search-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .search-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        .review-list-item {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .review-list-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+        }
+        .similarity-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        .review-list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .review-list-title {
+            font-weight: 600;
+            color: #333;
+            font-size: 16px;
+        }
+        .review-list-meta {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        .review-list-summary {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+            line-height: 1.6;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
         <header>
             <h1>🔮 Sibyl</h1>
             <p class="subtitle">AI-Powered Research Paper Review System</p>
-            <p class="description">Upload a research paper and get comprehensive AI-powered reviews using local LLM models</p>
+            <p class="description">Upload papers for AI review or search your review library</p>
         </header>
         
-        <div class="upload-section">
-            <div class="upload-area" id="uploadArea">
-                <div class="upload-icon">📄</div>
-                <p class="upload-text">Drag and drop a PDF file here or click to browse</p>
-                <p class="upload-hint">Supports research papers in PDF format</p>
-                <input type="file" id="fileInput" accept=".pdf" aria-label="Upload PDF file">
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('review')">📄 Review Paper</button>
+            <button class="tab" onclick="switchTab('search')">🔍 Search Library</button>
+        </div>
+        
+        <div id="reviewTab" class="tab-content active">
+            <div class="upload-section">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📄</div>
+                    <p class="upload-text">Drag and drop a PDF file here or click to browse</p>
+                    <p class="upload-hint">Supports research papers in PDF format</p>
+                    <input type="file" id="fileInput" accept=".pdf" aria-label="Upload PDF file">
+                </div>
+                
+                <button id="reviewBtn" class="btn-primary" disabled>
+                    <span class="btn-icon">🔍</span>
+                    Start Review
+                </button>
             </div>
             
-            <button id="reviewBtn" class="btn-primary" disabled>
-                <span class="btn-icon">🔍</span>
-                Start Review
-            </button>
-        </div>
-        
-        <div class="progress-container" id="progressContainer">
-            <div class="progress-bar">
-                <div class="progress-fill" id="progressFill"></div>
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <p class="progress-message" id="progressMessage">Initializing...</p>
             </div>
-            <p class="progress-message" id="progressMessage">Initializing...</p>
+            
+            <div class="results" id="results"></div>
         </div>
         
-        <div class="results" id="results"></div>
+        <div id="searchTab" class="tab-content">
+            <div class="library-stats" id="libraryStats">
+                <div class="stat-item">
+                    <div class="stat-value" id="statTotal">-</div>
+                    <div class="stat-label">Total Reviews</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="statAvgScore">-</div>
+                    <div class="stat-label">Avg Score</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="statPapers">-</div>
+                    <div class="stat-label">Unique Papers</div>
+                </div>
+            </div>
+            
+            <div class="search-container">
+                <input type="text" id="searchInput" class="search-input" placeholder="Search for papers... (e.g., 'neural networks', 'machine learning')">
+                <button class="search-btn" onclick="searchReviews()">🔍 Search Reviews</button>
+            </div>
+            
+            <div id="searchResults"></div>
+        </div>
     </div>
     
     <footer>
