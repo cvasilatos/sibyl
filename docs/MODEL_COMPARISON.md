@@ -122,6 +122,33 @@ Sibyl supports local open-source LLMs running via Ollama. This guide helps you u
 
 **Hardware**: Varies by size (8GB to 64GB+ RAM)
 
+### DeepSeek Coder (DeepSeek)
+
+**Models**: `deepseek-coder:1.3b`, `deepseek-coder:6.7b`, `deepseek-coder:33b`
+
+**Strengths**:
+- Exceptional understanding of code and technical content
+- Strong performance on technical and computer science papers
+- Good at analyzing algorithms and implementations
+- Excellent code snippet comprehension
+
+**Best For**:
+- Computer science papers
+- Papers with significant code components
+- Algorithm analysis
+- Technical documentation review
+
+**Typical Characteristics**:
+- Thorough technical analysis
+- Strong understanding of programming concepts
+- Good at identifying implementation issues
+- Detailed code-related feedback
+
+**Hardware**:
+- 1.3B: 8GB RAM
+- 6.7B: 16GB RAM
+- 33B: 64GB+ RAM
+
 ## Comparison Strategy
 
 ### When to Compare Multiple Models
@@ -166,6 +193,7 @@ Different models may have different scoring tendencies:
 - **Phi-3**: Concise, focused feedback
 - **Gemma**: Balanced and fair
 - **Qwen**: Structured, detailed responses
+- **DeepSeek**: Technical focus, excellent for code/algorithms
 
 ### Focus Areas
 
@@ -174,6 +202,7 @@ Different models may have different scoring tendencies:
 - **Phi-3**: Focuses on key issues
 - **Gemma**: Good at practical implications
 - **Qwen**: Strong on structured analysis
+- **DeepSeek**: Excels at technical and algorithmic content
 
 ## Best Practices
 
@@ -186,10 +215,11 @@ Different models may have different scoring tendencies:
 
 ### Optimizing for Your Needs
 
-**For Speed**: Phi-3 Mini, Gemma 2:2b, Llama 3.2:1b
-**For Quality**: Mistral, Llama 3.2:3b, Qwen (larger variants)
-**For Balance**: Llama 3.2:3b, Gemma 2:9b
-**For Limited Hardware**: Phi-3 Mini, Llama 3.2:1b
+**For Speed**: Phi-3 Mini, Gemma 2:2b, Llama 3.2:1b, DeepSeek 1.3b
+**For Quality**: Mistral, Llama 3.2:3b, Qwen (larger variants), DeepSeek 33b
+**For Balance**: Llama 3.2:3b, Gemma 2:9b, DeepSeek 6.7b
+**For Limited Hardware**: Phi-3 Mini, Llama 3.2:1b, DeepSeek 1.3b
+**For Technical Papers**: DeepSeek Coder (any size), Mistral
 
 ## Performance Metrics
 
@@ -203,6 +233,8 @@ Based on typical usage:
 | Phi-3 Mini | ⭐⭐⭐⭐⭐ | 8GB RAM | ⭐⭐⭐⭐ | ⭐⭐⭐ | 3.8B |
 | Gemma 2:2b | ⭐⭐⭐⭐⭐ | 8GB RAM | ⭐⭐⭐ | ⭐⭐⭐ | 2B |
 | Gemma 2:9b | ⭐⭐⭐ | 16-24GB RAM | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | 9B |
+| DeepSeek 1.3b | ⭐⭐⭐⭐⭐ | 8GB RAM | ⭐⭐⭐ | ⭐⭐⭐⭐ | 1.3B |
+| DeepSeek 6.7b | ⭐⭐⭐ | 16GB RAM | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | 6.7B |
 
 ## Hardware Considerations
 

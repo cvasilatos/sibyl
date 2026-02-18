@@ -9,7 +9,7 @@ Sibyl is a Python-based tool that uses Local Large Language Models (LLMs) runnin
 ### Key Features
 
 - 📄 **PDF Parsing**: Automatically extract text from research paper PDFs
-- 🤖 **Local Model Support**: Run open-source models locally via Ollama (Llama, Mistral, Phi, Gemma, Qwen, etc.)
+- 🤖 **Local Model Support**: Run open-source models locally via Ollama (Llama, Mistral, Phi, Gemma, Qwen, DeepSeek, etc.)
 - 🔒 **Privacy First**: All processing happens locally - no data sent to external APIs
 - 💰 **Zero Cost**: No API fees or subscription costs
 - 📊 **Structured Reviews**: Get consistent, structured feedback across multiple dimensions
@@ -90,10 +90,11 @@ Each review includes assessment of:
 - **phi3** (3.8B): Small but powerful from Microsoft
 - **gemma2** (2B/9B): Google's efficient models
 - **qwen2.5** (various sizes): Strong performance across tasks
+- **deepseek-coder** (1.3B-33B): Specialized for code and technical content
 
 Choose a model based on your hardware:
-- **8GB RAM**: llama3.2:1b, phi3:mini
-- **16GB RAM**: llama3.2:3b, mistral:7b, gemma2:2b
+- **8GB RAM**: llama3.2:1b, phi3:mini, deepseek-coder:1.3b
+- **16GB RAM**: llama3.2:3b, mistral:7b, gemma2:2b, deepseek-coder:6.7b
 - **32GB+ RAM**: Any model, including larger variants
 
 ## Usage
@@ -261,6 +262,7 @@ While Sibyl now focuses on local models, you can still benefit from using differ
 - **Phi-3** (Microsoft): Efficient small model with good performance
 - **Gemma 2** (Google): Well-balanced open model
 - **Qwen 2.5** (Alibaba): Strong multilingual and reasoning capabilities
+- **DeepSeek Coder** (DeepSeek): Specialized for technical and code-heavy papers
 
 ## Limitations
 
@@ -297,7 +299,7 @@ Built with:
 - [pypdf](https://github.com/py-pdf/pypdf) - PDF parsing
 - [Click](https://click.palletsprojects.com/) - CLI framework
 - [Rich](https://rich.readthedocs.io/) - Terminal formatting
-- Open-source models: Llama, Mistral, Phi, Gemma, Qwen, and others
+- Open-source models: Llama, Mistral, Phi, Gemma, Qwen, DeepSeek, and others
 
 ## Contact
 

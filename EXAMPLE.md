@@ -119,6 +119,12 @@ OLLAMA_MODEL=mistral sibyl review machine_learning_paper.pdf -o review_mistral.t
 
 # Review with Phi-3
 OLLAMA_MODEL=phi3 sibyl review machine_learning_paper.pdf -o review_phi.txt
+
+# Review with DeepSeek Coder (excellent for technical/algorithmic papers)
+OLLAMA_MODEL=deepseek-coder sibyl review machine_learning_paper.pdf -o review_deepseek.txt
+
+# Review with Qwen (good for multilingual content)
+OLLAMA_MODEL=qwen2.5 sibyl review machine_learning_paper.pdf -o review_qwen.txt
 ```
 
 ### Step 6: Handle Long Papers
@@ -199,6 +205,8 @@ If you run reviews with different models and get different scores (e.g., 6, 8, 9
 - **Mistral** focuses on technical rigor and methodology
 - **Phi-3** gives concise, focused feedback
 - **Gemma** emphasizes practical implications
+- **DeepSeek** excels at technical and algorithmic analysis
+- **Qwen** offers structured multilingual assessment
 
 ## Real-World Usage Patterns
 
@@ -238,7 +246,7 @@ done
 
 ```bash
 # Try different models for comparison
-for model in llama3.2 mistral phi3; do
+for model in llama3.2 mistral phi3 deepseek-coder qwen2.5; do
     OLLAMA_MODEL=$model sibyl review paper.pdf -o "review_${model}.txt"
 done
 ```
