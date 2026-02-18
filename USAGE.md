@@ -56,6 +56,9 @@ OLLAMA_MODEL=mistral
 # Use Phi-3
 OLLAMA_MODEL=phi3
 
+# Use DeepSeek Coder
+OLLAMA_MODEL=deepseek-coder
+
 # Use a specific variant
 OLLAMA_MODEL=llama3.2:3b
 ```
@@ -159,6 +162,12 @@ OLLAMA_MODEL=mistral sibyl review paper.pdf -o review_mistral.txt
 
 # Review with Phi
 OLLAMA_MODEL=phi3 sibyl review paper.pdf -o review_phi.txt
+
+# Review with DeepSeek Coder (good for technical papers)
+OLLAMA_MODEL=deepseek-coder sibyl review paper.pdf -o review_deepseek.txt
+
+# Review with Qwen (good for multilingual papers)
+OLLAMA_MODEL=qwen2.5 sibyl review paper.pdf -o review_qwen.txt
 ```
 
 ### JSON Output Processing

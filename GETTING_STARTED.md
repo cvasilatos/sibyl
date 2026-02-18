@@ -27,9 +27,11 @@ Download a local LLM model:
 ollama pull llama3.2
 
 # Or try other models:
-ollama pull mistral      # Excellent reasoning
-ollama pull phi3         # Small but powerful
-ollama pull gemma2       # Google's efficient model
+ollama pull mistral         # Excellent reasoning
+ollama pull phi3            # Small but powerful
+ollama pull gemma2          # Google's efficient model
+ollama pull qwen2.5         # Strong multilingual
+ollama pull deepseek-coder  # Best for technical papers
 ```
 
 **Verify the model:**
@@ -116,6 +118,10 @@ sibyl review paper.pdf -o review_llama.json
 
 # Change model in .env to mistral, then:
 sibyl review paper.pdf -o review_mistral.json
+
+# For technical papers, try DeepSeek:
+# Change model in .env to deepseek-coder, then:
+sibyl review paper.pdf -o review_deepseek.json
 
 # Compare the results manually
 ```

@@ -16,6 +16,7 @@
      - Phi-3 (Microsoft)
      - Gemma 2 (Google)
      - Qwen 2.5 (Alibaba)
+     - DeepSeek Coder (DeepSeek)
    - Flexible model selection
    - No API keys or external services required
 
