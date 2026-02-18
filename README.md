@@ -320,6 +320,8 @@ MIT License - see LICENSE file for details
 
 ## Acknowledgments
 
+**Made by Center for Cyber Security MoMA Group**
+
 Built with:
 - [Ollama](https://ollama.ai) - Local LLM runner
 - [pypdf](https://github.com/py-pdf/pypdf) - PDF parsing

@@ -317,9 +317,12 @@ export default function Home() {
         )}
 
         {/* Footer */}
-        <footer className="text-center text-white mt-8 py-4">
+        <footer className="text-center text-white mt-8 py-4 space-y-2">
           <p className="text-sm">
             Powered by local LLMs via Ollama • Privacy-first • Zero-cost
+          </p>
+          <p className="text-xs opacity-90">
+            Made by Center for Cyber Security MoMA Group
           </p>
         </footer>
       </div>

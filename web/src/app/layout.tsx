@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Sibyl - AI Research Paper Review",
-  description: "AI-Powered Research Paper Review System using local LLMs",
+  description: "AI-Powered Research Paper Review System using local LLMs - Made by Center for Cyber Security MoMA Group",
 };
 
 export default function RootLayout({
