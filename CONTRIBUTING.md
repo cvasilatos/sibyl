@@ -55,7 +55,7 @@ mypy src/
 
 ## Adding New LLM Providers
 
-To add a new LLM provider:
+To add support for a new local LLM provider:
 
 1. Create a new client class in `llm_client.py` inheriting from `LLMClient`
 2. Implement the `generate()` and `get_name()` methods
@@ -64,16 +64,37 @@ To add a new LLM provider:
 5. Add tests
 6. Update documentation
 
+Example for adding support for a hypothetical "LocalAI" provider:
+
+```python
+class LocalAIClient(LLMClient):
+    """Client for LocalAI models."""
+
+    def __init__(self, config: LLMConfig):
+        super().__init__(config)
+        self.base_url = config.api_url or "http://localhost:8080"
+
+    def generate(self, prompt: str, system_prompt: Optional[str] = None) -> str:
+        """Generate a response using LocalAI's API."""
+        # Implementation here
+        pass
+
+    def get_name(self) -> str:
+        return f"LocalAI ({self.config.model})"
+```
+
 ## Areas for Contribution
 
-- **New LLM Providers**: Add support for more models
-- **Improved Parsing**: Better PDF text extraction
-- **Additional Criteria**: New review dimensions
+- **New LLM Providers**: Add support for more local LLM runners (LocalAI, LM Studio, etc.)
+- **Improved Parsing**: Better PDF text extraction, LaTeX support
+- **Additional Criteria**: New review dimensions and evaluation metrics
 - **Visualizations**: Charts and graphs for comparisons
-- **Web Interface**: Create a web UI
+- **Web Interface**: Create a web UI (FastAPI/Streamlit)
 - **Documentation**: Improve docs and examples
 - **Tests**: Increase test coverage
+- **Performance**: GPU acceleration, optimization
 - **Bug Fixes**: Fix reported issues
+- **Model Management**: Helper commands for model installation
 
 ## Questions?
 
