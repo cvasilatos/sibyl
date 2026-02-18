@@ -244,5 +244,30 @@ def check_config():
     console.print(f"\n[bold]Total active providers:[/bold] {len(providers)}")
 
 
+@main.command()
+@click.option("--host", default="0.0.0.0", help="Host to bind to (default: 0.0.0.0)")
+@click.option("--port", default=8000, type=int, help="Port to bind to (default: 8000)")
+def web(host: str, port: int):
+    """Start the web interface for Sibyl.
+    
+    This launches a web server that provides a user-friendly interface
+    for uploading and reviewing research papers.
+    """
+    console.print("\n[bold blue]Starting Sibyl Web Interface[/bold blue]\n")
+    console.print(f"[bold]Server:[/bold] http://{host}:{port}")
+    console.print("[bold]Press Ctrl+C to stop[/bold]\n")
+    
+    try:
+        from .web_app import run_server
+        run_server(host=host, port=port)
+    except ImportError:
+        console.print(
+            "[bold red]Error:[/bold red] FastAPI and uvicorn are required for the web interface.\n"
+            "Install them with: pip install 'sibyl[web]'"
+        )
+    except KeyboardInterrupt:
+        console.print("\n[bold yellow]Server stopped.[/bold yellow]")
+
+
 if __name__ == "__main__":
     main()
