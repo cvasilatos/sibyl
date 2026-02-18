@@ -625,10 +625,13 @@ async def health_check():
     try:
         config = SibylConfig.from_env()
         providers = config.get_active_providers()
+        ollama_url = None
+        if hasattr(config, "ollama") and config.ollama:
+            ollama_url = getattr(config.ollama, "api_url", None)
         return {
             "status": "healthy",
             "providers": providers,
-            "ollama_base_url": config.ollama.base_url if hasattr(config, "ollama") else None,
+            "ollama_base_url": ollama_url,
         }
     except Exception as e:
         return {"status": "unhealthy", "error": str(e)}
