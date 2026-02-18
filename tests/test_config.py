@@ -1,8 +1,6 @@
 """Tests for the configuration module."""
 
-import os
-import pytest
-from sibyl.config import SibylConfig, LLMConfig
+from sibyl.config import LLMConfig, SibylConfig
 
 
 def test_llm_config_creation():

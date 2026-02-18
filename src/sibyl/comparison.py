@@ -1,7 +1,8 @@
 """Comparison and evaluation of multiple LLM reviews."""
 
-from typing import List, Dict, Any
 from statistics import mean, stdev
+from typing import Any, Dict, List
+
 from .reviewer import PaperReview
 
 
@@ -13,6 +14,7 @@ class ReviewComparison:
 
         Args:
             reviews: List of reviews to compare
+
         """
         self.reviews = reviews
 
@@ -21,6 +23,7 @@ class ReviewComparison:
 
         Returns:
             Dictionary containing mean, std, min, and max scores
+
         """
         scores = [review.criteria.overall_score for review in self.reviews]
 
@@ -42,6 +45,7 @@ class ReviewComparison:
 
         Returns:
             Dictionary mapping recommendation to count
+
         """
         distribution = {}
         for review in self.reviews:
@@ -54,6 +58,7 @@ class ReviewComparison:
 
         Returns:
             Consensus recommendation
+
         """
         distribution = self.get_recommendation_distribution()
         if not distribution:
@@ -65,14 +70,14 @@ class ReviewComparison:
 
         if len(consensus) == 1:
             return consensus[0]
-        else:
-            return "Mixed (" + "/".join(consensus) + ")"
+        return "Mixed (" + "/".join(consensus) + ")"
 
     def generate_summary(self) -> str:
         """Generate a summary comparing all reviews.
 
         Returns:
             Formatted summary text
+
         """
         lines = ["=" * 80]
         lines.append("REVIEW COMPARISON SUMMARY")
@@ -82,13 +87,13 @@ class ReviewComparison:
 
         # Score statistics
         stats = self.get_score_statistics()
-        lines.append(f"\nScore Statistics:")
+        lines.append("\nScore Statistics:")
         lines.append(f"  Mean: {stats['mean']:.2f}")
         lines.append(f"  Std Dev: {stats['std']:.2f}")
         lines.append(f"  Range: {stats['min']} - {stats['max']}")
 
         # Recommendations
-        lines.append(f"\nRecommendation Distribution:")
+        lines.append("\nRecommendation Distribution:")
         for rec, count in self.get_recommendation_distribution().items():
             lines.append(f"  {rec}: {count}")
 
@@ -119,6 +124,7 @@ class ReviewComparison:
 
         Returns:
             Dictionary containing comparative metrics
+
         """
         return {
             "total_reviews": len(self.reviews),

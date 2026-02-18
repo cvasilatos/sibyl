@@ -1,8 +1,9 @@
 """PDF parsing utilities for extracting text from research papers."""
 
-import pypdf
-from typing import Optional
 from pathlib import Path
+from typing import Optional
+
+import pypdf
 
 
 class PDFParser:
@@ -13,6 +14,7 @@ class PDFParser:
 
         Args:
             pdf_path: Path to the PDF file
+
         """
         self.pdf_path = Path(pdf_path)
         if not self.pdf_path.exists():
@@ -26,6 +28,7 @@ class PDFParser:
 
         Returns:
             Extracted text content
+
         """
         text_content = []
 
@@ -47,6 +50,7 @@ class PDFParser:
 
         Returns:
             Dictionary containing PDF metadata
+
         """
         with open(self.pdf_path, "rb") as file:
             pdf_reader = pypdf.PdfReader(file)

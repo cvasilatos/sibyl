@@ -46,7 +46,7 @@ def main():
         reviewer = ReviewSystem(client)
 
         # Generate review
-        review = reviewer.review_paper(paper_text, metadata['title'])
+        review = reviewer.review_paper(paper_text, metadata["title"])
         reviews.append(review)
 
         print(
@@ -91,47 +91,47 @@ def main():
 def compare_multiple_models():
     """Example: Compare multiple local models by running them sequentially."""
     import os
-    
+
     models_to_test = ["llama3.2", "mistral", "phi3"]
     pdf_path = "path/to/your/paper.pdf"
-    
+
     # Parse PDF once before the loop
     parser = PDFParser(pdf_path)
     paper_text = parser.extract_text(max_pages=10)
     metadata = parser.get_metadata()
-    
+
     all_reviews = []
-    
+
     for model_name in models_to_test:
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"Testing model: {model_name}")
-        print('='*60)
-        
+        print("=" * 60)
+
         # Set environment variable for this model
-        os.environ['OLLAMA_MODEL'] = model_name
-        
+        os.environ["OLLAMA_MODEL"] = model_name
+
         # Reload config with new model
         config = SibylConfig.from_env()
-        
+
         if not config.ollama:
             print(f"Skipping {model_name} - not configured")
             continue
-        
+
         # Create client and review
         client = create_client("ollama", config.ollama)
         reviewer = ReviewSystem(client)
-        review = reviewer.review_paper(paper_text, metadata['title'])
+        review = reviewer.review_paper(paper_text, metadata["title"])
         all_reviews.append(review)
-        
+
         print(f"  Score: {review.criteria.overall_score}/10")
         print(f"  Recommendation: {review.criteria.recommendation}")
-    
+
     # Compare all reviews
     if len(all_reviews) > 1:
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("Comparison Across Models")
-        print('='*60)
-        
+        print("=" * 60)
+
         comparison = ReviewComparison(all_reviews)
         summary = comparison.generate_summary()
         print(summary)
@@ -139,6 +139,6 @@ def compare_multiple_models():
 
 if __name__ == "__main__":
     main()
-    
+
     # Uncomment to test multiple models
     # compare_multiple_models()

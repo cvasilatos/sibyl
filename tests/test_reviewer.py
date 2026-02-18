@@ -1,8 +1,8 @@
 """Tests for the reviewer module."""
 
 import pytest
-from sibyl.reviewer import ReviewCriteria, PaperReview, ReviewSystem
-from sibyl.config import LLMConfig
+
+from sibyl.reviewer import PaperReview, ReviewCriteria
 
 
 def test_review_criteria_creation():

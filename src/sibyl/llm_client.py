@@ -2,8 +2,8 @@
 
 from abc import ABC, abstractmethod
 from typing import Optional
+
 import requests
-import json
 
 from .config import LLMConfig
 
@@ -16,6 +16,7 @@ class LLMClient(ABC):
 
         Args:
             config: LLM configuration
+
         """
         self.config = config
 
@@ -29,13 +30,14 @@ class LLMClient(ABC):
 
         Returns:
             Generated response text
+
         """
-        pass
+        ...
 
     @abstractmethod
     def get_name(self) -> str:
         """Get the name of the LLM provider."""
-        pass
+        ...
 
 
 class OllamaClient(LLMClient):
@@ -65,7 +67,9 @@ class OllamaClient(LLMClient):
 
         try:
             response = requests.post(
-                self.api_url, json=payload, timeout=300  # 5 minute timeout for large models
+                self.api_url,
+                json=payload,
+                timeout=300,  # 5 minute timeout for large models
             )
             response.raise_for_status()
             result = response.json()
@@ -92,6 +96,7 @@ def create_client(provider: str, config: LLMConfig) -> LLMClient:
 
     Raises:
         ValueError: If provider is not supported
+
     """
     clients = {
         "ollama": OllamaClient,
@@ -99,6 +104,8 @@ def create_client(provider: str, config: LLMConfig) -> LLMClient:
 
     client_class = clients.get(provider)
     if not client_class:
-        raise ValueError(f"Unsupported provider: {provider}. Supported providers: {list(clients.keys())}")
+        raise ValueError(
+            f"Unsupported provider: {provider}. Supported providers: {list(clients.keys())}"
+        )
 
     return client_class(config)

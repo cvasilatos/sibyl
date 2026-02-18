@@ -1,18 +1,19 @@
 """Command-line interface for Sibyl."""
 
-import click
-from pathlib import Path
-from rich.console import Console
-from rich.table import Table
-from rich.progress import Progress, SpinnerColumn, TextColumn
-from datetime import datetime
 import json
+from datetime import datetime
+from pathlib import Path
 
-from .config import SibylConfig
-from .pdf_parser import PDFParser
-from .llm_client import create_client
-from .reviewer import ReviewSystem
+import click
+from rich.console import Console
+from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.table import Table
+
 from .comparison import ReviewComparison
+from .config import SibylConfig
+from .llm_client import create_client
+from .pdf_parser import PDFParser
+from .reviewer import ReviewSystem
 
 console = Console()
 
@@ -21,7 +22,6 @@ console = Console()
 @click.version_option(version="0.1.0")
 def main():
     """Sibyl - An LLM-powered research paper review system."""
-    pass
 
 
 @main.command()
@@ -77,9 +77,7 @@ def review(pdf_path: str, providers: tuple, output: str, max_pages: int):
         providers_to_use = active_providers
 
     if not providers_to_use:
-        console.print(
-            "[bold red]Error:[/bold red] No valid providers available for review."
-        )
+        console.print("[bold red]Error:[/bold red] No valid providers available for review.")
         return
 
     console.print(f"[bold]Paper:[/bold] {pdf_path}")
@@ -132,7 +130,7 @@ def review(pdf_path: str, providers: tuple, output: str, max_pages: int):
                     f"Recommendation: {review.criteria.recommendation}"
                 )
             except Exception as e:
-                console.print(f"  ✗ {provider}: [red]Error - {str(e)}[/red]")
+                console.print(f"  ✗ {provider}: [red]Error - {e!s}[/red]")
 
     if not reviews:
         console.print("\n[bold red]Error:[/bold red] No reviews were generated.")
@@ -170,7 +168,7 @@ def _display_results(reviews, comparison):
 
     # Statistics
     stats = comparison.get_score_statistics()
-    console.print(f"\n[bold]Score Statistics:[/bold]")
+    console.print("\n[bold]Score Statistics:[/bold]")
     console.print(f"  Mean: {stats['mean']:.2f}")
     console.print(f"  Std Dev: {stats['std']:.2f}")
     console.print(f"  Range: {stats['min']} - {stats['max']}")
@@ -204,7 +202,7 @@ def _save_results(output_path: str, reviews, comparison, metadata):
         # Save as text
         summary = comparison.generate_summary()
         with open(output_path, "w") as f:
-            f.write(f"Research Paper Review\n")
+            f.write("Research Paper Review\n")
             f.write(f"Generated: {datetime.now().isoformat()}\n")
             f.write(f"Paper: {metadata.get('title', 'Unknown')}\n")
             f.write(f"Author: {metadata.get('author', 'Unknown')}\n")
