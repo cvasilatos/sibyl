@@ -35,6 +35,8 @@ ENV/
 
 # Environment variables
 .env
+.env.local
+.env.*.local
 
 # Testing
 .coverage
@@ -55,3 +57,12 @@ outputs/
 reviews/
 *.pdf
 !examples/*.pdf
+
+# Next.js / Node.js
+web/node_modules/
+web/.next/
+web/.turbo/
+web/out/
+web/build/
+web/.vercel
+web/*.tsbuildinfo

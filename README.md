@@ -106,17 +106,24 @@ Choose a model based on your hardware:
 
 ### Web Interface (Recommended)
 
-The easiest way to use Sibyl is through the web interface:
+The easiest way to use Sibyl is through the modern Next.js web interface:
 
 ```bash
-# Start the web server
+# Terminal 1: Start the FastAPI backend
 sibyl web
 
-# Open your browser to http://localhost:8000
+# Terminal 2: Start the Next.js frontend
+cd web
+npm install  # First time only
+npm run dev
+
+# Open your browser to http://localhost:3000
 # Drag and drop a PDF, click "Start Review", and watch the progress!
 ```
 
-For more details, see the [Web App Documentation](docs/WEB_APP.md).
+**Tech Stack**: React, Next.js 15, TypeScript, Tailwind CSS, shadcn/ui
+
+For more details, see the [Next.js Web App Documentation](docs/WEB_APP_NEXTJS.md).
 
 ### Check Configuration
 
