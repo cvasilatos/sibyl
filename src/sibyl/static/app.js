@@ -394,7 +394,7 @@ function displayReviewList(reviews, title, showSimilarity = false) {
     
     reviews.forEach(review => {
         const recClass = getRecommendationClass(review.recommendation);
-        const similarity = showSimilarity && review.similarity_score ? 
+        const similarity = showSimilarity && review.similarity_score && typeof review.similarity_score === 'number' ? 
             `<span class="similarity-badge">${(review.similarity_score * 100).toFixed(0)}% match</span>` : '';
         
         html += `

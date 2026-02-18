@@ -665,7 +665,7 @@ async def root():
                     reviews.forEach(review => {
                         const recClass = review.recommendation.toLowerCase().includes('accept') ? 'accept' :
                                        review.recommendation.toLowerCase().includes('reject') ? 'reject' : 'revise';
-                        const similarity = showSimilarity && review.similarity_score ? 
+                        const similarity = showSimilarity && review.similarity_score && typeof review.similarity_score === 'number' ? 
                             `<span class="similarity-badge">${(review.similarity_score * 100).toFixed(0)}% match</span>` : '';
                         
                         html += `
@@ -983,9 +983,15 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
     except Exception as e:
         await websocket.send_json({"status": "error", "message": str(e)})
     finally:
-        # Note: Don't delete PDF as it's stored now
-        # Clean up temporary file only if save failed
-        pass
+        # Note: PDFs are now stored in the storage system
+        # Only clean up temp file if save to storage failed
+        if session.get("status") != "completed":
+            # Save failed, clean up temp file
+            if "pdf_path" in session and os.path.exists(session["pdf_path"]):
+                try:
+                    os.remove(session["pdf_path"])
+                except Exception:
+                    pass
 
 
 @app.get("/api/session/{session_id}", response_model=SessionStatus)

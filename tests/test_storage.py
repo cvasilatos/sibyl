@@ -173,8 +173,17 @@ def test_search_reviews_semantic(storage, sample_review):
     # Search for machine learning - should find the ML paper
     results = storage.search_reviews("machine learning")
     assert len(results) >= 1
-    # The first result should have a similarity score
-    assert results[0].similarity_score is not None
+    
+    # Verify similarity scores are valid
+    for result in results:
+        assert result.similarity_score is not None
+        assert isinstance(result.similarity_score, float)
+        assert 0.0 <= result.similarity_score <= 1.0
+    
+    # Verify results are sorted by similarity (descending)
+    if len(results) > 1:
+        for i in range(len(results) - 1):
+            assert results[i].similarity_score >= results[i + 1].similarity_score
 
 
 def test_delete_review(storage, sample_review):

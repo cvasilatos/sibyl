@@ -84,12 +84,13 @@ class ReviewStorage:
             )
             response.raise_for_status()
             return response.json()["embedding"]
-        except Exception as e:
-            # Fallback: use a simple hash-based embedding for testing
-            # In production, this should raise an error
+        except Exception:
+            # Fallback for testing only - should not be used in production
+            # TODO: In production, raise an exception instead of using fallback
             import hashlib
-            hash_val = int(hashlib.md5(text.encode()).hexdigest(), 16)
-            # Generate a simple 384-dimensional embedding
+            # Using SHA-256 instead of MD5 for better security practices
+            hash_val = int(hashlib.sha256(text.encode()).hexdigest()[:16], 16)
+            # Generate a simple 384-dimensional embedding for testing
             embedding = [(hash_val >> i) % 100 / 100.0 for i in range(384)]
             return embedding
 
@@ -142,7 +143,9 @@ class ReviewStorage:
         
         # Add paper text for better search
         if paper_text:
-            # Limit paper text to first 5000 chars to avoid embedding size issues
+            # Limit paper text to first 5000 chars to avoid model token limits
+            # Most embedding models have a max token limit (e.g., 512-8192 tokens)
+            # 5000 chars ≈ 1000-1500 tokens, safe for most models
             searchable_content += f"\n\nPaper Content: {paper_text[:5000]}"
         
         # Generate embedding
@@ -207,6 +210,10 @@ class ReviewStorage:
                 
                 review_data = json.loads(metadata["review_json"])
                 
+                # Create summary with proper ellipsis handling
+                feedback = review_data["criteria"]["detailed_feedback"]
+                review_summary = feedback[:200] + ("..." if len(feedback) > 200 else "")
+                
                 reviews.append(
                     StoredReview(
                         id=review_id,
@@ -216,7 +223,7 @@ class ReviewStorage:
                         reviewer_model=metadata["reviewer_model"],
                         overall_score=metadata["overall_score"],
                         recommendation=metadata["recommendation"],
-                        review_summary=review_data["criteria"]["detailed_feedback"][:200] + "...",
+                        review_summary=review_summary,
                         created_at=metadata["created_at"],
                         similarity_score=similarity,
                     )
@@ -252,6 +259,10 @@ class ReviewStorage:
                 metadata = all_results["metadatas"][i]
                 review_data = json.loads(metadata["review_json"])
                 
+                # Create summary with proper ellipsis handling
+                feedback = review_data["criteria"]["detailed_feedback"]
+                review_summary = feedback[:200] + ("..." if len(feedback) > 200 else "")
+                
                 reviews.append(
                     StoredReview(
                         id=review_id,
@@ -261,7 +272,7 @@ class ReviewStorage:
                         reviewer_model=metadata["reviewer_model"],
                         overall_score=metadata["overall_score"],
                         recommendation=metadata["recommendation"],
-                        review_summary=review_data["criteria"]["detailed_feedback"][:200] + "...",
+                        review_summary=review_summary,
                         created_at=metadata["created_at"],
                     )
                 )
