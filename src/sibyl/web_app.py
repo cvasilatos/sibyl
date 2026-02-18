@@ -986,7 +986,6 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
         # Note: Don't delete PDF as it's stored now
         # Clean up temporary file only if save failed
         pass
-                pass
 
 
 @app.get("/api/session/{session_id}", response_model=SessionStatus)

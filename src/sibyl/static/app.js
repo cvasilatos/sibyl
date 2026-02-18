@@ -306,6 +306,216 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+// Tab switching
+function switchTab(tab) {
+    const tabs = document.querySelectorAll('.tab');
+    const tabContents = document.querySelectorAll('.tab-content');
+    
+    tabs.forEach(t => t.classList.remove('active'));
+    tabContents.forEach(tc => tc.classList.remove('active'));
+    
+    if (tab === 'review') {
+        tabs[0].classList.add('active');
+        document.getElementById('reviewTab').classList.add('active');
+    } else if (tab === 'search') {
+        tabs[1].classList.add('active');
+        document.getElementById('searchTab').classList.add('active');
+        loadStatistics();
+        loadRecentReviews();
+    }
+}
+
+// Load statistics
+async function loadStatistics() {
+    try {
+        const response = await fetch('/api/statistics');
+        const stats = await response.json();
+        
+        document.getElementById('statTotal').textContent = stats.total_reviews;
+        document.getElementById('statAvgScore').textContent = stats.avg_score.toFixed(1);
+        document.getElementById('statPapers').textContent = stats.unique_papers;
+    } catch (error) {
+        console.error('Error loading statistics:', error);
+    }
+}
+
+// Load recent reviews
+async function loadRecentReviews() {
+    try {
+        const response = await fetch('/api/reviews?limit=20');
+        const data = await response.json();
+        
+        if (data.reviews && data.reviews.length > 0) {
+            displayReviewList(data.reviews, '📚 Recent Reviews');
+        } else {
+            displayEmptyState();
+        }
+    } catch (error) {
+        console.error('Error loading reviews:', error);
+        displayEmptyState();
+    }
+}
+
+// Search reviews
+async function searchReviews() {
+    const query = document.getElementById('searchInput').value;
+    if (!query) {
+        loadRecentReviews();
+        return;
+    }
+    
+    const searchResults = document.getElementById('searchResults');
+    searchResults.innerHTML = '<p style="text-align: center; color: #666;">🔍 Searching...</p>';
+    
+    try {
+        const response = await fetch('/api/search', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({query: query, limit: 20})
+        });
+        const data = await response.json();
+        
+        if (data.results && data.results.length > 0) {
+            displayReviewList(data.results, `Search Results for "${query}"`, true);
+        } else {
+            searchResults.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🔍</div><p>No reviews found matching your query.</p></div>';
+        }
+    } catch (error) {
+        console.error('Error searching:', error);
+        searchResults.innerHTML = '<div class="error">Error searching reviews. Please try again.</div>';
+    }
+}
+
+// Display review list
+function displayReviewList(reviews, title, showSimilarity = false) {
+    const container = document.getElementById('searchResults');
+    
+    let html = `<h3 style="margin-bottom: 20px; color: #333;">${title}</h3>`;
+    
+    reviews.forEach(review => {
+        const recClass = getRecommendationClass(review.recommendation);
+        const similarity = showSimilarity && review.similarity_score ? 
+            `<span class="similarity-badge">${(review.similarity_score * 100).toFixed(0)}% match</span>` : '';
+        
+        html += `
+            <div class="review-list-item" onclick="viewReview('${review.id}')">
+                <div class="review-list-header">
+                    <span class="review-list-title">${escapeHtml(review.paper_title)}</span>
+                    ${similarity}
+                </div>
+                <div class="review-list-meta">
+                    ${escapeHtml(review.pdf_filename)} • ${escapeHtml(review.reviewer_model)} • ${new Date(review.created_at).toLocaleDateString()}
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px; margin-top: 10px;">
+                    <span class="score">${review.overall_score}/10</span>
+                    <span class="recommendation ${recClass}">${escapeHtml(review.recommendation)}</span>
+                </div>
+                <div class="review-list-summary">
+                    ${escapeHtml(review.review_summary)}
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+// Display empty state
+function displayEmptyState() {
+    const container = document.getElementById('searchResults');
+    container.innerHTML = `
+        <div class="empty-state">
+            <div class="empty-state-icon">📚</div>
+            <p>No reviews in your library yet.</p>
+            <p style="font-size: 14px; color: #999;">Review some papers to build your searchable library!</p>
+        </div>
+    `;
+}
+
+// View full review
+async function viewReview(reviewId) {
+    try {
+        const response = await fetch(`/api/reviews/${reviewId}`);
+        const review = await response.json();
+        
+        // Switch to review tab and display full review
+        switchTab('review');
+        
+        const criteria = review.criteria;
+        const recClass = getRecommendationClass(criteria.recommendation);
+        
+        const html = `
+            <h2 style="margin-bottom: 20px; color: #333;">${escapeHtml(review.paper_title)}</h2>
+            <div class="review-card">
+                <div class="review-header">
+                    <h3>🤖 ${escapeHtml(review.reviewer_model)}</h3>
+                    <div class="review-meta">
+                        <span class="score">${criteria.overall_score}/10</span>
+                        <span class="recommendation ${recClass}">${escapeHtml(criteria.recommendation)}</span>
+                    </div>
+                </div>
+                <p style="color: #999; font-size: 14px; margin-bottom: 20px;">
+                    📄 ${escapeHtml(review.pdf_filename)} • 📅 ${new Date(review.created_at).toLocaleDateString()}
+                </p>
+                
+                <div class="section">
+                    <div class="section-title">💡 Novelty</div>
+                    <div class="section-content">${escapeHtml(criteria.novelty)}</div>
+                </div>
+                
+                <div class="section">
+                    <div class="section-title">🔬 Methodology</div>
+                    <div class="section-content">${escapeHtml(criteria.methodology)}</div>
+                </div>
+                
+                <div class="section">
+                    <div class="section-title">📈 Results</div>
+                    <div class="section-content">${escapeHtml(criteria.results)}</div>
+                </div>
+                
+                <div class="section">
+                    <div class="section-title">✍️ Clarity</div>
+                    <div class="section-content">${escapeHtml(criteria.clarity)}</div>
+                </div>
+                
+                <div class="section">
+                    <div class="section-title">🎯 Impact</div>
+                    <div class="section-content">${escapeHtml(criteria.impact)}</div>
+                </div>
+                
+                <div class="section">
+                    <div class="section-title">💪 Strengths</div>
+                    <div class="section-content">${escapeHtml(criteria.strengths)}</div>
+                </div>
+                
+                <div class="section">
+                    <div class="section-title">⚠️ Limitations</div>
+                    <div class="section-content">${escapeHtml(criteria.limitations)}</div>
+                </div>
+                
+                <div class="section">
+                    <div class="section-title">📝 Detailed Feedback</div>
+                    <div class="section-content">${escapeHtml(criteria.detailed_feedback)}</div>
+                </div>
+            </div>
+        `;
+        
+        results.innerHTML = html;
+        results.style.display = 'block';
+        window.scrollTo({top: 0, behavior: 'smooth'});
+    } catch (error) {
+        console.error('Error loading review:', error);
+        showError('Failed to load review details');
+    }
+}
+
+// Add Enter key support for search
+document.addEventListener('keypress', (e) => {
+    if (e.target.id === 'searchInput' && e.key === 'Enter') {
+        searchReviews();
+    }
+});
+
 // Initialize app when DOM is ready
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
