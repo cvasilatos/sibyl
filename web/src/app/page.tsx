@@ -162,18 +162,26 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-500 via-purple-600 to-purple-700 p-4 md:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-violet-900 via-purple-900 to-indigo-900 p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
         <Card className="mb-8">
-          <CardHeader className="text-center">
-            <div className="flex items-center justify-center mb-4">
+          <CardHeader className="text-center border-b pb-6">
+            <div className="flex items-center justify-center mb-2">
               <span className="text-6xl">🔮</span>
             </div>
-            <CardTitle className="text-4xl font-bold">Sibyl</CardTitle>
-            <CardDescription className="text-lg">
+            <CardTitle className="text-4xl font-bold mb-2">Sibyl</CardTitle>
+            <CardDescription className="text-lg font-medium">
               AI-Powered Research Paper Review System
             </CardDescription>
-            <p className="text-sm text-muted-foreground mt-2">
+            <div className="mt-4 space-y-1">
+              <p className="text-sm font-semibold text-primary">
+                NYU Center for Cybersecurity
+              </p>
+              <p className="text-sm font-semibold text-primary">
+                MoMA Group - Mobile Security and Communications Systems
+              </p>
+            </div>
+            <p className="text-sm text-muted-foreground mt-3">
               Upload a research paper and get comprehensive AI-powered reviews using local LLM models
             </p>
           </CardHeader>
@@ -317,12 +325,20 @@ export default function Home() {
         )}
 
         {/* Footer */}
-        <footer className="text-center text-white mt-8 py-4 space-y-2">
-          <p className="text-sm">
+        <footer className="text-center text-white mt-8 py-6 space-y-3 bg-white/10 rounded-lg backdrop-blur-sm">
+          <div className="space-y-1">
+            <p className="text-base font-semibold">
+              NYU Center for Cybersecurity
+            </p>
+            <p className="text-sm font-medium">
+              MoMA Group - Mobile Security and Communications Systems
+            </p>
+          </div>
+          <p className="text-sm opacity-90">
             Powered by local LLMs via Ollama • Privacy-first • Zero-cost
           </p>
-          <p className="text-xs opacity-90">
-            Made by Center for Cyber Security MoMA Group
+          <p className="text-xs opacity-75">
+            New York University Tandon School of Engineering
           </p>
         </footer>
       </div>
