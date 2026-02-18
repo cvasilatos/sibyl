@@ -56,8 +56,8 @@ def main():
 
     print()
 
-    # 4. Compare reviews (if you have multiple)
-    if len(reviews) > 0:
+    # 4. Compare reviews (if you have any)
+    if reviews:
         print("Comparing reviews...")
         comparison = ReviewComparison(reviews)
 
@@ -95,6 +95,11 @@ def compare_multiple_models():
     models_to_test = ["llama3.2", "mistral", "phi3"]
     pdf_path = "path/to/your/paper.pdf"
     
+    # Parse PDF once before the loop
+    parser = PDFParser(pdf_path)
+    paper_text = parser.extract_text(max_pages=10)
+    metadata = parser.get_metadata()
+    
     all_reviews = []
     
     for model_name in models_to_test:
@@ -111,12 +116,6 @@ def compare_multiple_models():
         if not config.ollama:
             print(f"Skipping {model_name} - not configured")
             continue
-            
-        # Parse PDF (once)
-        if not all_reviews:  # Only parse once
-            parser = PDFParser(pdf_path)
-            paper_text = parser.extract_text(max_pages=10)
-            metadata = parser.get_metadata()
         
         # Create client and review
         client = create_client("ollama", config.ollama)
