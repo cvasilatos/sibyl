@@ -359,7 +359,6 @@ input[type="file"] {
 .section-content {
     color: var(--text-medium);
     line-height: 1.7;
-    padding-left: 20px;
     background: var(--bg-white);
     padding: 15px;
     border-radius: 6px;

@@ -463,8 +463,24 @@ async def root():
 @app.post("/api/upload")
 async def upload_paper(file: UploadFile = File(...)):
     """Upload a PDF paper for review."""
-    if not file.filename.endswith(".pdf"):
+    # Validate file extension
+    if not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are supported")
+    
+    # Validate content type
+    if file.content_type != "application/pdf":
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid file type. Only PDF files are supported"
+        )
+    
+    # Read and validate PDF magic bytes
+    content = await file.read()
+    if not content.startswith(b'%PDF-'):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid PDF file. File does not appear to be a valid PDF"
+        )
 
     # Create a session ID
     session_id = str(uuid.uuid4())
@@ -474,7 +490,6 @@ async def upload_paper(file: UploadFile = File(...)):
     temp_path = os.path.join(temp_dir, f"{session_id}.pdf")
 
     with open(temp_path, "wb") as f:
-        content = await file.read()
         f.write(content)
 
     # Store session info
@@ -539,21 +554,50 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
 
         reviews = []
         for i, provider in enumerate(providers):
-            provider_config = getattr(config, provider)
-            client = create_client(provider, provider_config)
-            reviewer = ReviewSystem(client)
+            try:
+                provider_config = getattr(config, provider, None)
+                if not provider_config:
+                    await websocket.send_json(
+                        {
+                            "status": "error",
+                            "message": f"Configuration for provider '{provider}' not found. Please check your .env file.",
+                        }
+                    )
+                    await websocket.close()
+                    return
 
-            progress = 40 + (50 * (i + 1) // len(providers))
-            await websocket.send_json(
-                {
-                    "status": "progress",
-                    "progress": progress,
-                    "message": f"Reviewing with {provider}...",
-                }
-            )
+                client = create_client(provider, provider_config)
+                reviewer = ReviewSystem(client)
 
-            review = reviewer.review_paper(paper_text, paper_title)
-            reviews.append(review)
+                progress = 40 + (50 * (i + 1) // len(providers))
+                await websocket.send_json(
+                    {
+                        "status": "progress",
+                        "progress": progress,
+                        "message": f"Reviewing with {provider}...",
+                    }
+                )
+
+                review = reviewer.review_paper(paper_text, paper_title)
+                reviews.append(review)
+            except AttributeError as e:
+                await websocket.send_json(
+                    {
+                        "status": "error",
+                        "message": f"Configuration error for provider '{provider}': {str(e)}",
+                    }
+                )
+                await websocket.close()
+                return
+            except Exception as e:
+                await websocket.send_json(
+                    {
+                        "status": "error",
+                        "message": f"Error reviewing with {provider}: {str(e)}",
+                    }
+                )
+                await websocket.close()
+                return
 
         # Generate comparison
         await websocket.send_json(

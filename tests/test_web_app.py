@@ -116,6 +116,28 @@ def test_upload_non_pdf(client):
     assert "Only PDF files are supported" in response.text
 
 
+def test_upload_fake_pdf(client):
+    """Test uploading a file with .pdf extension but not actual PDF content."""
+    response = client.post(
+        "/api/upload",
+        files={"file": ("fake.pdf", b"This is not a PDF", "application/pdf")},
+    )
+
+    assert response.status_code == 400
+    assert "Invalid PDF file" in response.text
+
+
+def test_upload_double_extension(client):
+    """Test uploading a file with double extension."""
+    response = client.post(
+        "/api/upload",
+        files={"file": ("malicious.pdf.exe", b"%PDF-1.4\nContent", "application/pdf")},
+    )
+
+    # Should fail because content type check or extension check
+    assert response.status_code == 400
+
+
 def test_session_not_found(client):
     """Test getting status for non-existent session."""
     response = client.get("/api/session/invalid-session-id")
