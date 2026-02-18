@@ -2,17 +2,22 @@
 
 ## Project Overview
 
-**Sibyl** is a comprehensive LLM-powered research paper review system built with Python. It uses multiple AI models to provide thorough, comparative analysis of academic papers.
+**Sibyl** is a comprehensive LLM-powered research paper review system built with Python. It uses local open-source AI models running via Ollama to provide thorough analysis of academic papers with complete privacy and zero cost.
 
 ## What Has Been Built
 
 ### Core Features
 
-1. **Multi-Model LLM Integration**
-   - OpenAI GPT-4 support
-   - Anthropic Claude 3 support
-   - Google Gemini Pro support
-   - Flexible provider selection
+1. **Local LLM Integration**
+   - Ollama support for running models locally
+   - Support for popular open-source models:
+     - Llama 3.2 (Meta)
+     - Mistral (Mistral AI)
+     - Phi-3 (Microsoft)
+     - Gemma 2 (Google)
+     - Qwen 2.5 (Alibaba)
+   - Flexible model selection
+   - No API keys or external services required
 
 2. **PDF Processing**
    - Automatic text extraction from research papers
@@ -42,7 +47,7 @@
    - Easy-to-use command-line tool
    - Rich formatted output
    - Multiple output formats (text, JSON)
-   - Provider selection options
+   - Model selection options
    - Configuration checking
 
 ### Project Structure
@@ -84,9 +89,7 @@ sibyl/
 
 ### Core Dependencies
 
-- **openai** (>=1.0.0) - OpenAI GPT-4 API client
-- **anthropic** (>=0.18.0) - Anthropic Claude API client
-- **google-genai** (>=1.0.0) - Google Gemini API client
+- **requests** (>=2.31.0) - HTTP client for Ollama API
 - **pypdf** (>=3.17.0) - PDF text extraction
 - **pydantic** (>=2.0.0) - Data validation and settings
 - **click** (>=8.1.0) - CLI framework
@@ -102,16 +105,31 @@ sibyl/
 - **ruff** - Linting
 - **mypy** - Type checking
 
+### External Requirements
+
+- **Ollama** - Local LLM runner (https://ollama.ai)
+
 ## Key Design Decisions
 
-### 1. Provider Abstraction
+### 1. Local-First Architecture
 
-Created an abstract `LLMClient` base class to enable:
-- Easy addition of new providers
-- Consistent interface across all models
-- Independent provider failures don't affect others
+Moved from cloud APIs to local execution:
+- Complete data privacy - no external API calls
+- Zero ongoing costs
+- Works offline
+- Full control over models
+- Transparent and open-source
 
-### 2. Structured Output
+### 2. Ollama Integration
+
+Chose Ollama as the LLM runner because:
+- Easy installation across platforms
+- Wide model support
+- Simple API
+- Good performance
+- Active development community
+
+### 3. Structured Output
 
 Used Pydantic models for:
 - Type safety
@@ -119,15 +137,15 @@ Used Pydantic models for:
 - Easy serialization to JSON
 - Clear data contracts
 
-### 3. Flexible Configuration
+### 4. Flexible Configuration
 
 Environment-based configuration allows:
-- Optional provider setup
-- Easy API key management
-- Per-provider model selection
+- Simple model switching
+- Easy base URL customization
 - Temperature and token customization
+- No credentials management needed
 
-### 4. Rich CLI Experience
+### 5. Rich CLI Experience
 
 Implemented using Rich library for:
 - Beautiful terminal output
@@ -135,7 +153,7 @@ Implemented using Rich library for:
 - Formatted tables
 - Color-coded messages
 
-### 5. Comprehensive Testing
+### 6. Comprehensive Testing
 
 15 unit tests covering:
 - Configuration management
@@ -148,6 +166,11 @@ Implemented using Rich library for:
 ### Installation
 
 ```bash
+# Install Ollama from https://ollama.ai
+# Pull a model
+ollama pull llama3.2
+
+# Clone and install Sibyl
 git clone https://github.com/cvasilatos/sibyl.git
 cd sibyl
 pip install -e .
@@ -156,18 +179,15 @@ pip install -e .
 ### Quick Start
 
 ```bash
-# Configure API keys
+# Configure
 cp .env.example .env
-# Edit .env with your API keys
+# Edit .env: OLLAMA_MODEL=llama3.2
 
 # Check configuration
 sibyl check-config
 
 # Review a paper
 sibyl review paper.pdf
-
-# Review with specific providers
-sibyl review paper.pdf -p openai -p anthropic
 
 # Save results
 sibyl review paper.pdf -o results.json
@@ -215,7 +235,7 @@ print(comparison.generate_summary())
 
 The system is designed to be easily extended:
 
-1. **New LLM Providers**: Inherit from `LLMClient` and implement two methods
+1. **New LLM Providers**: Easy to add support for other local LLM runners
 2. **Custom Review Criteria**: Modify `ReviewCriteria` model
 3. **Additional Output Formats**: Add new formatters in CLI
 4. **Batch Processing**: Build on top of existing API
@@ -225,48 +245,66 @@ The system is designed to be easily extended:
 
 1. **Type Hints**: All functions have type annotations
 2. **Docstrings**: Comprehensive documentation for public APIs
-3. **Error Handling**: Graceful handling of API failures
-4. **Configuration**: Environment-based, secure configuration
+3. **Error Handling**: Graceful handling of connection failures
+4. **Configuration**: Environment-based, simple configuration
 5. **Testing**: Unit tests for critical functionality
 6. **Documentation**: Multiple levels (README, guides, API docs)
 7. **Code Quality**: Black formatting, Ruff linting ready
 8. **Version Control**: Proper .gitignore, clear commit messages
+9. **Privacy First**: No data leaves local machine
+10. **Open Source**: Built on open-source models and tools
 
 ## Future Enhancements
 
 Potential improvements identified:
 
-- [ ] Support for local models (Llama, Mistral)
+- [ ] Support for multiple concurrent model comparisons
 - [ ] Batch processing of multiple papers
 - [ ] Web interface (FastAPI/Streamlit)
 - [ ] Custom review templates
 - [ ] Citation analysis integration
 - [ ] LaTeX document support
 - [ ] Figure and table analysis
-- [ ] Fine-tuning on domain-specific papers
-- [ ] Cost tracking and optimization
+- [ ] GPU acceleration optimization
+- [ ] Model quantization management
 - [ ] Review history and tracking
 
-## Cost Considerations
+## Benefits Over Cloud APIs
 
-Approximate costs per review (varies by paper length):
+### Privacy & Security
+- All data stays on your machine
+- No third-party data processing
+- Complete control over information
 
-- **GPT-4**: $0.10 - $0.50
-- **Claude 3**: $0.05 - $0.30
-- **Gemini Pro**: $0.01 - $0.10
+### Cost
+- Zero API fees
+- No subscription costs
+- Unlimited usage
+- No rate limits
 
-Using all three models: ~$0.16 - $0.90 per paper
+### Control
+- Choose any compatible model
+- Customize model parameters
+- Switch models instantly
+- Works offline
+
+### Performance
+- No network latency (with good hardware)
+- Predictable performance
+- No API downtime issues
 
 ## Conclusion
 
-Sibyl is a production-ready, well-documented, and tested system for automated research paper review using multiple LLM providers. It provides a solid foundation for academic paper analysis and can be easily extended for specific use cases.
+Sibyl is a production-ready, well-documented, and tested system for automated research paper review using local open-source LLM models. It provides complete privacy, zero ongoing costs, and a solid foundation for academic paper analysis.
 
 The project demonstrates:
+- Privacy-first architecture with local execution
 - Clean architecture with separation of concerns
 - Proper Python packaging and distribution
 - Comprehensive documentation for users and developers
 - Test coverage for critical functionality
 - Professional-grade CLI experience
 - Flexible, extensible design
+- Zero-cost operation
 
 Ready for immediate use and further development!

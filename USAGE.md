@@ -13,23 +13,31 @@ cd sibyl
 pip install -e .
 ```
 
-### 2. Configure API Keys
-
-Create a `.env` file with your API keys:
+### 2. Install and Configure Ollama
 
 ```bash
-OPENAI_API_KEY=sk-...
-ANTHROPIC_API_KEY=sk-ant-...
-GOOGLE_API_KEY=AI...
+# Install Ollama from https://ollama.ai
+
+# Pull a model
+ollama pull llama3.2
 ```
 
-### 3. Verify Configuration
+### 3. Configure Sibyl
+
+Create a `.env` file:
+
+```bash
+OLLAMA_MODEL=llama3.2
+OLLAMA_BASE_URL=http://localhost:11434
+```
+
+### 4. Verify Configuration
 
 ```bash
 sibyl check-config
 ```
 
-### 4. Review a Paper
+### 5. Review a Paper
 
 ```bash
 sibyl review path/to/paper.pdf
@@ -37,14 +45,19 @@ sibyl review path/to/paper.pdf
 
 ## Advanced Usage
 
-### Selecting Specific Models
+### Selecting Different Models
+
+To use different models, update your `.env` file:
 
 ```bash
-# Use only OpenAI GPT-4
-sibyl review paper.pdf -p openai
+# Use Mistral
+OLLAMA_MODEL=mistral
 
-# Compare OpenAI and Anthropic
-sibyl review paper.pdf -p openai -p anthropic
+# Use Phi-3
+OLLAMA_MODEL=phi3
+
+# Use a specific variant
+OLLAMA_MODEL=llama3.2:3b
 ```
 
 ### Saving Results
@@ -101,18 +114,18 @@ Each review includes:
 
 ### For Best Results
 
-1. **Use multiple models**: Get diverse perspectives
-2. **Review the full comparison**: Look beyond just scores
-3. **Check for consistency**: Agreement increases confidence
+1. **Choose appropriate models**: Larger models provide more detailed analysis
+2. **Optimize hardware**: Ensure sufficient RAM for your chosen model
+3. **Review incrementally**: Start with abstracts/introductions before full papers
 4. **Read detailed feedback**: The most valuable insights are in the details
 5. **Save results**: Keep records for later comparison
 
-### Cost Optimization
+### Performance Optimization
 
-1. **Use `--max-pages`**: Limit review to key sections
-2. **Select specific providers**: Don't use all models every time
-3. **Test with one model first**: Verify the system works before using all
-4. **Batch similar papers**: Plan your reviews to use API calls efficiently
+1. **Use appropriate model sizes**: Match model to your hardware
+2. **Limit pages for long papers**: Use `--max-pages` for efficiency
+3. **Consider quantized models**: Use smaller quantizations (e.g., Q4) for speed
+4. **Monitor resource usage**: Keep an eye on RAM/CPU usage
 
 ## Integration Examples
 
@@ -135,6 +148,19 @@ for paper in papers/*.pdf; do
 done
 ```
 
+### Comparing Different Models
+
+```bash
+# Review with Llama
+OLLAMA_MODEL=llama3.2 sibyl review paper.pdf -o review_llama.txt
+
+# Review with Mistral
+OLLAMA_MODEL=mistral sibyl review paper.pdf -o review_mistral.txt
+
+# Review with Phi
+OLLAMA_MODEL=phi3 sibyl review paper.pdf -o review_phi.txt
+```
+
 ### JSON Output Processing
 
 ```python
@@ -153,14 +179,24 @@ print(f"Average score: {average_score}")
 
 ## Troubleshooting
 
-### API Key Issues
+### Configuration Issues
 
 ```
-Error: No API keys configured
+Error: No local LLM configured
 ```
 - Check that `.env` file exists
-- Verify API keys are correct
-- Ensure keys are not quoted in the `.env` file
+- Verify `OLLAMA_MODEL` is set
+- Ensure Ollama is installed: `ollama --version`
+- Make sure you've pulled the model: `ollama list`
+
+### Connection Issues
+
+```
+Failed to connect to Ollama
+```
+- Verify Ollama is running: `ollama serve`
+- Check base URL matches your setup (default: http://localhost:11434)
+- Test with: `curl http://localhost:11434/api/tags`
 
 ### PDF Extraction Issues
 
@@ -171,14 +207,15 @@ Error extracting PDF
 - Try `--max-pages` to limit extraction
 - Check that the file path is correct
 
-### Rate Limiting
+### Performance Issues
 
 ```
-Rate limit exceeded
+Review is taking too long
 ```
-- Wait a few minutes before retrying
-- Review API usage limits for your provider
-- Consider using fewer providers
+- Use a smaller model (llama3.2:1b, phi3:mini)
+- Limit pages with `--max-pages`
+- Ensure adequate RAM is available
+- Close other applications to free resources
 
 ## Support
 

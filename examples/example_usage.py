@@ -1,5 +1,5 @@
 """
-Example script demonstrating how to use Sibyl programmatically.
+Example script demonstrating how to use Sibyl programmatically with local LLMs.
 """
 
 from sibyl.config import SibylConfig, LLMConfig
@@ -56,36 +56,89 @@ def main():
 
     print()
 
-    # 4. Compare reviews
-    print("Comparing reviews...")
-    comparison = ReviewComparison(reviews)
+    # 4. Compare reviews (if you have any)
+    if reviews:
+        print("Comparing reviews...")
+        comparison = ReviewComparison(reviews)
 
-    # Get statistics
-    stats = comparison.get_score_statistics()
-    print(f"  Mean score: {stats['mean']:.2f}")
-    print(f"  Score range: {stats['min']} - {stats['max']}")
-    print(f"  Standard deviation: {stats['std']:.2f}")
+        # Get statistics
+        stats = comparison.get_score_statistics()
+        print(f"  Mean score: {stats['mean']:.2f}")
+        print(f"  Score range: {stats['min']} - {stats['max']}")
+        print(f"  Standard deviation: {stats['std']:.2f}")
 
-    # Get consensus
-    consensus = comparison.get_consensus_recommendation()
-    print(f"  Consensus: {consensus}\n")
+        # Get consensus
+        consensus = comparison.get_consensus_recommendation()
+        print(f"  Consensus: {consensus}\n")
 
-    # 5. Get detailed comparison
-    print("Generating detailed comparison...")
-    summary = comparison.generate_summary()
+        # 5. Get detailed comparison
+        print("Generating detailed comparison...")
+        summary = comparison.generate_summary()
 
-    # Save to file
-    with open("review_comparison.txt", "w") as f:
-        f.write(summary)
+        # Save to file
+        with open("review_comparison.txt", "w") as f:
+            f.write(summary)
 
-    print("✓ Comparison saved to review_comparison.txt")
+        print("✓ Comparison saved to review_comparison.txt")
 
-    # 6. Get structured analysis for further processing
-    analysis = comparison.get_comparative_analysis()
-    print(f"\nTotal reviews: {analysis['total_reviews']}")
-    print(f"Individual scores: {analysis['individual_scores']}")
-    print(f"Recommendation distribution: {analysis['recommendation_distribution']}")
+        # 6. Get structured analysis for further processing
+        analysis = comparison.get_comparative_analysis()
+        print(f"\nTotal reviews: {analysis['total_reviews']}")
+        print(f"Individual scores: {analysis['individual_scores']}")
+        print(f"Recommendation distribution: {analysis['recommendation_distribution']}")
+
+
+def compare_multiple_models():
+    """Example: Compare multiple local models by running them sequentially."""
+    import os
+    
+    models_to_test = ["llama3.2", "mistral", "phi3"]
+    pdf_path = "path/to/your/paper.pdf"
+    
+    # Parse PDF once before the loop
+    parser = PDFParser(pdf_path)
+    paper_text = parser.extract_text(max_pages=10)
+    metadata = parser.get_metadata()
+    
+    all_reviews = []
+    
+    for model_name in models_to_test:
+        print(f"\n{'='*60}")
+        print(f"Testing model: {model_name}")
+        print('='*60)
+        
+        # Set environment variable for this model
+        os.environ['OLLAMA_MODEL'] = model_name
+        
+        # Reload config with new model
+        config = SibylConfig.from_env()
+        
+        if not config.ollama:
+            print(f"Skipping {model_name} - not configured")
+            continue
+        
+        # Create client and review
+        client = create_client("ollama", config.ollama)
+        reviewer = ReviewSystem(client)
+        review = reviewer.review_paper(paper_text, metadata['title'])
+        all_reviews.append(review)
+        
+        print(f"  Score: {review.criteria.overall_score}/10")
+        print(f"  Recommendation: {review.criteria.recommendation}")
+    
+    # Compare all reviews
+    if len(all_reviews) > 1:
+        print(f"\n{'='*60}")
+        print("Comparison Across Models")
+        print('='*60)
+        
+        comparison = ReviewComparison(all_reviews)
+        summary = comparison.generate_summary()
+        print(summary)
 
 
 if __name__ == "__main__":
     main()
+    
+    # Uncomment to test multiple models
+    # compare_multiple_models()

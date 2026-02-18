@@ -30,7 +30,7 @@ def main():
     "--providers",
     "-p",
     multiple=True,
-    type=click.Choice(["openai", "anthropic", "google"], case_sensitive=False),
+    type=click.Choice(["ollama"], case_sensitive=False),
     help="LLM providers to use (can specify multiple)",
 )
 @click.option(
@@ -58,8 +58,8 @@ def review(pdf_path: str, providers: tuple, output: str, max_pages: int):
 
     if not active_providers:
         console.print(
-            "[bold red]Error:[/bold red] No API keys configured. "
-            "Please set up your API keys in .env file."
+            "[bold red]Error:[/bold red] No local LLM configured. "
+            "Please set OLLAMA_MODEL in your .env file and ensure Ollama is running."
         )
         return
 
@@ -213,7 +213,7 @@ def _save_results(output_path: str, reviews, comparison, metadata):
 
 @main.command()
 def check_config():
-    """Check API configuration and available providers."""
+    """Check configuration and available providers."""
     console.print("\n[bold blue]Sibyl Configuration Check[/bold blue]\n")
 
     config = SibylConfig.from_env()
@@ -221,9 +221,10 @@ def check_config():
 
     if not providers:
         console.print(
-            "[bold red]No API keys configured![/bold red]\n"
-            "Please create a .env file with your API keys.\n"
-            "See .env.example for the required format."
+            "[bold red]No local LLM configured![/bold red]\n"
+            "Please create a .env file with your Ollama configuration.\n"
+            "See .env.example for the required format.\n"
+            "Make sure Ollama is installed and running."
         )
         return
 
@@ -232,7 +233,7 @@ def check_config():
     table.add_column("Model", style="green")
     table.add_column("Status", justify="center")
 
-    for provider in ["openai", "anthropic", "google"]:
+    for provider in ["ollama"]:
         provider_config = getattr(config, provider)
         if provider_config:
             table.add_row(

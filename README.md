@@ -1,19 +1,21 @@
 # Sibyl 🔮
 
-An LLM-powered research paper review system that leverages multiple AI models to provide comprehensive, comparative reviews of academic papers.
+An LLM-powered research paper review system that leverages local open-source AI models to provide comprehensive, comparative reviews of academic papers.
 
 ## Overview
 
-Sibyl is a Python-based tool that uses Large Language Models (LLMs) from multiple providers to automatically review research papers. It extracts text from PDF files, generates structured reviews using different AI models, and provides comparative analysis to help identify consensus and differences in assessment.
+Sibyl is a Python-based tool that uses Local Large Language Models (LLMs) running via Ollama to automatically review research papers. It extracts text from PDF files, generates structured reviews using different local AI models, and provides comparative analysis to help identify consensus and differences in assessment.
 
 ### Key Features
 
 - 📄 **PDF Parsing**: Automatically extract text from research paper PDFs
-- 🤖 **Multi-Model Support**: Compare reviews from OpenAI GPT-4, Anthropic Claude, and Google Gemini
+- 🤖 **Local Model Support**: Run open-source models locally via Ollama (Llama, Mistral, Phi, Gemma, Qwen, etc.)
+- 🔒 **Privacy First**: All processing happens locally - no data sent to external APIs
+- 💰 **Zero Cost**: No API fees or subscription costs
 - 📊 **Structured Reviews**: Get consistent, structured feedback across multiple dimensions
 - 📈 **Comparative Analysis**: View statistics, consensus, and differences across reviewers
 - 💻 **CLI Interface**: Easy-to-use command-line interface with rich formatting
-- 🎯 **Flexible Configuration**: Use any combination of available LLM providers
+- 🎯 **Flexible Configuration**: Use any Ollama-compatible models
 
 ## Review Criteria
 
@@ -36,48 +38,69 @@ Each review includes assessment of:
 
 - Python 3.9 or higher
 - pip (Python package installer)
+- [Ollama](https://ollama.ai) installed and running
 
 ### Setup
 
-1. **Clone the repository**:
-```bash
-git clone https://github.com/cvasilatos/sibyl.git
-cd sibyl
-```
+1. **Install Ollama**:
+   
+   Visit [https://ollama.ai](https://ollama.ai) and follow the installation instructions for your operating system.
 
-2. **Install the package**:
-```bash
-pip install -e .
-```
+2. **Pull a model**:
+   ```bash
+   # Pull a recommended model (Llama 3.2 is a good starting point)
+   ollama pull llama3.2
+   
+   # Or choose from other models:
+   # ollama pull mistral
+   # ollama pull phi3
+   # ollama pull gemma2
+   # ollama pull qwen2.5
+   ```
 
-3. **Configure API keys**:
+3. **Clone the repository**:
+   ```bash
+   git clone https://github.com/cvasilatos/sibyl.git
+   cd sibyl
+   ```
 
-Create a `.env` file in the project root with your API keys:
+4. **Install the package**:
+   ```bash
+   pip install -e .
+   ```
 
-```bash
-cp .env.example .env
-```
+5. **Configure Sibyl**:
 
-Edit `.env` and add your API keys:
-```
-OPENAI_API_KEY=your_openai_api_key_here
-ANTHROPIC_API_KEY=your_anthropic_api_key_here
-GOOGLE_API_KEY=your_google_api_key_here
-```
+   Create a `.env` file in the project root:
 
-You can use one, two, or all three providers. Sibyl will work with any configured providers.
+   ```bash
+   cp .env.example .env
+   ```
 
-### Getting API Keys
+   Edit `.env` and set your model:
+   ```
+   OLLAMA_MODEL=llama3.2
+   OLLAMA_BASE_URL=http://localhost:11434
+   ```
 
-- **OpenAI**: Get your API key at https://platform.openai.com/api-keys
-- **Anthropic**: Get your API key at https://console.anthropic.com/
-- **Google**: Get your API key at https://makersuite.google.com/app/apikey
+### Recommended Models
+
+- **llama3.2** (3B/1B): Fast, efficient, good quality
+- **mistral** (7B): Excellent reasoning capabilities
+- **phi3** (3.8B): Small but powerful from Microsoft
+- **gemma2** (2B/9B): Google's efficient models
+- **qwen2.5** (various sizes): Strong performance across tasks
+
+Choose a model based on your hardware:
+- **8GB RAM**: llama3.2:1b, phi3:mini
+- **16GB RAM**: llama3.2:3b, mistral:7b, gemma2:2b
+- **32GB+ RAM**: Any model, including larger variants
 
 ## Usage
 
 ### Check Configuration
 
-First, verify your API keys are configured correctly:
+First, verify your Ollama setup:
 
 ```bash
 sibyl check-config
@@ -85,25 +108,22 @@ sibyl check-config
 
 ### Review a Paper
 
-Review a research paper PDF using all configured providers:
+Review a research paper PDF using your configured model:
 
 ```bash
 sibyl review path/to/paper.pdf
 ```
 
-### Use Specific Providers
+### Use Specific Models
 
-Review using only specific providers:
+If you want to compare multiple models, configure multiple Ollama instances or run reviews sequentially:
 
 ```bash
-# Use only OpenAI
-sibyl review paper.pdf -p openai
+# Review with default model
+sibyl review paper.pdf
 
-# Use OpenAI and Anthropic
-sibyl review paper.pdf -p openai -p anthropic
-
-# Use all three providers
-sibyl review paper.pdf -p openai -p anthropic -p google
+# You can also specify -p ollama explicitly
+sibyl review paper.pdf -p ollama
 ```
 
 ### Save Results
@@ -132,7 +152,7 @@ sibyl review paper.pdf --max-pages 20
 Sibyl Research Paper Review System
 
 Paper: research_paper.pdf
-Providers: openai, anthropic, google
+Providers: ollama
 
 Step 1: Extracting text from PDF...
   Title: Novel Approaches to Machine Learning
@@ -141,24 +161,20 @@ Step 1: Extracting text from PDF...
   Extracted: 45231 characters
 
 Step 2: Generating reviews...
-  ✓ openai: Score 8/10, Recommendation: Accept
-  ✓ anthropic: Score 7/10, Recommendation: Revise
-  ✓ google: Score 8/10, Recommendation: Accept
+  ✓ ollama: Score 8/10, Recommendation: Accept
 
 Step 3: Comparing reviews...
 
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━━━━━━━━━━┓
 ┃ Reviewer                 ┃ Score ┃ Recommendation ┃
 ┡━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━━━━━━━━━━┩
-│ OpenAI (gpt-4)          │  8/10 │     Accept     │
-│ Anthropic (claude-3)    │  7/10 │     Revise     │
-│ Google (gemini-pro)     │  8/10 │     Accept     │
+│ Ollama (llama3.2)       │  8/10 │     Accept     │
 └──────────────────────────┴───────┴────────────────┘
 
 Score Statistics:
-  Mean: 7.67
-  Std Dev: 0.58
-  Range: 7 - 8
+  Mean: 8.00
+  Std Dev: 0.00
+  Range: 8 - 8
 
 Consensus: Accept
 ```
@@ -187,17 +203,18 @@ sibyl/
 ### Components
 
 1. **PDF Parser**: Extracts text and metadata from research paper PDFs using `pypdf`
-2. **LLM Clients**: Abstraction layer for different LLM providers (OpenAI, Anthropic, Google)
+2. **LLM Client**: Interface for Ollama local LLM runner
 3. **Review System**: Generates structured reviews using LLMs with consistent prompts
 4. **Comparison Engine**: Analyzes multiple reviews to identify patterns and consensus
 5. **CLI Interface**: User-friendly command-line tool with rich formatting
 
 ### Design Principles
 
-- **Provider Agnostic**: Easy to add new LLM providers
-- **Structured Output**: Consistent review format across all models
-- **Minimal Dependencies**: Only essential libraries required
+- **Privacy First**: All data stays local - no external API calls
+- **Cost Effective**: Zero API costs - completely free to use
+- **Open Source**: Built on open-source models and tools
 - **Extensible**: Simple to customize review criteria and prompts
+- **Hardware Flexible**: Works on consumer hardware
 
 ## Development
 
@@ -230,37 +247,40 @@ mypy src/
 
 ### Why Multiple Models?
 
-Using multiple LLM providers offers several advantages:
+While Sibyl now focuses on local models, you can still benefit from using different models sequentially:
 
-1. **Diverse Perspectives**: Different models may focus on different aspects
+1. **Diverse Perspectives**: Different model architectures may focus on different aspects
 2. **Consensus Building**: Agreement across models strengthens confidence
 3. **Bias Detection**: Inconsistencies may reveal model-specific biases
-4. **Robustness**: Reduces dependence on a single provider
-5. **Performance Evaluation**: Compare quality, speed, and cost
+4. **Performance Evaluation**: Compare quality and speed of different models
 
-### Recommended Models
+### Recommended Local Models
 
-- **OpenAI GPT-4**: Excellent reasoning and detailed analysis
-- **Anthropic Claude 3**: Strong ethical considerations and balanced reviews
-- **Google Gemini Pro**: Fast inference and good value
+- **Llama 3.2** (Meta): Excellent general capabilities, multiple sizes
+- **Mistral** (Mistral AI): Strong reasoning and coding abilities
+- **Phi-3** (Microsoft): Efficient small model with good performance
+- **Gemma 2** (Google): Well-balanced open model
+- **Qwen 2.5** (Alibaba): Strong multilingual and reasoning capabilities
 
 ## Limitations
 
-- Requires API access to at least one LLM provider (costs apply)
+- Requires Ollama to be installed and running locally
+- Performance depends on your hardware (CPU/GPU, RAM)
 - PDF text extraction may not work perfectly for all paper formats
 - Review quality depends on the underlying LLM capabilities
-- Long papers may hit token limits (use `--max-pages` to limit)
+- Long papers may require significant processing time
 - Does not review figures, tables, or mathematical equations in detail
 
 ## Future Enhancements
 
-- [ ] Support for more LLM providers (local models, other cloud providers)
+- [ ] Support for multiple concurrent model comparisons
 - [ ] Batch processing of multiple papers
 - [ ] Interactive web interface
 - [ ] Custom review criteria and prompts
 - [ ] Citation analysis integration
 - [ ] Support for LaTeX and other document formats
-- [ ] Fine-tuning on domain-specific papers
+- [ ] GPU acceleration optimization
+- [ ] Model quantization support
 
 ## Contributing
 
@@ -273,12 +293,11 @@ MIT License - see LICENSE file for details
 ## Acknowledgments
 
 Built with:
-- [OpenAI API](https://openai.com/api/)
-- [Anthropic Claude](https://www.anthropic.com/)
-- [Google Gemini](https://deepmind.google/technologies/gemini/)
-- [pypdf](https://github.com/py-pdf/pypdf)
-- [Click](https://click.palletsprojects.com/)
-- [Rich](https://rich.readthedocs.io/)
+- [Ollama](https://ollama.ai) - Local LLM runner
+- [pypdf](https://github.com/py-pdf/pypdf) - PDF parsing
+- [Click](https://click.palletsprojects.com/) - CLI framework
+- [Rich](https://rich.readthedocs.io/) - Terminal formatting
+- Open-source models: Llama, Mistral, Phi, Gemma, Qwen, and others
 
 ## Contact
 
