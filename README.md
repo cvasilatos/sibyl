@@ -1,5 +1,8 @@
 # Sibyl 🔮
 
+**NYU Center for Cybersecurity - MoMA Group**  
+*Mobile Security and Communications Systems*
+
 An LLM-powered research paper review system that leverages local open-source AI models to provide comprehensive, comparative reviews of academic papers.
 
 ## Overview
@@ -320,7 +323,9 @@ MIT License - see LICENSE file for details
 
 ## Acknowledgments
 
-**Made by Center for Cyber Security MoMA Group**
+**Developed by NYU Center for Cybersecurity**  
+**MoMA Group - Mobile Security and Communications Systems**  
+*New York University Tandon School of Engineering*
 
 Built with:
 - [Ollama](https://ollama.ai) - Local LLM runner
