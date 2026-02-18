@@ -32,10 +32,12 @@ class LLMClient(ABC):
             Generated response text
 
         """
+        ...
 
     @abstractmethod
     def get_name(self) -> str:
         """Get the name of the LLM provider."""
+        ...
 
 
 class OllamaClient(LLMClient):
