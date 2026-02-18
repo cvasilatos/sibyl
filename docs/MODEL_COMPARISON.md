@@ -2,190 +2,230 @@
 
 ## Overview
 
-Sibyl supports three leading LLM providers, each with distinct characteristics that make them valuable for research paper review.
+Sibyl supports local open-source LLMs running via Ollama. This guide helps you understand the characteristics of different models and choose the best one for your needs.
 
 ## Supported Models
 
-### OpenAI GPT-4
+### Llama 3.2 (Meta)
 
-**Model**: `gpt-4` or `gpt-4-turbo`
+**Models**: `llama3.2:1b`, `llama3.2:3b`
+
+**Strengths**:
+- Excellent general capabilities
+- Multiple size options for different hardware
+- Strong reasoning abilities
+- Well-optimized for local execution
+
+**Best For**:
+- General academic paper review
+- Balanced performance and quality
+- Users with moderate hardware
+
+**Typical Characteristics**:
+- Provides thorough, balanced analysis
+- Good at identifying both strengths and weaknesses
+- Reliable across different paper types
+
+**Hardware**: 
+- 1B: 8GB RAM minimum
+- 3B: 16GB RAM recommended
+
+### Mistral (Mistral AI)
+
+**Model**: `mistral:7b`
 
 **Strengths**:
 - Excellent reasoning and analytical capabilities
 - Strong attention to technical details
-- Consistent, structured output
-- Deep understanding of complex methodologies
+- Good at identifying subtle issues
+- Fast inference relative to size
 
 **Best For**:
 - Technical papers requiring deep analysis
-- Complex mathematical or computational work
-- Papers where detail-oriented feedback is crucial
+- Complex methodologies
+- When detail-oriented feedback is crucial
 
 **Typical Characteristics**:
-- Often provides the most thorough analysis
+- Thorough and methodical reviews
 - May be more critical than other models
-- Excellent at identifying subtle methodological issues
+- Excellent at logical reasoning
 
-**Cost**: Moderate to high (depending on model variant)
+**Hardware**: 16GB RAM recommended, 32GB optimal
 
-### Anthropic Claude 3
+### Phi-3 (Microsoft)
 
-**Model**: `claude-3-sonnet-20240229` or `claude-3-opus-20240229`
-
-**Strengths**:
-- Balanced, thoughtful reviews
-- Strong ethical considerations
-- Excellent at identifying broader implications
-- Natural, conversational feedback style
-
-**Best For**:
-- Papers with ethical or social implications
-- Work requiring balanced perspective
-- Papers where constructive feedback is important
-
-**Typical Characteristics**:
-- Tends to provide balanced critiques
-- Good at identifying both strengths and weaknesses
-- Strong contextual understanding
-
-**Cost**: Moderate
-
-### Google Gemini Pro
-
-**Model**: `gemini-pro`
+**Models**: `phi3:mini` (3.8B), `phi3:medium` (14B)
 
 **Strengths**:
-- Fast inference times
-- Good general understanding
-- Cost-effective
-- Decent at multi-modal content (when using images)
+- Impressive performance for size
+- Efficient resource usage
+- Strong language understanding
+- Good general knowledge
 
 **Best For**:
-- Quick initial reviews
-- Cost-sensitive applications
-- High-volume review scenarios
+- Users with limited hardware
+- Quick reviews
+- General assessment needs
 
 **Typical Characteristics**:
-- Reliable baseline reviews
-- Good general insights
-- May be less detailed than GPT-4
+- Concise, focused reviews
+- Good balance of quality and speed
+- Efficient on consumer hardware
 
-**Cost**: Lower than competitors
+**Hardware**: 
+- Mini: 8GB RAM
+- Medium: 24GB RAM
+
+### Gemma 2 (Google)
+
+**Models**: `gemma2:2b`, `gemma2:9b`
+
+**Strengths**:
+- Well-balanced capabilities
+- Good instruction following
+- Efficient architecture
+- Strong performance across tasks
+
+**Best For**:
+- General paper review
+- Multi-domain research
+- Balanced assessments
+
+**Typical Characteristics**:
+- Balanced, fair reviews
+- Good contextual understanding
+- Reliable outputs
+
+**Hardware**:
+- 2B: 8GB RAM
+- 9B: 16-24GB RAM
+
+### Qwen 2.5 (Alibaba)
+
+**Models**: Various sizes from 0.5B to 72B
+
+**Strengths**:
+- Strong multilingual capabilities
+- Excellent reasoning abilities
+- Good at structured outputs
+- Multiple size options
+
+**Best For**:
+- Papers in multiple languages
+- Complex reasoning tasks
+- Structured analysis needs
+
+**Typical Characteristics**:
+- Detailed, structured reviews
+- Good at following complex instructions
+- Strong analytical capabilities
+
+**Hardware**: Varies by size (8GB to 64GB+ RAM)
 
 ## Comparison Strategy
 
-### When to Use Multiple Models
+### When to Compare Multiple Models
 
-**Always Use Multiple**:
+**Sequential Comparison Beneficial**:
 - High-stakes decisions (acceptance/rejection)
 - Controversial or novel work
-- When expert disagreement is expected
-- For comprehensive peer review simulation
+- When diverse perspectives are valuable
+- For comprehensive evaluation
 
 **Single Model Sufficient**:
 - Preliminary reviews of your own work
 - Quick quality checks
 - Informal assessments
-- When consensus isn't critical
+- When time/resources are limited
 
-### Recommended Combinations
+### Recommended Approaches
 
-**Best Overall**: OpenAI + Anthropic + Google
-- Most comprehensive coverage
-- Diverse perspectives
-- Highest confidence in results
-
-**Budget-Conscious**: Anthropic + Google
-- Good balance of quality and cost
-- Sufficient for most purposes
-- Fast turnaround
-
-**High-Quality Only**: OpenAI + Anthropic
-- Premium quality reviews
+**Best Quality**: Mistral or Llama 3.2:3b
+- Highest quality reviews
 - Best for critical decisions
-- Worth the extra cost
+- Requires adequate hardware
 
-## Interpreting Cross-Model Results
+**Balanced**: Llama 3.2:1b or Phi-3 Mini
+- Good balance of quality and speed
+- Sufficient for most purposes
+- Works on modest hardware
 
-### Agreement Patterns
+**Fast/Efficient**: Phi-3 Mini or Gemma 2:2b
+- Quick turnaround
+- Lower resource requirements
+- Good for initial screening
 
-**Strong Agreement** (all models within 1 point):
-- High confidence in the assessment
-- Clear paper quality signal
-- Safe to follow consensus
-
-**Moderate Agreement** (2-3 point spread):
-- Normal variation in perspective
-- Look at detailed feedback for context
-- Consider which model's view aligns with your needs
-
-**Strong Disagreement** (>3 point spread):
-- Paper has polarizing elements
-- May indicate novel or controversial work
-- Requires human judgment
-
-### Recommendation Conflicts
-
-**All Agree**:
-- Follow the recommendation confidently
-
-**2 of 3 Agree**:
-- Follow majority, but review dissenting opinion
-- May indicate edge case or specific concerns
-
-**All Disagree**:
-- Rare but important signal
-- Paper may need significant revision
-- Consider consulting human experts
-
-## Model-Specific Patterns
+## Interpreting Results
 
 ### Score Tendencies
 
-- **GPT-4**: Tends toward middle scores (6-8), occasionally harsh
-- **Claude**: Most balanced, full score range utilization
-- **Gemini**: Slightly more generous, fewer extreme scores
+Different models may have different scoring tendencies:
+
+- **Mistral**: Tends toward detailed, critical analysis
+- **Llama**: Balanced, uses full score range
+- **Phi-3**: Concise, focused feedback
+- **Gemma**: Balanced and fair
+- **Qwen**: Structured, detailed responses
 
 ### Focus Areas
 
-- **GPT-4**: Heavy emphasis on methodology and rigor
-- **Claude**: Balanced across all criteria, strong on impact
-- **Gemini**: Focuses on novelty and practical applications
+- **Mistral**: Heavy emphasis on methodology and rigor
+- **Llama**: Balanced across all criteria
+- **Phi-3**: Focuses on key issues
+- **Gemma**: Good at practical implications
+- **Qwen**: Strong on structured analysis
 
 ## Best Practices
 
-### Configuration Tips
+### Model Selection Tips
 
-1. **Start with defaults**: The default models are well-tested
-2. **Monitor costs**: Use fewer models for drafts
-3. **Experiment**: Try different combinations for your use case
-4. **Document patterns**: Track which models work best for your field
+1. **Match hardware to model**: Don't choose a model too large for your system
+2. **Consider paper complexity**: Use larger models for complex papers
+3. **Experiment**: Try different models to find what works for your domain
+4. **Document preferences**: Track which models work best for your field
 
 ### Optimizing for Your Needs
 
-**For Speed**: Use Gemini alone or with one other
-**For Quality**: Always include GPT-4
-**For Balance**: Use all three models
-**For Cost**: Use Gemini + Claude
+**For Speed**: Phi-3 Mini, Gemma 2:2b, Llama 3.2:1b
+**For Quality**: Mistral, Llama 3.2:3b, Qwen (larger variants)
+**For Balance**: Llama 3.2:3b, Gemma 2:9b
+**For Limited Hardware**: Phi-3 Mini, Llama 3.2:1b
 
 ## Performance Metrics
 
 Based on typical usage:
 
-| Model | Speed | Cost | Quality | Detail |
-|-------|-------|------|---------|--------|
-| GPT-4 | ⭐⭐⭐ | 💰💰💰 | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
-| Claude 3 | ⭐⭐⭐⭐ | 💰💰 | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
-| Gemini Pro | ⭐⭐⭐⭐⭐ | 💰 | ⭐⭐⭐ | ⭐⭐⭐ |
+| Model | Speed | Hardware | Quality | Detail | Size |
+|-------|-------|----------|---------|--------|------|
+| Llama 3.2:1b | ⭐⭐⭐⭐⭐ | 8GB RAM | ⭐⭐⭐ | ⭐⭐⭐ | 1B |
+| Llama 3.2:3b | ⭐⭐⭐⭐ | 16GB RAM | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | 3B |
+| Mistral | ⭐⭐⭐ | 16GB RAM | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | 7B |
+| Phi-3 Mini | ⭐⭐⭐⭐⭐ | 8GB RAM | ⭐⭐⭐⭐ | ⭐⭐⭐ | 3.8B |
+| Gemma 2:2b | ⭐⭐⭐⭐⭐ | 8GB RAM | ⭐⭐⭐ | ⭐⭐⭐ | 2B |
+| Gemma 2:9b | ⭐⭐⭐ | 16-24GB RAM | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | 9B |
+
+## Hardware Considerations
+
+### GPU Acceleration
+
+Models run significantly faster with GPU acceleration:
+- **NVIDIA GPUs**: Best support via CUDA
+- **Apple Silicon**: Good support via Metal
+- **AMD GPUs**: Growing support via ROCm
+
+### Memory Requirements
+
+Approximate RAM needed (for Q4 quantization):
+- **1-2B models**: 4-8GB
+- **3-4B models**: 8-12GB
+- **7-8B models**: 12-20GB
+- **13-14B models**: 24-32GB
+- **30B+ models**: 64GB+
 
 ## Future Model Support
 
-We plan to add support for:
-- Local models (Llama, Mistral)
-- Additional cloud providers
-- Specialized academic models
-- Custom fine-tuned models
+Ollama regularly adds support for new models. Check `ollama list` for available models or visit [ollama.ai/library](https://ollama.ai/library) for the complete list.
 
 ## Conclusion
 
-The best model combination depends on your specific needs, budget, and use case. Start with all three models to understand their characteristics, then optimize based on your requirements.
+The best model depends on your specific needs, hardware constraints, and use case. Start with Llama 3.2 or Phi-3 Mini to understand their characteristics, then experiment with others based on your requirements.

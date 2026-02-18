@@ -7,9 +7,37 @@
 Ensure you have:
 - Python 3.9 or higher
 - pip (Python package installer)
-- At least one API key from OpenAI, Anthropic, or Google
+- [Ollama](https://ollama.ai) installed
 
-### 2. Installation
+### 2. Install Ollama
+
+Visit [https://ollama.ai](https://ollama.ai) and download Ollama for your operating system.
+
+**Verify installation:**
+```bash
+ollama --version
+```
+
+### 3. Pull a Model
+
+Download a local LLM model:
+
+```bash
+# Recommended: Llama 3.2 (good balance of speed and quality)
+ollama pull llama3.2
+
+# Or try other models:
+ollama pull mistral      # Excellent reasoning
+ollama pull phi3         # Small but powerful
+ollama pull gemma2       # Google's efficient model
+```
+
+**Verify the model:**
+```bash
+ollama list
+```
+
+### 4. Installation
 
 ```bash
 # Clone the repository
@@ -20,29 +48,22 @@ cd sibyl
 pip install -e .
 ```
 
-### 3. Configure API Keys
+### 5. Configure Sibyl
 
-Copy the example environment file and add your API keys:
+Copy the example environment file and configure:
 
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` and add at least one API key:
+Edit `.env` and set your model:
 
 ```bash
-# You need at least one of these:
-OPENAI_API_KEY=sk-...
-ANTHROPIC_API_KEY=sk-ant-...
-GOOGLE_API_KEY=AI...
+OLLAMA_MODEL=llama3.2
+OLLAMA_BASE_URL=http://localhost:11434
 ```
 
-**Where to get API keys:**
-- OpenAI: https://platform.openai.com/api-keys
-- Anthropic: https://console.anthropic.com/
-- Google: https://makersuite.google.com/app/apikey
-
-### 4. Verify Setup
+### 6. Verify Setup
 
 Check that everything is configured correctly:
 
@@ -50,9 +71,9 @@ Check that everything is configured correctly:
 sibyl check-config
 ```
 
-You should see a table showing which providers are configured.
+You should see a table showing your configured model.
 
-### 5. Review Your First Paper
+### 7. Review Your First Paper
 
 ```bash
 sibyl review path/to/your/paper.pdf
@@ -60,35 +81,43 @@ sibyl review path/to/your/paper.pdf
 
 That's it! Sibyl will:
 1. Extract text from the PDF
-2. Generate reviews from all configured LLM providers
-3. Compare the reviews and show you a summary
+2. Generate a review using your local LLM
+3. Display structured feedback and scoring
 
 ## What Happens During a Review?
 
 When you run `sibyl review paper.pdf`, here's what happens:
 
 1. **PDF Parsing**: Sibyl extracts text and metadata from your PDF
-2. **Review Generation**: Each configured LLM reads the paper and provides:
+2. **Review Generation**: Your configured local LLM reads the paper and provides:
    - Assessment of novelty, methodology, results, clarity, and impact
    - Identification of limitations and strengths
    - Overall score (1-10)
    - Recommendation (Accept/Revise/Reject)
    - Detailed feedback
-3. **Comparison**: Sibyl analyzes all reviews to show:
-   - Score statistics (mean, std dev, range)
-   - Recommendation distribution
-   - Consensus or disagreements
+3. **Results Display**: Sibyl displays the structured review with formatting
 
 ## Common Use Cases
 
-### Compare Multiple Models
+### Single Model Review
 
 ```bash
-# Use all configured providers
+# Review with your configured model
 sibyl review paper.pdf
+```
 
-# Use only specific providers
-sibyl review paper.pdf -p openai -p anthropic
+### Compare Multiple Models
+
+To compare different models, you can run reviews sequentially:
+
+```bash
+# Review with Llama
+sibyl review paper.pdf -o review_llama.json
+
+# Change model in .env to mistral, then:
+sibyl review paper.pdf -o review_mistral.json
+
+# Compare the results manually
 ```
 
 ### Save Results for Later
@@ -104,7 +133,7 @@ sibyl review paper.pdf -o review.json
 ### Review Long Papers
 
 ```bash
-# Limit to first 20 pages (to save costs)
+# Limit to first 20 pages (to save processing time)
 sibyl review paper.pdf --max-pages 20
 ```
 
@@ -120,26 +149,35 @@ sibyl review paper.pdf --max-pages 20
 
 ### Consensus
 
-- **Strong consensus**: All models agree (±1 point) - High confidence
-- **Moderate consensus**: 2/3 models agree - Normal variation
+When comparing reviews from different models (run sequentially):
+
+- **Strong consensus**: Models agree (±1 point) - High confidence
+- **Moderate consensus**: Most models agree - Normal variation
 - **Mixed/No consensus**: Significant disagreement - Needs human judgment
 
 ## Tips for Best Results
 
-1. **Use multiple models**: Different perspectives increase confidence
-2. **Start small**: Test with one model first, then use all three
-3. **Check consensus**: Agreement across models strengthens the assessment
-4. **Read the details**: Scores are just summaries; the detailed feedback is most valuable
-5. **Save your results**: Keep records for comparison over time
+1. **Choose the right model**: Larger models generally provide better quality
+2. **Ensure sufficient resources**: Models need adequate RAM/VRAM
+3. **Start with smaller papers**: Test with shorter papers first
+4. **Save your results**: Keep records for comparison over time
+5. **Read the details**: Scores are just summaries; the detailed feedback is most valuable
 
 ## Troubleshooting
 
-### "No API keys configured"
+### "No local LLM configured"
 
 Make sure:
 - `.env` file exists in the project root
-- API keys are correct and not wrapped in quotes
-- API keys have the correct format
+- `OLLAMA_MODEL` is set in the `.env` file
+- Ollama is installed and running (`ollama list` should work)
+- You have pulled the model (`ollama pull <model-name>`)
+
+### "Failed to connect to Ollama"
+
+- Ensure Ollama is running: `ollama serve` (usually runs automatically)
+- Check the base URL in `.env` matches your Ollama setup
+- Default is `http://localhost:11434`
 
 ### "Error extracting PDF"
 
@@ -147,17 +185,18 @@ Make sure:
 - Try using `--max-pages` to limit extraction
 - Check that the file path is correct
 
-### Rate Limiting
+### Slow Performance
 
-If you hit API rate limits:
-- Wait a few minutes before retrying
-- Use fewer providers
+If reviews are taking too long:
+- Use a smaller model (e.g., `llama3.2:1b` instead of `llama3.2:3b`)
 - Reduce the number of pages with `--max-pages`
+- Ensure you have sufficient RAM for the model
+- Consider using GPU acceleration if available
 
 ## Next Steps
 
 - Read [USAGE.md](USAGE.md) for detailed usage examples
-- Check [docs/MODEL_COMPARISON.md](docs/MODEL_COMPARISON.md) to understand model differences
+- Check [docs/MODEL_COMPARISON.md](docs/MODEL_COMPARISON.md) to understand different local models
 - See [examples/example_usage.py](examples/example_usage.py) for programmatic usage
 - Read [CONTRIBUTING.md](CONTRIBUTING.md) if you want to contribute
 
@@ -167,18 +206,22 @@ If you hit API rate limits:
 - Open an issue on GitHub for bugs or feature requests
 - Review existing issues for similar problems
 
-## Cost Considerations
+## Hardware Requirements
 
-Using LLM APIs incurs costs. Approximate costs per review (varies by paper length):
+### Minimum Requirements
+- **CPU**: Modern multi-core processor
+- **RAM**: 8GB (for small models like llama3.2:1b, phi3:mini)
+- **Storage**: 5GB+ for models
+- **OS**: Linux, macOS, or Windows
 
-- **OpenAI GPT-4**: $0.10 - $0.50 per review
-- **Anthropic Claude**: $0.05 - $0.30 per review
-- **Google Gemini**: $0.01 - $0.10 per review
+### Recommended Requirements
+- **RAM**: 16GB+ (for models like llama3.2:3b, mistral)
+- **GPU**: NVIDIA GPU with 8GB+ VRAM (optional, but significantly faster)
+- **Storage**: 20GB+ for multiple models
 
-Tips to manage costs:
-- Use `--max-pages` to limit paper length
-- Start with Gemini for quick/cheap reviews
-- Use all three models only for important papers
-- Monitor your API usage dashboards
+### Model Size Guide
+- **1-3B parameters**: 8GB RAM minimum
+- **7B parameters**: 16GB RAM recommended
+- **13B+ parameters**: 32GB RAM recommended
 
 Enjoy using Sibyl! 🔮
