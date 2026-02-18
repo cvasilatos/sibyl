@@ -1,7 +1,7 @@
 """Tests for the PDF parser module."""
 
 import pytest
-from pathlib import Path
+
 from sibyl.pdf_parser import PDFParser
 
 

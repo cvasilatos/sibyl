@@ -28,7 +28,6 @@ ENV/
 .venv
 
 # IDEs
-.vscode/
 .idea/
 *.swp
 *.swo
@@ -42,6 +41,10 @@ ENV/
 .pytest_cache/
 htmlcov/
 .tox/
+
+# Linting/Type checking caches
+.mypy_cache/
+.ruff_cache/
 
 # OS
 .DS_Store

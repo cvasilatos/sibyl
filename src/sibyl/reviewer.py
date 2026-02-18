@@ -1,7 +1,7 @@
 """Research paper review framework."""
 
-from typing import Dict, Optional
 from pydantic import BaseModel, Field
+
 from .llm_client import LLMClient
 
 
@@ -13,9 +13,7 @@ class ReviewCriteria(BaseModel):
         description="Evaluation of the research methodology and experimental design"
     )
     results: str = Field(description="Analysis of the results and their significance")
-    clarity: str = Field(
-        description="Assessment of writing quality and presentation clarity"
-    )
+    clarity: str = Field(description="Assessment of writing quality and presentation clarity")
     impact: str = Field(description="Potential impact and contribution to the field")
     limitations: str = Field(description="Identified limitations and weaknesses")
     strengths: str = Field(description="Key strengths of the paper")
@@ -97,6 +95,7 @@ Research Paper:
 
         Args:
             llm_client: LLM client to use for generating reviews
+
         """
         self.llm_client = llm_client
 
@@ -109,6 +108,7 @@ Research Paper:
 
         Returns:
             Structured review of the paper
+
         """
         # Generate the review using the LLM
         prompt = self.REVIEW_PROMPT_TEMPLATE.format(paper_text=paper_text)
@@ -132,6 +132,7 @@ Research Paper:
 
         Returns:
             Structured review criteria
+
         """
         sections = {
             "novelty": "",
@@ -179,7 +180,9 @@ Research Paper:
                 score_text = line[6:].strip()
                 # Extract number from score text
                 try:
-                    sections[current_section] = int("".join(c for c in score_text if c.isdigit())[:2])
+                    sections[current_section] = int(
+                        "".join(c for c in score_text if c.isdigit())[:2]
+                    )
                 except (ValueError, IndexError):
                     sections[current_section] = 5
             elif line_upper.startswith("RECOMMENDATION:"):

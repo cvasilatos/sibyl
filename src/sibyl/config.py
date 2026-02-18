@@ -2,9 +2,9 @@
 
 import os
 from typing import Optional
-from pydantic import BaseModel, Field
-from dotenv import load_dotenv
 
+from dotenv import load_dotenv
+from pydantic import BaseModel
 
 # Load environment variables
 load_dotenv()
