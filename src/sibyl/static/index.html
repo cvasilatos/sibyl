@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sibyl - AI Research Paper Review</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔮 Sibyl</h1>
+            <p class="subtitle">AI-Powered Research Paper Review System</p>
+            <p class="description">Upload a research paper and get comprehensive AI-powered reviews using local LLM models</p>
+        </header>
+        
+        <div class="upload-section">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📄</div>
+                <p class="upload-text">Drag and drop a PDF file here or click to browse</p>
+                <p class="upload-hint">Supports research papers in PDF format</p>
+                <input type="file" id="fileInput" accept=".pdf" aria-label="Upload PDF file">
+            </div>
+            
+            <button id="reviewBtn" class="btn-primary" disabled>
+                <span class="btn-icon">🔍</span>
+                Start Review
+            </button>
+        </div>
+        
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <p class="progress-message" id="progressMessage">Initializing...</p>
+        </div>
+        
+        <div class="results" id="results"></div>
+    </div>
+    
+    <footer>
+        <p>Powered by local LLMs via Ollama • Privacy-first • Zero-cost</p>
+    </footer>
+    
+    <script src="/static/app.js"></script>
+</body>
+</html>

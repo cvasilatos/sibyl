@@ -15,6 +15,7 @@ Sibyl is a Python-based tool that uses Local Large Language Models (LLMs) runnin
 - 📊 **Structured Reviews**: Get consistent, structured feedback across multiple dimensions
 - 📈 **Comparative Analysis**: View statistics, consensus, and differences across reviewers
 - 💻 **CLI Interface**: Easy-to-use command-line interface with rich formatting
+- 🌐 **Web Interface**: Modern web application with drag-and-drop upload and real-time progress
 - 🎯 **Flexible Configuration**: Use any Ollama-compatible models
 
 ## Review Criteria
@@ -66,7 +67,11 @@ Each review includes assessment of:
 
 4. **Install the package**:
    ```bash
+   # For CLI only
    pip install -e .
+   
+   # For CLI + Web Interface
+   pip install -e ".[web]"
    ```
 
 5. **Configure Sibyl**:
@@ -98,6 +103,27 @@ Choose a model based on your hardware:
 - **32GB+ RAM**: Any model, including larger variants
 
 ## Usage
+
+### Web Interface (Recommended)
+
+The easiest way to use Sibyl is through the modern Next.js web interface:
+
+```bash
+# Terminal 1: Start the FastAPI backend
+sibyl web
+
+# Terminal 2: Start the Next.js frontend
+cd web
+npm install  # First time only
+npm run dev
+
+# Open your browser to http://localhost:3000
+# Drag and drop a PDF, click "Start Review", and watch the progress!
+```
+
+**Tech Stack**: React, Next.js 15, TypeScript, Tailwind CSS, shadcn/ui
+
+For more details, see the [Next.js Web App Documentation](docs/WEB_APP_NEXTJS.md).
 
 ### Check Configuration
 
@@ -277,7 +303,7 @@ While Sibyl now focuses on local models, you can still benefit from using differ
 
 - [ ] Support for multiple concurrent model comparisons
 - [ ] Batch processing of multiple papers
-- [ ] Interactive web interface
+- [x] Interactive web interface
 - [ ] Custom review criteria and prompts
 - [ ] Citation analysis integration
 - [ ] Support for LaTeX and other document formats

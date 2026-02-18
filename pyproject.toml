@@ -41,6 +41,12 @@ dev = [
     "mypy>=1.0.0",
     "pre-commit>=3.0.0",
 ]
+web = [
+    "fastapi>=0.104.0",
+    "uvicorn>=0.24.0",
+    "python-multipart>=0.0.6",
+    "websockets>=12.0",
+]
 
 [project.scripts]
 sibyl = "sibyl.cli:main"
@@ -51,6 +57,9 @@ Repository = "https://github.com/cvasilatos/sibyl"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/sibyl"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"src/sibyl/static" = "sibyl/static"
 
 [tool.ruff]
 line-length = 100
