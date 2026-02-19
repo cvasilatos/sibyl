@@ -100,6 +100,25 @@ Each review includes assessment of:
    OLLAMA_BASE_URL=http://localhost:11434
    ```
 
+7. **Optional: Enable GROBID for Enhanced Metadata Extraction**:
+
+   Sibyl can use GROBID to extract title, authors, and other metadata from PDFs when the built-in PDF metadata is empty or missing. This is especially useful for academic papers.
+
+   To enable GROBID:
+
+   a. Run GROBID service locally using Docker:
+   ```bash
+   docker run -t --rm -p 8070:8070 lfoppiano/grobid:0.8.0
+   ```
+
+   b. Enable GROBID in your `.env` file:
+   ```
+   GROBID_ENABLED=true
+   GROBID_URL=http://localhost:8070
+   ```
+
+   **Note**: GROBID is optional. If not enabled, Sibyl will use the standard PDF metadata extraction which works well for most PDFs.
+
 ### Recommended Models
 
 - **llama3.2** (3B/1B): Fast, efficient, good quality
@@ -245,7 +264,10 @@ sibyl/
 
 ### Components
 
-1. **PDF Parser**: Extracts text and metadata from research paper PDFs using `pypdf`
+1. **PDF Parser**: Extracts text and metadata from research paper PDFs
+   - Uses `pypdf` for standard PDF metadata extraction
+   - Optional GROBID integration for enhanced metadata extraction when PDF metadata is empty
+   - Automatically falls back to `pypdf` if GROBID is unavailable
 2. **LLM Client**: Interface for Ollama local LLM runner
 3. **Review System**: Generates structured reviews using LLMs with consistent prompts
 4. **Comparison Engine**: Analyzes multiple reviews to identify patterns and consensus
@@ -304,6 +326,7 @@ While Sibyl now focuses on local models, you can still benefit from using differ
 - Requires Ollama to be installed and running locally
 - Performance depends on your hardware (CPU/GPU, RAM)
 - PDF text extraction may not work perfectly for all paper formats
+- Standard PDF metadata extraction may not work for PDFs without embedded metadata (enable GROBID for better results)
 - Review quality depends on the underlying LLM capabilities
 - Long papers may require significant processing time
 - Does not review figures, tables, or mathematical equations in detail
@@ -313,6 +336,7 @@ While Sibyl now focuses on local models, you can still benefit from using differ
 - [ ] Support for multiple concurrent model comparisons
 - [ ] Batch processing of multiple papers
 - [x] Interactive web interface
+- [x] GROBID integration for enhanced PDF metadata extraction
 - [ ] Custom review criteria and prompts
 - [ ] Citation analysis integration
 - [ ] Support for LaTeX and other document formats
