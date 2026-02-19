@@ -10,11 +10,11 @@ git clone https://github.com/cvasilatos/sibyl.git
 cd sibyl
 
 # Install uv if not already installed
-# macOS and Linux:
+# macOS and Linux
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Windows:
-# powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+# Windows
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
 
 # Install the package
 uv pip install -e .
