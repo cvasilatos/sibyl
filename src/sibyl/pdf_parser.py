@@ -19,6 +19,7 @@ class PDFParser:
         self,
         pdf_path: str,
         grobid_url: Optional[str] = None,
+        *,
         use_grobid: Optional[bool] = None,
     ):
         """Initialize the PDF parser.
@@ -140,18 +141,17 @@ class PDFParser:
             if response.status_code == 200:
                 # Parse the TEI XML response
                 return self._parse_grobid_tei(response.text)
-            else:
-                logger.warning(
-                    f"GROBID request failed with status {response.status_code}: {response.text}"
-                )
-                return None
+
+            logger.warning(
+                f"GROBID request failed with status {response.status_code}: {response.text}"
+            )
 
         except requests.exceptions.RequestException as e:
             logger.warning(f"Failed to connect to GROBID service at {self.grobid_url}: {e}")
-            return None
         except Exception as e:
             logger.warning(f"Error during GROBID metadata extraction: {e}")
-            return None
+
+        return None
 
     def _parse_grobid_tei(self, tei_xml: str) -> Optional[dict]:
         """Parse GROBID TEI XML response to extract metadata.
@@ -162,9 +162,12 @@ class PDFParser:
         Returns:
             Dictionary containing extracted metadata
 
+        Note:
+            The XML is from GROBID service (configured by user) and is trusted.
+
         """
         try:
-            root = ET.fromstring(tei_xml)
+            root = ET.fromstring(tei_xml)  # noqa: S314
 
             # Define TEI namespace
             ns = {"tei": "http://www.tei-c.org/ns/1.0"}
@@ -207,11 +210,11 @@ class PDFParser:
             if abstract:
                 metadata["abstract"] = abstract
 
-            return metadata
-
         except ET.ParseError as e:
             logger.warning(f"Failed to parse GROBID TEI XML: {e}")
             return None
         except Exception as e:
             logger.warning(f"Error parsing GROBID response: {e}")
             return None
+        else:
+            return metadata
