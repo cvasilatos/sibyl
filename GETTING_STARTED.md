@@ -76,6 +76,21 @@ OLLAMA_MODEL=llama3.2
 OLLAMA_BASE_URL=http://localhost:11434
 ```
 
+**Optional: Enable GROBID for Better Metadata Extraction**
+
+If your PDFs don't have embedded metadata (title, authors), you can enable GROBID for automatic extraction:
+
+```bash
+# Start GROBID service using Docker
+docker run -t --rm -p 8070:8070 lfoppiano/grobid:0.8.0
+
+# In your .env file, add:
+GROBID_ENABLED=true
+GROBID_URL=http://localhost:8070
+```
+
+This is optional but recommended for academic papers without proper metadata.
+
 ### 6. Verify Setup
 
 Check that everything is configured correctly:
@@ -201,6 +216,7 @@ Make sure:
 - Ensure the PDF is not encrypted or password-protected
 - Try using `--max-pages` to limit extraction
 - Check that the file path is correct
+- If PDF metadata is empty, consider enabling GROBID (see configuration section above)
 
 ### Slow Performance
 
