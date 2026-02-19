@@ -144,9 +144,7 @@ export default function Home() {
 
       // Connect WebSocket with optional model parameter
       const wsBaseUrl = getWebSocketUrl()
-      const wsUrl = selectedModel 
-        ? `${wsBaseUrl}/ws/${sessionId}?model=${encodeURIComponent(selectedModel)}`
-        : `${wsBaseUrl}/ws/${sessionId}`
+      const wsUrl = `${wsBaseUrl}/ws/${sessionId}${selectedModel ? `?model=${encodeURIComponent(selectedModel)}` : ''}`
       const ws = new WebSocket(wsUrl)
       wsRef.current = ws
 
