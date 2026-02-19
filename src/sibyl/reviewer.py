@@ -125,6 +125,31 @@ DETAILED FEEDBACK:
             raw_response=response,
         )
 
+    async def areview_paper(self, paper_text: str, paper_title: str = "Unknown") -> PaperReview:
+        """Generate a review for a research paper asynchronously.
+
+        Args:
+            paper_text: The full text of the research paper
+            paper_title: Title of the paper
+
+        Returns:
+            Structured review of the paper
+
+        """
+        # Generate the review using the LLM
+        prompt = self.REVIEW_PROMPT_TEMPLATE.format(paper_text=paper_text)
+        response = await self.llm_client.agenerate(prompt, system_prompt=self.SYSTEM_PROMPT)
+
+        # Parse the response
+        criteria = self._parse_review_response(response)
+
+        return PaperReview(
+            paper_title=paper_title,
+            reviewer_model=self.llm_client.get_name(),
+            criteria=criteria,
+            raw_response=response,
+        )
+
     def _parse_review_response(self, response: str) -> ReviewCriteria:
         """Parse the LLM response into structured criteria.
 

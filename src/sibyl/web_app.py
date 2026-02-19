@@ -224,7 +224,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
                     }
                 )
 
-                review = reviewer.review_paper(paper_text, paper_title)
+                review = await reviewer.areview_paper(paper_text, paper_title)
                 reviews.append(review)
             except AttributeError as e:
                 await websocket.send_json(
