@@ -1,7 +1,7 @@
 "use client"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { useCallback, useRef, useState, type RefObject } from "react"
+import { useCallback, useRef, useState, useEffect, type RefObject } from "react"
 
 import ModelManager from "@/components/ModelManager"
 import ReviewLibrary from "@/components/ReviewLibrary"
@@ -49,6 +49,8 @@ interface ReviewResults {
 export default function Home() {
   const [activeTab, setActiveTab] = useState<"review" | "library" | "models">("models")
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [selectedModel, setSelectedModel] = useState<string>("")
+  const [availableModels, setAvailableModels] = useState<string[]>([])
   const [isDragging, setIsDragging] = useState(false)
   const [isReviewing, setIsReviewing] = useState(false)
   const [progress, setProgress] = useState(0)
@@ -57,6 +59,26 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null!)
   const wsRef = useRef<WebSocket | null>(null)
+
+  // Load available models on mount
+  useEffect(() => {
+    const loadModels = async () => {
+      try {
+        const response = await fetch("http://localhost:8000/api/models")
+        if (response.ok) {
+          const data = await response.json()
+          const modelNames = data.models.map((m: any) => m.name)
+          setAvailableModels(modelNames)
+          if (modelNames.length > 0) {
+            setSelectedModel(modelNames[0])
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load models:", err)
+      }
+    }
+    loadModels()
+  }, [])
 
   const handleFileSelect = (file: File) => {
     if (file.type === "application/pdf") {
@@ -119,9 +141,12 @@ export default function Home() {
       const data = await response.json()
       const sessionId = data.session_id
 
-      // Connect WebSocket
+      // Connect WebSocket with optional model parameter
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:"
-      const ws = new WebSocket(`${protocol}//localhost:8000/ws/${sessionId}`)
+      const wsUrl = selectedModel 
+        ? `${protocol}//localhost:8000/ws/${sessionId}?model=${encodeURIComponent(selectedModel)}`
+        : `${protocol}//localhost:8000/ws/${sessionId}`
+      const ws = new WebSocket(wsUrl)
       wsRef.current = ws
 
       ws.onmessage = (event) => {
@@ -191,6 +216,9 @@ export default function Home() {
             {activeTab === "review" && (
               <UploadArea
                 selectedFile={selectedFile}
+                selectedModel={selectedModel}
+                availableModels={availableModels}
+                onModelChange={setSelectedModel}
                 fileInputRef={fileInputRef}
                 isDragging={isDragging}
                 handleDragOver={handleDragOver}

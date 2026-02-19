@@ -40,8 +40,29 @@ app.add_middleware(
 # Store active review sessions
 review_sessions: Dict[str, Dict] = {}
 
+# Store active model downloads
+model_downloads: Dict[str, Dict] = {}
+
 # Initialize storage
 storage = ReviewStorage()
+
+# Curated list of popular Ollama models with descriptions
+POPULAR_OLLAMA_MODELS = [
+    {"name": "llama3.2", "description": "Meta's Llama 3.2 - Excellent for general tasks", "size": "2B-90B parameters"},
+    {"name": "llama3.1", "description": "Meta's Llama 3.1 - Strong reasoning and coding", "size": "8B-405B parameters"},
+    {"name": "llama3", "description": "Meta's Llama 3 - High quality instruction following", "size": "8B-70B parameters"},
+    {"name": "mistral", "description": "Mistral AI - Excellent reasoning and efficiency", "size": "7B parameters"},
+    {"name": "phi3", "description": "Microsoft's Phi-3 - Small but powerful", "size": "3.8B parameters"},
+    {"name": "qwen2.5", "description": "Alibaba's Qwen 2.5 - Strong multilingual", "size": "0.5B-72B parameters"},
+    {"name": "gemma2", "description": "Google's Gemma 2 - Efficient and capable", "size": "2B-27B parameters"},
+    {"name": "deepseek-coder", "description": "DeepSeek Coder - Best for technical papers", "size": "1.3B-33B parameters"},
+    {"name": "codellama", "description": "Meta's Code Llama - Specialized for code", "size": "7B-70B parameters"},
+    {"name": "neural-chat", "description": "Intel's Neural Chat - Optimized for conversations", "size": "7B parameters"},
+    {"name": "starling-lm", "description": "Starling - RLHF trained for helpfulness", "size": "7B parameters"},
+    {"name": "orca-mini", "description": "Microsoft's Orca Mini - Compact reasoning", "size": "3B-13B parameters"},
+    {"name": "vicuna", "description": "LMSYS Vicuna - Strong general assistant", "size": "7B-33B parameters"},
+    {"name": "nous-hermes2", "description": "Nous Research - Versatile assistant", "size": "10.7B parameters"},
+]
 
 
 class ReviewRequest(BaseModel):
@@ -116,7 +137,11 @@ async def upload_paper(file: UploadFile = File(...)):
 
 @app.websocket("/ws/{session_id}")
 async def websocket_endpoint(websocket: WebSocket, session_id: str):
-    """WebSocket endpoint for real-time review progress updates."""
+    """WebSocket endpoint for real-time review progress updates.
+    
+    Query parameters:
+        model: Optional model name to use for review (overrides env config)
+    """
     await websocket.accept()
 
     if session_id not in review_sessions:
@@ -125,6 +150,9 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
         return
 
     session = review_sessions[session_id]
+    
+    # Get optional model from query parameters
+    selected_model = websocket.query_params.get("model")
 
     try:
         # Start the review process
@@ -176,15 +204,23 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
                     await websocket.close()
                     return
 
+                # Override model if selected by user
+                if selected_model:
+                    # Create a copy of the config with the selected model
+                    from copy import deepcopy
+                    provider_config = deepcopy(provider_config)
+                    provider_config.model = selected_model
+                
                 client = create_client(provider, provider_config)
                 reviewer = ReviewSystem(client)
 
+                model_display = selected_model if selected_model else provider_config.model
                 progress = 40 + (50 * (i + 1) // len(providers))
                 await websocket.send_json(
                     {
                         "status": "progress",
                         "progress": progress,
-                        "message": f"Reviewing with {provider}...",
+                        "message": f"Reviewing with {provider} ({model_display})...",
                     }
                 )
 
@@ -419,7 +455,11 @@ async def list_models():
     """
     try:
         config = SibylConfig.from_env()
-        ollama_url = config.ollama.api_url or "http://localhost:11434"
+        ollama_url = "http://localhost:11434"  # Default URL
+        
+        # Try to get URL from config if available
+        if hasattr(config, "ollama") and config.ollama and hasattr(config.ollama, "api_url"):
+            ollama_url = config.ollama.api_url or ollama_url
         
         response = requests.get(f"{ollama_url}/api/tags", timeout=10)
         response.raise_for_status()
@@ -438,6 +478,46 @@ async def list_models():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/api/models/available")
+async def list_available_models():
+    """List available Ollama models that can be installed.
+    
+    Returns:
+        List of popular models available for installation
+    """
+    try:
+        config = SibylConfig.from_env()
+        ollama_url = "http://localhost:11434"  # Default URL
+        
+        # Try to get URL from config if available
+        if hasattr(config, "ollama") and config.ollama and hasattr(config.ollama, "api_url"):
+            ollama_url = config.ollama.api_url or ollama_url
+        
+        # Get installed models
+        installed_models = set()
+        try:
+            response = requests.get(f"{ollama_url}/api/tags", timeout=10)
+            response.raise_for_status()
+            models_data = response.json()
+            installed_models = {m["name"].split(":")[0] for m in models_data.get("models", [])}
+        except Exception:
+            pass  # If we can't get installed models, just show all available
+        
+        # Mark which models are already installed
+        available_models = []
+        for model in POPULAR_OLLAMA_MODELS:
+            model_copy = model.copy()
+            model_copy["installed"] = model["name"] in installed_models
+            available_models.append(model_copy)
+        
+        return {
+            "models": available_models,
+            "count": len(available_models)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 class ModelDownloadRequest(BaseModel):
     """Request model for downloading an Ollama model."""
     model_name: str
@@ -445,41 +525,86 @@ class ModelDownloadRequest(BaseModel):
 
 @app.post("/api/models/download")
 async def download_model(request: ModelDownloadRequest):
-    """Download/pull an Ollama model.
+    """Initiate download/pull of an Ollama model asynchronously.
     
     Args:
         request: Model download request with model name
         
     Returns:
-        Status message
+        Download ID for tracking progress via WebSocket
     """
     try:
         config = SibylConfig.from_env()
-        ollama_url = config.ollama.api_url or "http://localhost:11434"
+        ollama_url = "http://localhost:11434"  # Default URL
         
-        # Start the pull request
-        response = requests.post(
-            f"{ollama_url}/api/pull",
-            json={"name": request.model_name},
-            stream=True,
-            timeout=600  # 10 minute timeout for large models
-        )
-        response.raise_for_status()
+        # Try to get URL from config if available
+        if hasattr(config, "ollama") and config.ollama and hasattr(config.ollama, "api_url"):
+            ollama_url = config.ollama.api_url or ollama_url
         
-        # Process streaming response
-        for line in response.iter_lines():
-            if line:
-                data = json.loads(line)
-                # Check if download is complete
-                if data.get("status") == "success":
-                    return {
-                        "message": f"Model '{request.model_name}' downloaded successfully",
-                        "model_name": request.model_name
-                    }
+        # Generate download ID
+        download_id = str(uuid.uuid4())
+        
+        # Initialize download tracking
+        model_downloads[download_id] = {
+            "model_name": request.model_name,
+            "status": "initiated",
+            "progress": 0,
+            "message": "Starting download...",
+            "total": 0,
+            "completed": 0,
+        }
+        
+        # Start download in background task
+        async def download_task():
+            try:
+                response = requests.post(
+                    f"{ollama_url}/api/pull",
+                    json={"name": request.model_name},
+                    stream=True,
+                    timeout=600  # 10 minute timeout for large models
+                )
+                response.raise_for_status()
+                
+                # Process streaming response
+                for line in response.iter_lines():
+                    if line:
+                        data = json.loads(line)
+                        
+                        # Update progress tracking
+                        download_info = model_downloads.get(download_id)
+                        if not download_info:
+                            break  # Download was cancelled
+                        
+                        status = data.get("status", "")
+                        download_info["message"] = status
+                        
+                        # Calculate progress based on bytes if available
+                        if "total" in data and "completed" in data:
+                            download_info["total"] = data["total"]
+                            download_info["completed"] = data["completed"]
+                            if data["total"] > 0:
+                                download_info["progress"] = int((data["completed"] / data["total"]) * 100)
+                        
+                        # Check if download is complete
+                        if status == "success":
+                            download_info["status"] = "completed"
+                            download_info["progress"] = 100
+                            download_info["message"] = f"Model '{request.model_name}' downloaded successfully"
+                            break
+                
+            except Exception as e:
+                download_info = model_downloads.get(download_id)
+                if download_info:
+                    download_info["status"] = "error"
+                    download_info["message"] = str(e)
+        
+        # Start background task
+        asyncio.create_task(download_task())
         
         return {
-            "message": f"Model '{request.model_name}' download initiated",
-            "model_name": request.model_name
+            "download_id": download_id,
+            "model_name": request.model_name,
+            "message": "Download started"
         }
     except requests.exceptions.RequestException as e:
         raise HTTPException(
@@ -488,6 +613,63 @@ async def download_model(request: ModelDownloadRequest):
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/models/download/{download_id}")
+async def get_download_status(download_id: str):
+    """Get the status of a model download.
+    
+    Args:
+        download_id: ID of the download to check
+        
+    Returns:
+        Download progress and status
+    """
+    if download_id not in model_downloads:
+        raise HTTPException(status_code=404, detail="Download not found")
+    
+    return model_downloads[download_id]
+
+
+@app.websocket("/ws/models/download/{download_id}")
+async def model_download_websocket(websocket: WebSocket, download_id: str):
+    """WebSocket endpoint for real-time model download progress updates.
+    
+    Args:
+        websocket: WebSocket connection
+        download_id: ID of the download to track
+    """
+    await websocket.accept()
+    
+    if download_id not in model_downloads:
+        await websocket.send_json({"status": "error", "message": "Download not found"})
+        await websocket.close()
+        return
+    
+    try:
+        # Send progress updates
+        while True:
+            download_info = model_downloads.get(download_id)
+            if not download_info:
+                await websocket.send_json({"status": "error", "message": "Download cancelled"})
+                break
+            
+            # Send current progress
+            await websocket.send_json(download_info)
+            
+            # Check if download is complete or failed
+            if download_info["status"] in ["completed", "error"]:
+                break
+            
+            # Wait a bit before sending next update
+            await asyncio.sleep(0.5)
+        
+    except WebSocketDisconnect:
+        pass  # Client disconnected, download continues in background
+    except Exception as e:
+        await websocket.send_json({"status": "error", "message": str(e)})
+    finally:
+        await websocket.close()
 
 
 @app.get("/api/reviews/{review_id}/pdf")
