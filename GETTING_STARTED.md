@@ -6,7 +6,7 @@
 
 Ensure you have:
 - **Python 3.9 or higher** (Python 3.12+ recommended for best compatibility)
-- **pip** (Python package installer) or **uv** (faster alternative: https://github.com/astral-sh/uv)
+- **[uv](https://github.com/astral-sh/uv)** - Fast Python package installer and resolver
 - **[Ollama](https://ollama.ai)** installed and running locally
 - **Node.js 18+** and npm (only if you want to use the web interface)
 
@@ -47,16 +47,13 @@ ollama list
 git clone https://github.com/cvasilatos/sibyl.git
 cd sibyl
 
-# Install Sibyl
-# Option 1: Using pip (standard)
-pip install -e .
+# Install uv if not already installed
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Option 2: Using uv (faster alternative)
+# Install Sibyl
 uv pip install -e .
 
 # If you want the web interface, install with web dependencies:
-pip install -e ".[web]"
-# or with uv:
 uv pip install -e ".[web]"
 ```
 

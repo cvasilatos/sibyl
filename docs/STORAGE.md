@@ -34,10 +34,10 @@ Search results include similarity scores showing how closely each result matches
 ### 1. Install Dependencies
 
 ```bash
-# Using pip
-pip install -e ".[web]"
+# Install uv if not already installed
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Or using uv (faster)
+# Install Sibyl with web dependencies
 uv pip install -e ".[web]"
 ```
 

@@ -24,6 +24,7 @@ The backend is built with FastAPI and provides:
 ### Prerequisites
 
 - Python 3.9 or higher (3.12+ recommended)
+- **[uv](https://github.com/astral-sh/uv)** - Fast Python package installer
 - [Ollama](https://ollama.ai) installed and running
 - A local LLM model (e.g., `llama3.2`)
 - Node.js 18+ and npm (for Next.js frontend, optional)
@@ -31,15 +32,11 @@ The backend is built with FastAPI and provides:
 ### Install Sibyl with Web Support
 
 ```bash
+# Install uv if not already installed
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
 # Install Sibyl with web dependencies
-# Using pip
-pip install -e ".[web]"
-
-# Or using uv (faster)
 uv pip install -e ".[web]"
-
-# Or if already installed, add web dependencies manually
-pip install fastapi uvicorn python-multipart websockets
 ```
 
 ## Quick Start
@@ -219,7 +216,7 @@ WebSocket endpoint for real-time review progress updates.
 
 ```bash
 # Install development dependencies
-pip install -e ".[dev,web]"
+uv pip install -e ".[dev,web]"
 
 # Run with auto-reload
 uvicorn sibyl.web_app:app --reload --host 0.0.0.0 --port 8000
@@ -264,7 +261,7 @@ src/sibyl/
 
 **Solution**: Install web dependencies
 ```bash
-pip install -e ".[web]"
+uv pip install -e ".[web]"
 ```
 
 ### Can't connect to Ollama

@@ -9,16 +9,13 @@
 git clone https://github.com/cvasilatos/sibyl.git
 cd sibyl
 
-# Install the package
-# Using pip (standard)
-pip install -e .
+# Install uv if not already installed
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Or using uv (faster alternative)
+# Install the package
 uv pip install -e .
 
-# For web interface support, use:
-pip install -e ".[web]"
-# or with uv:
+# For web interface support:
 uv pip install -e ".[web]"
 ```
 

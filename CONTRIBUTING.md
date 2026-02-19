@@ -15,10 +15,6 @@ Thank you for your interest in contributing to Sibyl! This document provides gui
 
 ```bash
 # Install development dependencies
-# Using pip
-pip install -e ".[dev]"
-
-# Or using uv (faster alternative)
 uv pip install -e ".[dev]"
 
 # Run tests

@@ -38,7 +38,7 @@ Each review includes assessment of:
 ### Prerequisites
 
 - **Python 3.9 or higher** (Python 3.12+ recommended)
-- **pip** (Python package installer) or **uv** (faster alternative)
+- **[uv](https://github.com/astral-sh/uv)** - Fast Python package installer and resolver
 - **[Ollama](https://ollama.ai)** installed and running locally
 
 ### Setup
@@ -65,24 +65,28 @@ Each review includes assessment of:
    cd sibyl
    ```
 
-4. **Install the package**:
+4. **Install uv** (if not already installed):
    ```bash
-   # Option 1: Using pip (standard)
+   # macOS and Linux
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+   
+   # Windows
+   powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+   
+   # Or with pip if you already have it
+   pip install uv
+   ```
+
+5. **Install the package**:
+   ```bash
    # For CLI only
-   pip install -e .
-   
-   # For CLI + Web Interface
-   pip install -e ".[web]"
-   
-   # Option 2: Using uv (faster alternative)
-   # Install uv first: https://github.com/astral-sh/uv
    uv pip install -e .
    
-   # For CLI + Web Interface with uv
+   # For CLI + Web Interface
    uv pip install -e ".[web]"
    ```
 
-5. **Configure Sibyl**:
+6. **Configure Sibyl**:
 
    Create a `.env` file in the project root:
 
@@ -118,7 +122,7 @@ The easiest way to use Sibyl is through the modern Next.js web interface:
 
 **Additional Prerequisites for Web Interface:**
 - **Node.js 18+** and npm (for the Next.js frontend)
-- Sibyl installed with web dependencies: `pip install -e ".[web]"`
+- Sibyl installed with web dependencies: `uv pip install -e ".[web]"`
 
 ```bash
 # Terminal 1: Start the FastAPI backend
@@ -260,10 +264,6 @@ sibyl/
 ### Install Development Dependencies
 
 ```bash
-# Using pip
-pip install -e ".[dev]"
-
-# Or using uv (faster)
 uv pip install -e ".[dev]"
 ```
 

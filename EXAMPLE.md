@@ -23,10 +23,10 @@ ollama list
 # Clone and install Sibyl
 cd sibyl
 
-# Install with pip (standard)
-pip install -e .
+# Install uv if not already installed
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Or with uv (faster alternative)
+# Install Sibyl
 uv pip install -e .
 
 # Set up your configuration

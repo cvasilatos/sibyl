@@ -28,6 +28,7 @@ The Sibyl Web Application has been refactored to use modern web technologies:
 ### Prerequisites
 
 - **Python 3.9+** (Python 3.12+ recommended) with Sibyl installed
+- **[uv](https://github.com/astral-sh/uv)** - Fast Python package installer
 - **Node.js 18+** and npm
 - **Ollama** installed and running with a model pulled
 
@@ -35,10 +36,10 @@ The Sibyl Web Application has been refactored to use modern web technologies:
 
 1. **Install Python dependencies**:
    ```bash
-   # Using pip
-   pip install -e ".[web]"
+   # Install uv if not already installed
+   curl -LsSf https://astral.sh/uv/install.sh | sh
    
-   # Or using uv (faster)
+   # Install Sibyl with web dependencies
    uv pip install -e ".[web]"
    ```
 

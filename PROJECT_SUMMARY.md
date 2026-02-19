@@ -105,11 +105,16 @@ sibyl/
 ├── CONTRIBUTING.md        # Contribution guidelines
 ├── LICENSE                # MIT License
 ├── pyproject.toml         # Project configuration
+├── uv.lock                # uv lockfile for dependencies
 ├── .env.example          # Environment variables template
 └── .gitignore            # Git ignore rules
 ```
 
 ## Technical Stack
+
+### Build & Package Management
+
+- **[uv](https://github.com/astral-sh/uv)** - Fast Python package installer and resolver (10-100x faster than pip)
 
 ### Core Dependencies
 
@@ -210,10 +215,13 @@ Implemented using Rich library for:
 # Pull a model
 ollama pull llama3.2
 
+# Install uv
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
 # Clone and install Sibyl
 git clone https://github.com/cvasilatos/sibyl.git
 cd sibyl
-pip install -e .
+uv pip install -e .
 ```
 
 ### Quick Start
