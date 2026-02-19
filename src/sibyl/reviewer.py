@@ -143,7 +143,7 @@ Research Paper:
             "limitations": "",
             "strengths": "",
             "overall_score": 5,
-            "recommendation": "Revise",
+            "recommendation": "",
             "detailed_feedback": "",
         }
 
@@ -156,49 +156,84 @@ Research Paper:
 
             if line_upper.startswith("NOVELTY:"):
                 current_section = "novelty"
-                sections[current_section] = line[8:].strip()
+                content = line[len("NOVELTY:"):].strip()
+                if content:
+                    sections[current_section] = content
             elif line_upper.startswith("METHODOLOGY:"):
                 current_section = "methodology"
-                sections[current_section] = line[12:].strip()
+                content = line[len("METHODOLOGY:"):].strip()
+                if content:
+                    sections[current_section] = content
             elif line_upper.startswith("RESULTS:"):
                 current_section = "results"
-                sections[current_section] = line[8:].strip()
+                content = line[len("RESULTS:"):].strip()
+                if content:
+                    sections[current_section] = content
             elif line_upper.startswith("CLARITY:"):
                 current_section = "clarity"
-                sections[current_section] = line[8:].strip()
+                content = line[len("CLARITY:"):].strip()
+                if content:
+                    sections[current_section] = content
             elif line_upper.startswith("IMPACT:"):
                 current_section = "impact"
-                sections[current_section] = line[7:].strip()
+                content = line[len("IMPACT:"):].strip()
+                if content:
+                    sections[current_section] = content
             elif line_upper.startswith("LIMITATIONS:"):
                 current_section = "limitations"
-                sections[current_section] = line[12:].strip()
+                content = line[len("LIMITATIONS:"):].strip()
+                if content:
+                    sections[current_section] = content
             elif line_upper.startswith("STRENGTHS:"):
                 current_section = "strengths"
-                sections[current_section] = line[10:].strip()
+                content = line[len("STRENGTHS:"):].strip()
+                if content:
+                    sections[current_section] = content
             elif line_upper.startswith("SCORE:"):
                 current_section = "overall_score"
-                score_text = line[6:].strip()
-                # Extract number from score text
-                try:
-                    sections[current_section] = int(
-                        "".join(c for c in score_text if c.isdigit())[:2]
-                    )
-                except (ValueError, IndexError):
-                    sections[current_section] = 5
+                score_text = line[len("SCORE:"):].strip()
+                # Extract number from score text if present on same line
+                if score_text:
+                    try:
+                        sections[current_section] = int(
+                            "".join(c for c in score_text if c.isdigit())[:2]
+                        )
+                    except (ValueError, IndexError):
+                        sections[current_section] = 5
+                # Otherwise, wait for next line to get score
             elif line_upper.startswith("RECOMMENDATION:"):
                 current_section = "recommendation"
-                sections[current_section] = line[15:].strip()
+                content = line[len("RECOMMENDATION:"):].strip()
+                if content:
+                    sections[current_section] = content
             elif line_upper.startswith("DETAILED FEEDBACK:"):
                 current_section = "detailed_feedback"
-                sections[current_section] = line[18:].strip()
+                content = line[len("DETAILED FEEDBACK:"):].strip()
+                if content:
+                    sections[current_section] = content
             elif current_section and line.strip():
                 # Continue appending to current section
-                if sections[current_section] and current_section not in [
-                    "overall_score",
-                    "recommendation",
-                ]:
+                # Handle score on next line
+                if current_section == "overall_score":
+                    if sections[current_section] == 5:  # Still at default
+                        try:
+                            sections[current_section] = int(
+                                "".join(c for c in line.strip() if c.isdigit())[:2]
+                            )
+                        except (ValueError, IndexError):
+                            pass
+                    continue
+                
+                # Don't append multiple recommendations (single value field)
+                if current_section == "recommendation":
+                    if not sections[current_section]:
+                        sections[current_section] = line.strip()
+                    continue
+                    
+                # Append content to other sections (multi-line text fields)
+                if sections[current_section]:
                     sections[current_section] += "\n" + line.strip()
-                elif current_section not in ["overall_score", "recommendation"]:
+                else:
                     sections[current_section] = line.strip()
 
         # Ensure score is within valid range
@@ -206,5 +241,9 @@ Research Paper:
             sections["overall_score"] = 1
         elif sections["overall_score"] > 10:
             sections["overall_score"] = 10
+        
+        # Set default recommendation if not found
+        if not sections["recommendation"]:
+            sections["recommendation"] = "Revise"
 
         return ReviewCriteria(**sections)
