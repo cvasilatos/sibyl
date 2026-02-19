@@ -166,7 +166,6 @@ def test_concurrent_requests():
     preventing other endpoints from responding during model downloads.
     """
     from fastapi.testclient import TestClient
-    import asyncio
     
     # Create a new client for this test
     test_client = TestClient(app)

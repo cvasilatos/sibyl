@@ -10,7 +10,6 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 import httpx
-import requests
 from fastapi import FastAPI, File, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
@@ -453,16 +452,17 @@ async def list_models():
         if hasattr(config, "ollama") and config.ollama and hasattr(config.ollama, "api_url"):
             ollama_url = config.ollama.api_url or ollama_url
 
-        response = requests.get(f"{ollama_url}/api/tags", timeout=10)
-        print(f"Fetching models from Ollama at URL: {ollama_url} - {response.json()}")
-        response.raise_for_status()
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(f"{ollama_url}/api/tags")
+            print(f"Fetching models from Ollama at URL: {ollama_url} - {response.json()}")
+            response.raise_for_status()
 
-        models_data = response.json()
-        return {
-            "models": models_data.get("models", []),
-            "count": len(models_data.get("models", [])),
-        }
-    except requests.exceptions.RequestException as e:
+            models_data = response.json()
+            return {
+                "models": models_data.get("models", []),
+                "count": len(models_data.get("models", [])),
+            }
+    except httpx.HTTPStatusError as e:
         raise HTTPException(
             status_code=503,
             detail=f"Failed to connect to Ollama. Make sure Ollama is running. Error: {e!s}",
@@ -493,10 +493,11 @@ async def list_available_models():
             result.check_returncode()
             html_content = result.stdout
         except (subprocess.CalledProcessError, FileNotFoundError):
-            # Fallback to requests if curl not available
-            library_response = requests.get("https://ollama.com/library", timeout=30)
-            library_response.raise_for_status()
-            html_content = library_response.text
+            # Fallback to httpx if curl not available
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                library_response = await client.get("https://ollama.com/library")
+                library_response.raise_for_status()
+                html_content = library_response.text
 
         # Extract model names using regex (equivalent to: grep -oP 'href="/library/\K[^"]+')
         model_names = re.findall(r'href="/library/([^"]+)', html_content)
@@ -514,11 +515,12 @@ async def list_available_models():
 
         installed_models = set()
         try:
-            response = requests.get(f"{ollama_url}/api/tags", timeout=10)
-            response.raise_for_status()
-            models_data = response.json()
-            installed_models = {m["name"].split(":")[0] for m in models_data.get("models", [])}
-        except requests.exceptions.RequestException:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.get(f"{ollama_url}/api/tags")
+                response.raise_for_status()
+                models_data = response.json()
+                installed_models = {m["name"].split(":")[0] for m in models_data.get("models", [])}
+        except httpx.HTTPError:
             # If Ollama is not running, just mark all as not installed
             pass
 
@@ -534,7 +536,7 @@ async def list_available_models():
             available_models.append(model_info)
 
         return {"models": available_models, "count": len(available_models)}
-    except requests.exceptions.RequestException as e:
+    except httpx.HTTPError as e:
         raise HTTPException(
             status_code=503,
             detail=f"Failed to fetch models from Ollama library. Error: {e!s}",
@@ -642,7 +644,7 @@ async def download_model(request: ModelDownloadRequest):
             "model_name": request.model_name,
             "message": "Download started",
         }
-    except requests.exceptions.RequestException as e:
+    except httpx.HTTPError as e:
         raise HTTPException(
             status_code=503,
             detail=f"Failed to connect to Ollama. Make sure Ollama is running. Error: {e!s}",
