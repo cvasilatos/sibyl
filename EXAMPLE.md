@@ -22,7 +22,16 @@ ollama list
 
 # Clone and install Sibyl
 cd sibyl
-pip install -e .
+
+# Install uv if not already installed
+# macOS and Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Windows
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+
+# Install Sibyl
+uv pip install -e .
 
 # Set up your configuration
 cp .env.example .env

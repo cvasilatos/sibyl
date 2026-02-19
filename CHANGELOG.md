@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Modern Web Interface (Next.js)**:
+  - Next.js 16 frontend with React 19
+  - TypeScript for type safety
+  - Tailwind CSS 4 for styling
+  - shadcn/ui component library
+  - Real-time WebSocket progress updates
+  - Drag-and-drop PDF upload
+  - Responsive design with dark mode support
+  - FastAPI backend with CORS support
+
 - **Web Application**: Fully-fledged web interface for reviewing research papers
   - Modern, responsive UI with drag-and-drop PDF upload
   - Real-time progress tracking via WebSocket
@@ -27,10 +37,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Improved error handling and validation
   
 - **Documentation**:
-  - Comprehensive web app documentation (WEB_APP.md)
+  - Migrated all documentation to use uv as primary build tool
+  - Added uv installation instructions to all setup guides
+  - Comprehensive web app documentation (WEB_APP.md, WEB_APP_NEXTJS.md)
   - Example usage guide (WEB_APP_EXAMPLE.md)
   - Troubleshooting and performance tips
   - API endpoint documentation
+  - Clarified Python 3.9+ requirement (3.12+ recommended)
+  - Documented Node.js 18+ requirement for web interface
   
 - **Testing**:
   - 9 new tests for web application functionality
@@ -39,8 +53,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Total test count: 24 tests (all passing)
 
 ### Changed
-- Updated README.md to highlight web interface
+- **Build System**: Migrated from pip to uv for faster, more reliable dependency management
+- Updated README.md to highlight web interface and uv installation
 - Enhanced pyproject.toml with web dependencies
+- Updated all documentation files to use uv commands
 - Updated Future Enhancements section (web interface now complete)
 
 ### Security

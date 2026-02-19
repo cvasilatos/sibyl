@@ -9,8 +9,18 @@
 git clone https://github.com/cvasilatos/sibyl.git
 cd sibyl
 
+# Install uv if not already installed
+# macOS and Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Windows
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+
 # Install the package
-pip install -e .
+uv pip install -e .
+
+# For web interface support:
+uv pip install -e ".[web]"
 ```
 
 ### 2. Install and Configure Ollama

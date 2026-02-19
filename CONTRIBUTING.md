@@ -15,7 +15,7 @@ Thank you for your interest in contributing to Sibyl! This document provides gui
 
 ```bash
 # Install development dependencies
-pip install -e ".[dev]"
+uv pip install -e ".[dev]"
 
 # Run tests
 pytest
@@ -89,7 +89,7 @@ class LocalAIClient(LLMClient):
 - **Improved Parsing**: Better PDF text extraction, LaTeX support
 - **Additional Criteria**: New review dimensions and evaluation metrics
 - **Visualizations**: Charts and graphs for comparisons
-- **Web Interface**: Create a web UI (FastAPI/Streamlit)
+- **Web Interface**: Enhance the Next.js web UI with new features
 - **Documentation**: Improve docs and examples
 - **Tests**: Increase test coverage
 - **Performance**: GPU acceleration, optimization

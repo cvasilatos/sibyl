@@ -23,7 +23,11 @@ Before starting, ensure you have:
 
 3. **Sibyl installed with web support**:
    ```bash
-   pip install -e ".[web]"
+   # Install uv if not already installed
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+   
+   # Install Sibyl with web dependencies
+   uv pip install -e ".[web]"
    ```
 
 4. **Configuration file**:
@@ -199,7 +203,7 @@ $ curl http://localhost:8000/api/health
 
 **Solution**:
 ```bash
-pip install -e ".[web]"
+uv pip install -e ".[web]"
 ```
 
 ### Can't access from other machines

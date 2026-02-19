@@ -34,7 +34,15 @@ Search results include similarity scores showing how closely each result matches
 ### 1. Install Dependencies
 
 ```bash
-pip install -e ".[web]"
+# Install uv if not already installed
+# macOS and Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Windows
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+
+# Install Sibyl with web dependencies
+uv pip install -e ".[web]"
 ```
 
 ### 2. (Optional) Install Ollama Embedding Model

@@ -1,8 +1,14 @@
-# Sibyl Web Application
+# Sibyl Web Application (FastAPI backend)
 
 ## Overview
 
-The Sibyl Web Application provides a user-friendly web interface for reviewing research papers using local LLM models. Built with FastAPI and modern web technologies, it offers real-time progress updates and a clean, responsive design.
+The Sibyl Web Application provides a FastAPI backend for the web interface. This document covers the backend server. For the modern Next.js frontend, see [WEB_APP_NEXTJS.md](WEB_APP_NEXTJS.md).
+
+The backend is built with FastAPI and provides:
+- REST API endpoints for file uploads and health checks
+- WebSocket support for real-time progress updates
+- CORS enabled for Next.js frontend
+- Built-in HTML interface as fallback
 
 ## Features
 
@@ -17,21 +23,44 @@ The Sibyl Web Application provides a user-friendly web interface for reviewing r
 
 ### Prerequisites
 
-- Python 3.9 or higher
+- Python 3.9 or higher (3.12+ recommended)
+- **[uv](https://github.com/astral-sh/uv)** - Fast Python package installer
 - [Ollama](https://ollama.ai) installed and running
 - A local LLM model (e.g., `llama3.2`)
+- Node.js 18+ and npm (for Next.js frontend, optional)
 
 ### Install Sibyl with Web Support
 
 ```bash
-# Install Sibyl with web dependencies
-pip install -e ".[web]"
+# Install uv if not already installed
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Or if already installed, add web dependencies
-pip install fastapi uvicorn python-multipart websockets
+# Install Sibyl with web dependencies
+uv pip install -e ".[web]"
 ```
 
 ## Quick Start
+
+### Option 1: With Next.js Frontend (Recommended)
+
+1. **Start the Backend**:
+   ```bash
+   sibyl web
+   ```
+
+2. **Start the Frontend** (in a new terminal):
+   ```bash
+   cd web
+   npm install  # First time only
+   npm run dev
+   ```
+
+3. **Open in Browser**:
+   ```
+   http://localhost:3000
+   ```
+
+### Option 2: Backend Only (Built-in HTML Interface)
 
 1. **Configure Sibyl**:
    ```bash
@@ -187,7 +216,7 @@ WebSocket endpoint for real-time review progress updates.
 
 ```bash
 # Install development dependencies
-pip install -e ".[dev,web]"
+uv pip install -e ".[dev,web]"
 
 # Run with auto-reload
 uvicorn sibyl.web_app:app --reload --host 0.0.0.0 --port 8000
@@ -232,7 +261,7 @@ src/sibyl/
 
 **Solution**: Install web dependencies
 ```bash
-pip install -e ".[web]"
+uv pip install -e ".[web]"
 ```
 
 ### Can't connect to Ollama

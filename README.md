@@ -37,9 +37,9 @@ Each review includes assessment of:
 
 ### Prerequisites
 
-- Python 3.9 or higher
-- pip (Python package installer)
-- [Ollama](https://ollama.ai) installed and running
+- **Python 3.9 or higher** (Python 3.12+ recommended)
+- **[uv](https://github.com/astral-sh/uv)** - Fast Python package installer and resolver
+- **[Ollama](https://ollama.ai)** installed and running locally
 
 ### Setup
 
@@ -65,16 +65,28 @@ Each review includes assessment of:
    cd sibyl
    ```
 
-4. **Install the package**:
+4. **Install uv** (if not already installed):
    ```bash
-   # For CLI only
-   pip install -e .
+   # macOS and Linux
+   curl -LsSf https://astral.sh/uv/install.sh | sh
    
-   # For CLI + Web Interface
-   pip install -e ".[web]"
+   # Windows
+   powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+   
+   # Or with pip if you already have it
+   pip install uv
    ```
 
-5. **Configure Sibyl**:
+5. **Install the package**:
+   ```bash
+   # For CLI only
+   uv pip install -e .
+   
+   # For CLI + Web Interface
+   uv pip install -e ".[web]"
+   ```
+
+6. **Configure Sibyl**:
 
    Create a `.env` file in the project root:
 
@@ -108,14 +120,18 @@ Choose a model based on your hardware:
 
 The easiest way to use Sibyl is through the modern Next.js web interface:
 
+**Additional Prerequisites for Web Interface:**
+- **Node.js 18+** and npm (for the Next.js frontend)
+- Sibyl installed with web dependencies: `uv pip install -e ".[web]"`
+
 ```bash
 # Terminal 1: Start the FastAPI backend
 sibyl web
 
-# Terminal 2: Start the Next.js frontend
+# Terminal 2: Start the Next.js frontend (first time setup)
 cd web
-npm install  # First time only
-npm run dev
+npm install  # Install Node.js dependencies (first time only)
+npm run dev  # Start the development server
 
 # Open your browser to http://localhost:3000
 # Drag and drop a PDF, click "Start Review", and watch the progress!
@@ -248,7 +264,7 @@ sibyl/
 ### Install Development Dependencies
 
 ```bash
-pip install -e ".[dev]"
+uv pip install -e ".[dev]"
 ```
 
 ### Run Tests
