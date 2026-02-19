@@ -500,7 +500,7 @@ async def list_available_models():
             response.raise_for_status()
             models_data = response.json()
             installed_models = {m["name"].split(":")[0] for m in models_data.get("models", [])}
-        except:
+        except Exception:
             pass  # If we can't get installed models, just show all available
         
         # Mark which models are already installed

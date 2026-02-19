@@ -184,20 +184,13 @@ export default function ModelManager() {
         })
       }
 
-      ws.onclose = () => {
-        // Connection closed, check if we need to poll for status
-        if (installing === modelName) {
-          // Still installing, keep checking
-        }
-      }
-
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to install model")
       setInstalling(null)
       setDownloadProgress(0)
       toast({
         title: "Installation Error",
-        description: err instanceof Error ? err.message : "Failed to install model",
+        description: err instanceof Error ? err.message : "Failed to start model installation",
         variant: "destructive",
       })
     }
