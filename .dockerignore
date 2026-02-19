@@ -1,0 +1,61 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# IDEs
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment variables (never bake secrets into images)
+.env
+.env.*
+
+# Testing / linting caches
+.coverage
+.pytest_cache/
+htmlcov/
+.tox/
+.mypy_cache/
+.ruff_cache/
+
+# OS artefacts
+.DS_Store
+Thumbs.db
+
+# Project output / storage (should be in named volumes)
+outputs/
+reviews/
+sibyl_storage/
+*.db
+*.db-journal
+
+# PDFs (except examples used in tests)
+*.pdf
+!examples/*.pdf
+
+# Web app source – built separately
+web/
+
+# Docs and examples (not needed at runtime)
+docs/
+examples/
+tests/
+
+# Git
+.git/
+.github/
