@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { useToast } from "@/components/ui/use-toast"
+import { API_URL, getWebSocketUrl } from "@/lib/config"
 
 interface Model {
   name: string
@@ -55,7 +56,7 @@ export default function ModelManager() {
     setLoading(true)
     setError(null)
     try {
-      const response = await fetch("http://localhost:8000/api/models")
+      const response = await fetch(`${API_URL}/api/models`)
       if (!response.ok) {
         throw new Error("Failed to fetch models")
       }
@@ -70,7 +71,7 @@ export default function ModelManager() {
 
   const loadAvailableModels = async () => {
     try {
-      const response = await fetch("http://localhost:8000/api/models/available")
+      const response = await fetch(`${API_URL}/api/models/available`)
       if (!response.ok) {
         throw new Error("Failed to fetch available models")
       }
@@ -109,7 +110,7 @@ export default function ModelManager() {
     
     try {
       // Start the download
-      const response = await fetch("http://localhost:8000/api/models/download", {
+      const response = await fetch(`${API_URL}/api/models/download`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -131,7 +132,8 @@ export default function ModelManager() {
       })
 
       // Connect to WebSocket for progress updates
-      const ws = new WebSocket(`ws://localhost:8000/ws/models/download/${downloadId}`)
+      const wsBaseUrl = getWebSocketUrl()
+      const ws = new WebSocket(`${wsBaseUrl}/ws/models/download/${downloadId}`)
 
       ws.onmessage = (event) => {
         const progress: DownloadProgress = JSON.parse(event.data)

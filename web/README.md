@@ -85,11 +85,13 @@ web/
 
 ## Environment Variables
 
-Create a `.env.local` file if you need to customize the backend URL:
+Create a `.env.local` file to customize the backend URL (see `.env.local.example` for template):
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
+
+The application will use `http://localhost:8000` as the default if no environment variable is set.
 
 ## Learn More
 

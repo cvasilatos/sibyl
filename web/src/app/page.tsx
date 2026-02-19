@@ -8,6 +8,7 @@ import ReviewLibrary from "@/components/ReviewLibrary"
 import Tabs from "@/components/Tabs"
 import UploadArea from "@/components/UploadArea"
 import ResultsPanel from "@/components/ResultsPanel"
+import { API_URL, getWebSocketUrl } from "@/lib/config"
 
 interface ReviewCriteria {
   novelty: string
@@ -64,7 +65,7 @@ export default function Home() {
   useEffect(() => {
     const loadModels = async () => {
       try {
-        const response = await fetch("http://localhost:8000/api/models")
+        const response = await fetch(`${API_URL}/api/models`)
         if (response.ok) {
           const data = await response.json()
           const modelNames = data.models.map((m: any) => m.name)
@@ -129,7 +130,7 @@ export default function Home() {
       const formData = new FormData()
       formData.append("file", selectedFile)
 
-      const response = await fetch("http://localhost:8000/api/upload", {
+      const response = await fetch(`${API_URL}/api/upload`, {
         method: "POST",
         body: formData,
       })
@@ -142,10 +143,10 @@ export default function Home() {
       const sessionId = data.session_id
 
       // Connect WebSocket with optional model parameter
-      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:"
+      const wsBaseUrl = getWebSocketUrl()
       const wsUrl = selectedModel 
-        ? `${protocol}//localhost:8000/ws/${sessionId}?model=${encodeURIComponent(selectedModel)}`
-        : `${protocol}//localhost:8000/ws/${sessionId}`
+        ? `${wsBaseUrl}/ws/${sessionId}?model=${encodeURIComponent(selectedModel)}`
+        : `${wsBaseUrl}/ws/${sessionId}`
       const ws = new WebSocket(wsUrl)
       wsRef.current = ws
 
