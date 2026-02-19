@@ -40,8 +40,29 @@ app.add_middleware(
 # Store active review sessions
 review_sessions: Dict[str, Dict] = {}
 
+# Store active model downloads
+model_downloads: Dict[str, Dict] = {}
+
 # Initialize storage
 storage = ReviewStorage()
+
+# Curated list of popular Ollama models with descriptions
+POPULAR_OLLAMA_MODELS = [
+    {"name": "llama3.2", "description": "Meta's Llama 3.2 - Excellent for general tasks", "size": "2B-90B parameters"},
+    {"name": "llama3.1", "description": "Meta's Llama 3.1 - Strong reasoning and coding", "size": "8B-405B parameters"},
+    {"name": "llama3", "description": "Meta's Llama 3 - High quality instruction following", "size": "8B-70B parameters"},
+    {"name": "mistral", "description": "Mistral AI - Excellent reasoning and efficiency", "size": "7B parameters"},
+    {"name": "phi3", "description": "Microsoft's Phi-3 - Small but powerful", "size": "3.8B parameters"},
+    {"name": "qwen2.5", "description": "Alibaba's Qwen 2.5 - Strong multilingual", "size": "0.5B-72B parameters"},
+    {"name": "gemma2", "description": "Google's Gemma 2 - Efficient and capable", "size": "2B-27B parameters"},
+    {"name": "deepseek-coder", "description": "DeepSeek Coder - Best for technical papers", "size": "1.3B-33B parameters"},
+    {"name": "codellama", "description": "Meta's Code Llama - Specialized for code", "size": "7B-70B parameters"},
+    {"name": "neural-chat", "description": "Intel's Neural Chat - Optimized for conversations", "size": "7B parameters"},
+    {"name": "starling-lm", "description": "Starling - RLHF trained for helpfulness", "size": "7B parameters"},
+    {"name": "orca-mini", "description": "Microsoft's Orca Mini - Compact reasoning", "size": "3B-13B parameters"},
+    {"name": "vicuna", "description": "LMSYS Vicuna - Strong general assistant", "size": "7B-33B parameters"},
+    {"name": "nous-hermes2", "description": "Nous Research - Versatile assistant", "size": "10.7B parameters"},
+]
 
 
 class ReviewRequest(BaseModel):
@@ -434,6 +455,42 @@ async def list_models():
             status_code=503,
             detail=f"Failed to connect to Ollama. Make sure Ollama is running. Error: {str(e)}"
         )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/models/available")
+async def list_available_models():
+    """List available Ollama models that can be installed.
+    
+    Returns:
+        List of popular models available for installation
+    """
+    try:
+        config = SibylConfig.from_env()
+        ollama_url = config.ollama.api_url or "http://localhost:11434"
+        
+        # Get installed models
+        installed_models = set()
+        try:
+            response = requests.get(f"{ollama_url}/api/tags", timeout=10)
+            response.raise_for_status()
+            models_data = response.json()
+            installed_models = {m["name"].split(":")[0] for m in models_data.get("models", [])}
+        except:
+            pass  # If we can't get installed models, just show all available
+        
+        # Mark which models are already installed
+        available_models = []
+        for model in POPULAR_OLLAMA_MODELS:
+            model_copy = model.copy()
+            model_copy["installed"] = model["name"] in installed_models
+            available_models.append(model_copy)
+        
+        return {
+            "models": available_models,
+            "count": len(available_models)
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
