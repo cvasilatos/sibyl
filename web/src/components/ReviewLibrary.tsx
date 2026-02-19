@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Trash2, Download, Loader2, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { API_URL } from "@/lib/config"
 
 interface StoredReview {
   id: string
@@ -47,8 +48,8 @@ export default function ReviewLibrary() {
     setError(null)
     try {
       const [reviewsResponse, statsResponse] = await Promise.all([
-        fetch("http://localhost:8000/api/reviews?limit=50"),
-        fetch("http://localhost:8000/api/statistics"),
+        fetch(`${API_URL}/api/reviews?limit=50`),
+        fetch(`${API_URL}/api/statistics`),
       ])
 
       if (!reviewsResponse.ok || !statsResponse.ok) {
@@ -79,7 +80,7 @@ export default function ReviewLibrary() {
     setDeleting(reviewId)
     setError(null)
     try {
-      const response = await fetch(`http://localhost:8000/api/reviews/${reviewId}`, {
+      const response = await fetch(`${API_URL}/api/reviews/${reviewId}`, {
         method: "DELETE",
       })
 
@@ -100,7 +101,7 @@ export default function ReviewLibrary() {
     setDownloading(reviewId)
     setError(null)
     try {
-      const response = await fetch(`http://localhost:8000/api/reviews/${reviewId}/pdf`)
+      const response = await fetch(`${API_URL}/api/reviews/${reviewId}/pdf`)
 
       if (!response.ok) {
         throw new Error("Failed to download PDF")
