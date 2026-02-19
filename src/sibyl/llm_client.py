@@ -3,6 +3,7 @@
 from abc import ABC, abstractmethod
 from typing import Optional
 
+import httpx
 import requests
 
 from .config import LLMConfig
@@ -23,6 +24,20 @@ class LLMClient(ABC):
     @abstractmethod
     def generate(self, prompt: str, system_prompt: Optional[str] = None) -> str:
         """Generate a response from the LLM.
+
+        Args:
+            prompt: The prompt to send to the LLM
+            system_prompt: Optional system prompt for context
+
+        Returns:
+            Generated response text
+
+        """
+        ...
+
+    @abstractmethod
+    async def agenerate(self, prompt: str, system_prompt: Optional[str] = None) -> str:
+        """Generate a response from the LLM asynchronously.
 
         Args:
             prompt: The prompt to send to the LLM
@@ -77,6 +92,40 @@ class OllamaClient(LLMClient):
             print(f"Raw response from {self.get_name()}:\n{result.get('response')}\n")
             return result.get("response", "")
         except requests.exceptions.RequestException as e:
+            raise RuntimeError(
+                f"Failed to connect to Ollama at {self.base_url}. "
+                f"Make sure Ollama is running. Error: {e}"
+            )
+
+    async def agenerate(self, prompt: str, system_prompt: Optional[str] = None) -> str:
+        """Generate a response using Ollama's API asynchronously."""
+        # Combine system prompt with user prompt if provided
+        full_prompt = prompt
+        print(f"Prompt for {self.get_name()}:\n{full_prompt}\n")
+        if system_prompt:
+            full_prompt = f"{system_prompt}\n\n{prompt}"
+
+        payload = {
+            "model": self.config.model,
+            "prompt": full_prompt,
+            "stream": False,
+            "options": {
+                "temperature": self.config.temperature,
+                "num_predict": self.config.max_tokens,
+            },
+        }
+
+        try:
+            async with httpx.AsyncClient(timeout=300.0) as client:
+                response = await client.post(
+                    self.api_url,
+                    json=payload,
+                )
+                response.raise_for_status()
+                result = response.json()
+                print(f"Raw response from {self.get_name()}:\n{result.get('response')}\n")
+                return result.get("response", "")
+        except httpx.HTTPError as e:
             raise RuntimeError(
                 f"Failed to connect to Ollama at {self.base_url}. "
                 f"Make sure Ollama is running. Error: {e}"
