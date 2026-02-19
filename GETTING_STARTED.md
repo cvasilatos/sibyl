@@ -5,9 +5,10 @@
 ### 1. Prerequisites
 
 Ensure you have:
-- Python 3.9 or higher
-- pip (Python package installer)
-- [Ollama](https://ollama.ai) installed
+- **Python 3.9 or higher** (Python 3.12+ recommended for best compatibility)
+- **pip** (Python package installer) or **uv** (faster alternative: https://github.com/astral-sh/uv)
+- **[Ollama](https://ollama.ai)** installed and running locally
+- **Node.js 18+** and npm (only if you want to use the web interface)
 
 ### 2. Install Ollama
 
@@ -47,7 +48,16 @@ git clone https://github.com/cvasilatos/sibyl.git
 cd sibyl
 
 # Install Sibyl
+# Option 1: Using pip (standard)
 pip install -e .
+
+# Option 2: Using uv (faster alternative)
+uv pip install -e .
+
+# If you want the web interface, install with web dependencies:
+pip install -e ".[web]"
+# or with uv:
+uv pip install -e ".[web]"
 ```
 
 ### 5. Configure Sibyl

@@ -10,7 +10,16 @@ git clone https://github.com/cvasilatos/sibyl.git
 cd sibyl
 
 # Install the package
+# Using pip (standard)
 pip install -e .
+
+# Or using uv (faster alternative)
+uv pip install -e .
+
+# For web interface support, use:
+pip install -e ".[web]"
+# or with uv:
+uv pip install -e ".[web]"
 ```
 
 ### 2. Install and Configure Ollama

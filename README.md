@@ -37,9 +37,9 @@ Each review includes assessment of:
 
 ### Prerequisites
 
-- Python 3.9 or higher
-- pip (Python package installer)
-- [Ollama](https://ollama.ai) installed and running
+- **Python 3.9 or higher** (Python 3.12+ recommended)
+- **pip** (Python package installer) or **uv** (faster alternative)
+- **[Ollama](https://ollama.ai)** installed and running locally
 
 ### Setup
 
@@ -67,11 +67,19 @@ Each review includes assessment of:
 
 4. **Install the package**:
    ```bash
+   # Option 1: Using pip (standard)
    # For CLI only
    pip install -e .
    
    # For CLI + Web Interface
    pip install -e ".[web]"
+   
+   # Option 2: Using uv (faster alternative)
+   # Install uv first: https://github.com/astral-sh/uv
+   uv pip install -e .
+   
+   # For CLI + Web Interface with uv
+   uv pip install -e ".[web]"
    ```
 
 5. **Configure Sibyl**:
@@ -108,14 +116,18 @@ Choose a model based on your hardware:
 
 The easiest way to use Sibyl is through the modern Next.js web interface:
 
+**Additional Prerequisites for Web Interface:**
+- **Node.js 18+** and npm (for the Next.js frontend)
+- Sibyl installed with web dependencies: `pip install -e ".[web]"`
+
 ```bash
 # Terminal 1: Start the FastAPI backend
 sibyl web
 
-# Terminal 2: Start the Next.js frontend
+# Terminal 2: Start the Next.js frontend (first time setup)
 cd web
-npm install  # First time only
-npm run dev
+npm install  # Install Node.js dependencies (first time only)
+npm run dev  # Start the development server
 
 # Open your browser to http://localhost:3000
 # Drag and drop a PDF, click "Start Review", and watch the progress!
@@ -248,7 +260,11 @@ sibyl/
 ### Install Development Dependencies
 
 ```bash
+# Using pip
 pip install -e ".[dev]"
+
+# Or using uv (faster)
+uv pip install -e ".[dev]"
 ```
 
 ### Run Tests

@@ -27,7 +27,7 @@ The Sibyl Web Application has been refactored to use modern web technologies:
 
 ### Prerequisites
 
-- **Python 3.9+** with Sibyl installed
+- **Python 3.9+** (Python 3.12+ recommended) with Sibyl installed
 - **Node.js 18+** and npm
 - **Ollama** installed and running with a model pulled
 
@@ -35,7 +35,11 @@ The Sibyl Web Application has been refactored to use modern web technologies:
 
 1. **Install Python dependencies**:
    ```bash
+   # Using pip
    pip install -e ".[web]"
+   
+   # Or using uv (faster)
+   uv pip install -e ".[web]"
    ```
 
 2. **Install Node.js dependencies**:
