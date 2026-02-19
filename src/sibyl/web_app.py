@@ -454,7 +454,6 @@ async def list_models():
 
         async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.get(f"{ollama_url}/api/tags")
-            print(f"Fetching models from Ollama at URL: {ollama_url} - {response.json()}")
             response.raise_for_status()
 
             models_data = response.json()

@@ -164,9 +164,11 @@ def test_concurrent_requests():
     This test verifies that the fix for blocking I/O in model downloads works.
     Previously, a blocking requests.post() call would hang the entire event loop,
     preventing other endpoints from responding during model downloads.
-    """
-    from fastapi.testclient import TestClient
     
+    Note: This is a basic sanity test. A more comprehensive test would involve
+    actually triggering a model download and verifying other endpoints respond,
+    but that requires Ollama to be running and would be a slow integration test.
+    """
     # Create a new client for this test
     test_client = TestClient(app)
     
