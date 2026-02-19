@@ -1,12 +1,13 @@
 "use client"
 
-import { useState, useCallback, useRef } from "react"
-import { Upload, FileText, BookOpen, Settings } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
+import { useCallback, useRef, useState, type RefObject } from "react"
+
 import ModelManager from "@/components/ModelManager"
 import ReviewLibrary from "@/components/ReviewLibrary"
+import Tabs from "@/components/Tabs"
+import UploadArea from "@/components/UploadArea"
+import ResultsPanel from "@/components/ResultsPanel"
 
 interface ReviewCriteria {
   novelty: string
@@ -46,7 +47,7 @@ interface ReviewResults {
 }
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<"review" | "library" | "models">("review")
+  const [activeTab, setActiveTab] = useState<"review" | "library" | "models">("models")
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [isReviewing, setIsReviewing] = useState(false)
@@ -54,7 +55,7 @@ export default function Home() {
   const [progressMessage, setProgressMessage] = useState("")
   const [results, setResults] = useState<ReviewResults | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null!)
   const wsRef = useRef<WebSocket | null>(null)
 
   const handleFileSelect = (file: File) => {
@@ -86,7 +87,7 @@ export default function Home() {
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     setIsDragging(false)
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       handleFileSelect(e.dataTransfer.files[0])
     }
@@ -183,205 +184,36 @@ export default function Home() {
 
           {/* Tabs */}
           <div className="border-b px-6">
-            <div className="flex gap-4">
-              <button
-                onClick={() => setActiveTab("review")}
-                className={`pb-3 px-2 text-sm font-medium transition-colors relative ${
-                  activeTab === "review"
-                    ? "text-primary"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  <span>Review Paper</span>
-                </div>
-                {activeTab === "review" && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
-                )}
-              </button>
-              <button
-                onClick={() => setActiveTab("library")}
-                className={`pb-3 px-2 text-sm font-medium transition-colors relative ${
-                  activeTab === "library"
-                    ? "text-primary"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <BookOpen className="h-4 w-4" />
-                  <span>Library</span>
-                </div>
-                {activeTab === "library" && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
-                )}
-              </button>
-              <button
-                onClick={() => setActiveTab("models")}
-                className={`pb-3 px-2 text-sm font-medium transition-colors relative ${
-                  activeTab === "models"
-                    ? "text-primary"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <Settings className="h-4 w-4" />
-                  <span>Models</span>
-                </div>
-                {activeTab === "models" && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
-                )}
-              </button>
-            </div>
+            <Tabs activeTab={activeTab} setActiveTab={setActiveTab} />
           </div>
-          
+
           <CardContent className="space-y-6">
-            {/* Review Tab */}
             {activeTab === "review" && (
-              <>
-                {/* Upload Area */}
-                <div
-                  className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-all ${
-                    isDragging
-                      ? "border-primary bg-primary/5 scale-[1.02]"
-                      : "border-border hover:border-primary hover:bg-accent"
-                  } ${selectedFile ? "border-green-500 bg-green-50 dark:bg-green-950" : ""}`}
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".pdf"
-                    onChange={handleFileInputChange}
-                    className="hidden"
-                  />
-                  <FileText className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-lg font-medium mb-2">
-                    {selectedFile
-                      ? `Selected: ${selectedFile.name}`
-                      : "Drag and drop a PDF file here or click to browse"}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {selectedFile
-                      ? `Size: ${(selectedFile.size / 1024 / 1024).toFixed(2)} MB`
-                      : "Supports research papers in PDF format"}
-                  </p>
-                </div>
-
-                {/* Start Review Button */}
-                <Button
-                  onClick={startReview}
-                  disabled={!selectedFile || isReviewing}
-                  className="w-full"
-                  size="lg"
-                >
-                  <Upload className="mr-2 h-4 w-4" />
-                  {isReviewing ? "Reviewing..." : "Start Review"}
-                </Button>
-
-                {/* Progress */}
-                {isReviewing && (
-                  <div className="space-y-2">
-                    <Progress value={progress} className="h-2" />
-                    <p className="text-sm text-center text-muted-foreground">
-                      {progressMessage} ({progress}%)
-                    </p>
-                  </div>
-                )}
-
-                {/* Error */}
-                {error && (
-                  <Card className="border-destructive">
-                    <CardContent className="p-4">
-                      <p className="text-destructive">❌ Error: {error}</p>
-                    </CardContent>
-                  </Card>
-                )}
-              </>
+              <UploadArea
+                selectedFile={selectedFile}
+                fileInputRef={fileInputRef}
+                isDragging={isDragging}
+                handleDragOver={handleDragOver}
+                handleDragLeave={handleDragLeave}
+                handleDrop={handleDrop}
+                handleFileInputChange={handleFileInputChange}
+                startReview={startReview}
+                isReviewing={isReviewing}
+                progress={progress}
+                progressMessage={progressMessage}
+                error={error}
+              />
             )}
 
-            {/* Library Tab */}
             {activeTab === "library" && <ReviewLibrary />}
 
-            {/* Models Tab */}
             {activeTab === "models" && <ModelManager />}
           </CardContent>
         </Card>
 
         {/* Results */}
         {results && (
-          <div className="space-y-6">
-            {/* Statistics Card */}
-            <Card>
-              <CardHeader>
-                <CardTitle>📊 Overall Statistics</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="font-medium">Mean Score:</span>
-                  <span className="text-primary font-semibold">
-                    {results.comparison.score_statistics.mean.toFixed(2)}/10
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="font-medium">Standard Deviation:</span>
-                  <span>{results.comparison.score_statistics.std.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="font-medium">Score Range:</span>
-                  <span>
-                    {results.comparison.score_statistics.min} -{" "}
-                    {results.comparison.score_statistics.max}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="font-medium">Consensus:</span>
-                  <span className="font-semibold">{results.comparison.consensus}</span>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Individual Reviews */}
-            {results.reviews.map((review, index) => (
-              <Card key={index}>
-                <CardHeader>
-                  <div className="flex items-center justify-between flex-wrap gap-4">
-                    <CardTitle className="flex items-center gap-2">
-                      🤖 {review.reviewer_model}
-                    </CardTitle>
-                    <div className="flex items-center gap-2">
-                      <span className="text-3xl font-bold text-primary">
-                        {review.criteria.overall_score}/10
-                      </span>
-                      <span
-                        className={`px-3 py-1 rounded-full text-sm font-semibold ${getRecommendationColor(
-                          review.criteria.recommendation
-                        )}`}
-                      >
-                        {review.criteria.recommendation}
-                      </span>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <ReviewSection title="💡 Novelty" content={review.criteria.novelty} />
-                  <ReviewSection title="🔬 Methodology" content={review.criteria.methodology} />
-                  <ReviewSection title="📈 Results" content={review.criteria.results} />
-                  <ReviewSection title="✍️ Clarity" content={review.criteria.clarity} />
-                  <ReviewSection title="🎯 Impact" content={review.criteria.impact} />
-                  <ReviewSection title="💪 Strengths" content={review.criteria.strengths} />
-                  <ReviewSection title="⚠️ Limitations" content={review.criteria.limitations} />
-                  <ReviewSection
-                    title="📝 Detailed Feedback"
-                    content={review.criteria.detailed_feedback}
-                  />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <ResultsPanel results={results} getRecommendationColor={getRecommendationColor} />
         )}
 
         {/* Footer */}
@@ -395,11 +227,4 @@ export default function Home() {
   )
 }
 
-function ReviewSection({ title, content }: { title: string; content: string }) {
-  return (
-    <div className="space-y-1">
-      <h4 className="font-semibold text-sm">{title}</h4>
-      <p className="text-sm text-muted-foreground bg-muted p-3 rounded-md">{content}</p>
-    </div>
-  )
-}
+/* ReviewSection moved to /src/components/ReviewSection.tsx */

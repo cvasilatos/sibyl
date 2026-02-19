@@ -3,7 +3,7 @@
 This is the Next.js frontend for the Sibyl research paper review system, built with:
 
 - **Next.js 15** - React framework with App Router
-- **React 19** - UI library  
+- **React 19** - UI library
 - **TypeScript** - Type safety
 - **Tailwind CSS** - Styling
 - **shadcn/ui** - Component library
