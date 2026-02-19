@@ -455,7 +455,11 @@ async def list_models():
     """
     try:
         config = SibylConfig.from_env()
-        ollama_url = config.ollama.api_url or "http://localhost:11434"
+        ollama_url = "http://localhost:11434"  # Default URL
+        
+        # Try to get URL from config if available
+        if hasattr(config, "ollama") and config.ollama and hasattr(config.ollama, "api_url"):
+            ollama_url = config.ollama.api_url or ollama_url
         
         response = requests.get(f"{ollama_url}/api/tags", timeout=10)
         response.raise_for_status()
@@ -483,7 +487,11 @@ async def list_available_models():
     """
     try:
         config = SibylConfig.from_env()
-        ollama_url = config.ollama.api_url or "http://localhost:11434"
+        ollama_url = "http://localhost:11434"  # Default URL
+        
+        # Try to get URL from config if available
+        if hasattr(config, "ollama") and config.ollama and hasattr(config.ollama, "api_url"):
+            ollama_url = config.ollama.api_url or ollama_url
         
         # Get installed models
         installed_models = set()
@@ -527,7 +535,11 @@ async def download_model(request: ModelDownloadRequest):
     """
     try:
         config = SibylConfig.from_env()
-        ollama_url = config.ollama.api_url or "http://localhost:11434"
+        ollama_url = "http://localhost:11434"  # Default URL
+        
+        # Try to get URL from config if available
+        if hasattr(config, "ollama") and config.ollama and hasattr(config.ollama, "api_url"):
+            ollama_url = config.ollama.api_url or ollama_url
         
         # Generate download ID
         download_id = str(uuid.uuid4())

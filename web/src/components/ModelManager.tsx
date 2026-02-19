@@ -139,6 +139,7 @@ export default function ModelManager() {
 
         // Update toast with progress
         toastId.update({
+          id: toastId.id,
           title: "Downloading Model",
           description: `${modelName}: ${progress.progress}% - ${progress.message}`,
         })
@@ -150,7 +151,8 @@ export default function ModelManager() {
           loadModels()
           loadAvailableModels()
           
-          // Show success toast
+          // Dismiss the progress toast and show success toast
+          toastId.dismiss()
           toast({
             title: "Installation Complete",
             description: `${modelName} has been successfully installed!`,
@@ -161,7 +163,8 @@ export default function ModelManager() {
           setInstalling(null)
           setDownloadProgress(0)
           
-          // Show error toast
+          // Dismiss the progress toast and show error toast
+          toastId.dismiss()
           toast({
             title: "Installation Failed",
             description: progress.message,
