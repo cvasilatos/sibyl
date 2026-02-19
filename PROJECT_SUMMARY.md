@@ -114,7 +114,7 @@ sibyl/
 
 ### Build & Package Management
 
-- **[uv](https://github.com/astral-sh/uv)** - Fast Python package installer and resolver (10-100x faster than pip)
+- **[uv](https://github.com/astral-sh/uv)** - Fast Python package installer and resolver ([benchmark: 10-100x faster than pip](https://github.com/astral-sh/uv#highlights))
 
 ### Core Dependencies
 

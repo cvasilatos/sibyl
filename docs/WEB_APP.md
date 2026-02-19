@@ -1,4 +1,4 @@
-# Sibyl Web Application (FastAPI Backend)
+# Sibyl Web Application (FastAPI backend)
 
 ## Overview
 
