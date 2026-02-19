@@ -143,7 +143,7 @@ Research Paper:
             "limitations": "",
             "strengths": "",
             "overall_score": 5,
-            "recommendation": "",
+            "recommendation": "Revise",  # Default to Revise for defensive programming
             "detailed_feedback": "",
         }
 
@@ -151,6 +151,7 @@ Research Paper:
         lines = response.split("\n")
         current_section = None
         score_parsed_from_header = False  # Track if score was already parsed
+        recommendation_parsed_from_header = False  # Track if recommendation was already parsed
 
         for line in lines:
             line_upper = line.strip().upper()
@@ -209,6 +210,7 @@ Research Paper:
                 content = line[len("RECOMMENDATION:"):].strip()
                 if content:
                     sections[current_section] = content
+                    recommendation_parsed_from_header = True
             elif line_upper.startswith("DETAILED FEEDBACK:"):
                 current_section = "detailed_feedback"
                 content = line[len("DETAILED FEEDBACK:"):].strip()
@@ -229,9 +231,11 @@ Research Paper:
                     continue
                 
                 # Don't append multiple recommendations (single value field)
+                # Only set from next line if not already parsed from header
                 if current_section == "recommendation":
-                    if not sections[current_section]:
+                    if not recommendation_parsed_from_header:
                         sections[current_section] = line.strip()
+                        recommendation_parsed_from_header = True
                     continue
                     
                 # Append content to other sections (multi-line text fields)
