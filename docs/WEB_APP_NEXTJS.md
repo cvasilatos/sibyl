@@ -37,7 +37,11 @@ The Sibyl Web Application has been refactored to use modern web technologies:
 1. **Install Python dependencies**:
    ```bash
    # Install uv if not already installed
+   # macOS and Linux:
    curl -LsSf https://astral.sh/uv/install.sh | sh
+   
+   # Windows:
+   # powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
    
    # Install Sibyl with web dependencies
    uv pip install -e ".[web]"
