@@ -1,10 +1,11 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Trash2, Download, Loader2, RefreshCw } from "lucide-react"
+import { Trash2, Download, Loader2, RefreshCw, ChevronDown, ChevronUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { API_URL } from "@/lib/config"
+import ReviewSection from "@/components/ReviewSection"
 
 interface StoredReview {
   id: string
@@ -16,6 +17,32 @@ interface StoredReview {
   recommendation: string
   review_summary: string
   created_at: string
+}
+
+interface ReviewCriteria {
+  novelty: string
+  methodology: string
+  results: string
+  clarity: string
+  impact: string
+  limitations: string
+  strengths: string
+  overall_score: number
+  recommendation: string
+  detailed_feedback: string
+}
+
+interface FullReview {
+  id: string
+  paper_title: string
+  pdf_filename: string
+  pdf_path: string | null
+  reviewer_model: string
+  overall_score: number
+  recommendation: string
+  created_at: string
+  criteria: ReviewCriteria
+  raw_response: string
 }
 
 interface ReviewsResponse {
@@ -42,6 +69,9 @@ export default function ReviewLibrary() {
   const [downloading, setDownloading] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [stats, setStats] = useState<Statistics | null>(null)
+  const [expandedReview, setExpandedReview] = useState<string | null>(null)
+  const [fullReviewData, setFullReviewData] = useState<Record<string, FullReview>>({})
+  const [loadingFull, setLoadingFull] = useState<string | null>(null)
 
   const loadReviews = async () => {
     setLoading(true)
@@ -124,6 +154,30 @@ export default function ReviewLibrary() {
     }
   }
 
+  const toggleExpand = async (reviewId: string) => {
+    if (expandedReview === reviewId) {
+      setExpandedReview(null)
+      return
+    }
+
+    setExpandedReview(reviewId)
+
+    if (!fullReviewData[reviewId]) {
+      setLoadingFull(reviewId)
+      try {
+        const response = await fetch(`${API_URL}/api/reviews/${reviewId}`)
+        if (!response.ok) throw new Error("Failed to fetch review details")
+        const data: FullReview = await response.json()
+        setFullReviewData((prev) => ({ ...prev, [reviewId]: data }))
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load review details")
+        setExpandedReview(null)
+      } finally {
+        setLoadingFull(null)
+      }
+    }
+  }
+
   const getRecommendationColor = (recommendation: string) => {
     const rec = recommendation.toLowerCase()
     if (rec.includes("accept")) return "text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-950"
@@ -187,56 +241,90 @@ export default function ReviewLibrary() {
             reviews.map((review) => (
               <div
                 key={review.id}
-                className="flex items-start justify-between p-4 bg-muted rounded-md hover:bg-muted/80 transition-colors"
+                className="bg-muted rounded-md transition-colors"
               >
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-sm truncate">{review.paper_title}</h3>
-                  <p className="text-xs text-muted-foreground mb-2">
-                    {review.pdf_filename} • {review.reviewer_model} • {formatDate(review.created_at)}
-                  </p>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-sm font-semibold text-primary">
-                      {review.overall_score}/10
-                    </span>
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-xs font-semibold ${getRecommendationColor(
-                        review.recommendation
-                      )}`}
-                    >
-                      {review.recommendation}
-                    </span>
+                <div
+                  className="flex items-start justify-between p-4 hover:bg-muted/80 cursor-pointer transition-colors rounded-md"
+                  onClick={() => toggleExpand(review.id)}
+                >
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-sm truncate">{review.paper_title}</h3>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      {review.pdf_filename} • {review.reviewer_model} • {formatDate(review.created_at)}
+                    </p>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-sm font-semibold text-primary">
+                        {review.overall_score}/10
+                      </span>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-xs font-semibold ${getRecommendationColor(
+                          review.recommendation
+                        )}`}
+                      >
+                        {review.recommendation}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground line-clamp-2">
+                      {review.review_summary}
+                    </p>
                   </div>
-                  <p className="text-xs text-muted-foreground line-clamp-2">
-                    {review.review_summary}
-                  </p>
-                </div>
-                <div className="flex gap-1 ml-4">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => downloadPDF(review.id, review.pdf_filename)}
-                    disabled={downloading === review.id || !review.pdf_path}
-                    title={review.pdf_path ? "Download PDF" : "PDF not available"}
-                  >
-                    {downloading === review.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                  <div className="flex items-center gap-1 ml-4">
+                    <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => downloadPDF(review.id, review.pdf_filename)}
+                        disabled={downloading === review.id || !review.pdf_path}
+                        title={review.pdf_path ? "Download PDF" : "PDF not available"}
+                      >
+                        {downloading === review.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Download className="h-4 w-4" />
+                        )}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => deleteReview(review.id)}
+                        disabled={deleting === review.id}
+                      >
+                        {deleting === review.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                    {expandedReview === review.id ? (
+                      <ChevronUp className="h-4 w-4 text-muted-foreground" />
                     ) : (
-                      <Download className="h-4 w-4" />
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
                     )}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => deleteReview(review.id)}
-                    disabled={deleting === review.id}
-                  >
-                    {deleting === review.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="h-4 w-4" />
-                    )}
-                  </Button>
+                  </div>
                 </div>
+
+                {/* Expanded review details */}
+                {expandedReview === review.id && (
+                  <div className="px-4 pb-4 space-y-3 border-t border-border pt-4">
+                    {loadingFull === review.id ? (
+                      <div className="flex items-center justify-center py-4">
+                        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : fullReviewData[review.id] ? (
+                      <>
+                        <ReviewSection title="💡 Novelty" content={fullReviewData[review.id].criteria.novelty} />
+                        <ReviewSection title="🔬 Methodology" content={fullReviewData[review.id].criteria.methodology} />
+                        <ReviewSection title="📈 Results" content={fullReviewData[review.id].criteria.results} />
+                        <ReviewSection title="✍️ Clarity" content={fullReviewData[review.id].criteria.clarity} />
+                        <ReviewSection title="🎯 Impact" content={fullReviewData[review.id].criteria.impact} />
+                        <ReviewSection title="💪 Strengths" content={fullReviewData[review.id].criteria.strengths} />
+                        <ReviewSection title="⚠️ Limitations" content={fullReviewData[review.id].criteria.limitations} />
+                        <ReviewSection title="📝 Detailed Feedback" content={fullReviewData[review.id].criteria.detailed_feedback} />
+                      </>
+                    ) : null}
+                  </div>
+                )}
               </div>
             ))
           )}

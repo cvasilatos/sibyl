@@ -190,6 +190,13 @@ export default function Home() {
     return "text-yellow-600 bg-yellow-50 dark:text-yellow-400 dark:bg-yellow-950"
   }
 
+  const handleTabChange = (tab: "review" | "library" | "models") => {
+    setActiveTab(tab)
+    if (tab !== "review") {
+      setResults(null)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-linear-to-t from-black-900 via-black-600 to-gray-100 p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
@@ -209,7 +216,7 @@ export default function Home() {
 
           {/* Tabs */}
           <div className="border-b px-6">
-            <Tabs activeTab={activeTab} setActiveTab={setActiveTab} />
+            <Tabs activeTab={activeTab} setActiveTab={handleTabChange} />
           </div>
 
           <CardContent className="space-y-6">
