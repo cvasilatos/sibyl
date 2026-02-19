@@ -236,3 +236,46 @@ Address the limitations and expand evaluation."""
     assert criteria.recommendation == "Revise"
     
     assert "minor revisions" in criteria.detailed_feedback.lower()
+
+
+def test_parse_review_response_score_five_on_next_line():
+    """Test parsing when score is legitimately 5 and appears on next line."""
+    mock_client = Mock()
+    reviewer = ReviewSystem(mock_client)
+    
+    response = """NOVELTY:
+Average novelty, builds on existing work.
+
+METHODOLOGY:
+Standard methodology used.
+
+RESULTS:
+Results are adequate but not exceptional.
+
+CLARITY:
+Writing is acceptable.
+
+IMPACT:
+Moderate impact expected.
+
+LIMITATIONS:
+Several notable limitations.
+
+STRENGTHS:
+Some strengths present.
+
+SCORE:
+5
+
+RECOMMENDATION:
+Revise
+
+DETAILED FEEDBACK:
+The paper needs significant revisions before acceptance."""
+    
+    criteria = reviewer._parse_review_response(response)
+    
+    # Ensure score of 5 on next line is parsed correctly
+    assert criteria.overall_score == 5
+    assert criteria.recommendation == "Revise"
+    assert "significant revisions" in criteria.detailed_feedback.lower()

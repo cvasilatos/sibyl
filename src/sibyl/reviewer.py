@@ -150,6 +150,7 @@ Research Paper:
         # Parse sections from the response
         lines = response.split("\n")
         current_section = None
+        score_parsed_from_header = False  # Track if score was already parsed
 
         for line in lines:
             line_upper = line.strip().upper()
@@ -198,8 +199,10 @@ Research Paper:
                         sections[current_section] = int(
                             "".join(c for c in score_text if c.isdigit())[:2]
                         )
+                        score_parsed_from_header = True
                     except (ValueError, IndexError):
                         sections[current_section] = 5
+                        score_parsed_from_header = True
                 # Otherwise, wait for next line to get score
             elif line_upper.startswith("RECOMMENDATION:"):
                 current_section = "recommendation"
@@ -213,13 +216,14 @@ Research Paper:
                     sections[current_section] = content
             elif current_section and line.strip():
                 # Continue appending to current section
-                # Handle score on next line
+                # Handle score on next line (only if not already parsed from header)
                 if current_section == "overall_score":
-                    if sections[current_section] == 5:  # Still at default
+                    if not score_parsed_from_header:
                         try:
                             sections[current_section] = int(
                                 "".join(c for c in line.strip() if c.isdigit())[:2]
                             )
+                            score_parsed_from_header = True
                         except (ValueError, IndexError):
                             pass
                     continue
