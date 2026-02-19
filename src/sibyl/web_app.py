@@ -8,6 +8,7 @@ import uuid
 from pathlib import Path
 from typing import Dict, List, Optional
 
+import requests
 from fastapi import FastAPI, File, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
@@ -1123,6 +1124,117 @@ async def get_statistics():
     try:
         stats = storage.get_statistics()
         return stats
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/models")
+async def list_models():
+    """List available Ollama models.
+    
+    Returns:
+        List of installed models from Ollama
+    """
+    try:
+        config = SibylConfig.from_env()
+        ollama_url = config.ollama.api_url or "http://localhost:11434"
+        
+        response = requests.get(f"{ollama_url}/api/tags", timeout=10)
+        response.raise_for_status()
+        
+        models_data = response.json()
+        return {
+            "models": models_data.get("models", []),
+            "count": len(models_data.get("models", []))
+        }
+    except requests.exceptions.RequestException as e:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Failed to connect to Ollama. Make sure Ollama is running. Error: {str(e)}"
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class ModelDownloadRequest(BaseModel):
+    """Request model for downloading an Ollama model."""
+    model_name: str
+
+
+@app.post("/api/models/download")
+async def download_model(request: ModelDownloadRequest):
+    """Download/pull an Ollama model.
+    
+    Args:
+        request: Model download request with model name
+        
+    Returns:
+        Status message
+    """
+    try:
+        config = SibylConfig.from_env()
+        ollama_url = config.ollama.api_url or "http://localhost:11434"
+        
+        # Start the pull request
+        response = requests.post(
+            f"{ollama_url}/api/pull",
+            json={"name": request.model_name},
+            stream=True,
+            timeout=600  # 10 minute timeout for large models
+        )
+        response.raise_for_status()
+        
+        # Process streaming response
+        for line in response.iter_lines():
+            if line:
+                data = json.loads(line)
+                # Check if download is complete
+                if data.get("status") == "success":
+                    return {
+                        "message": f"Model '{request.model_name}' downloaded successfully",
+                        "model_name": request.model_name
+                    }
+        
+        return {
+            "message": f"Model '{request.model_name}' download initiated",
+            "model_name": request.model_name
+        }
+    except requests.exceptions.RequestException as e:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Failed to connect to Ollama. Make sure Ollama is running. Error: {str(e)}"
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/reviews/{review_id}/pdf")
+async def download_review_pdf(review_id: str):
+    """Download the PDF file associated with a review.
+    
+    Args:
+        review_id: ID of the review
+        
+    Returns:
+        PDF file as a download
+    """
+    try:
+        review = storage.get_review(review_id)
+        if not review:
+            raise HTTPException(status_code=404, detail="Review not found")
+        
+        pdf_path = review.get("pdf_path")
+        if not pdf_path or not Path(pdf_path).exists():
+            raise HTTPException(status_code=404, detail="PDF file not found")
+        
+        # Return the PDF file with appropriate headers for download
+        return FileResponse(
+            pdf_path,
+            media_type="application/pdf",
+            filename=review.get("pdf_filename", "paper.pdf")
+        )
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
