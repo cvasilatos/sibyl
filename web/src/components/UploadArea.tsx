@@ -6,6 +6,9 @@ import type { RefObject } from "react"
 
 type Props = {
   selectedFile: File | null
+  selectedModel: string
+  availableModels: string[]
+  onModelChange: (model: string) => void
   fileInputRef: RefObject<HTMLInputElement>
   isDragging: boolean
   handleDragOver: (e: React.DragEvent) => void
@@ -21,6 +24,9 @@ type Props = {
 
 export default function UploadArea({
   selectedFile,
+  selectedModel,
+  availableModels,
+  onModelChange,
   fileInputRef,
   isDragging,
   handleDragOver,
@@ -59,6 +65,28 @@ export default function UploadArea({
           {selectedFile ? `Size: ${(selectedFile.size / 1024 / 1024).toFixed(2)} MB` : "Supports research papers in PDF format"}
         </p>
       </div>
+
+      {/* Model selection */}
+      {availableModels.length > 0 && (
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Select Model for Review</label>
+          <select
+            value={selectedModel}
+            onChange={(e) => onModelChange(e.target.value)}
+            disabled={isReviewing}
+            className="w-full px-3 py-2 text-sm border border-input rounded-md bg-background"
+          >
+            {availableModels.map((model) => (
+              <option key={model} value={model}>
+                {model}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-muted-foreground">
+            This will override the default model configured in your environment
+          </p>
+        </div>
+      )}
 
       <Button onClick={startReview} disabled={!selectedFile || isReviewing} className="w-full" size="lg">
         <Upload className="mr-2 h-4 w-4" />
