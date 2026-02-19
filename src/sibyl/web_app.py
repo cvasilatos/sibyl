@@ -150,8 +150,9 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
 
         # Parse PDF
         parser = PDFParser(session["pdf_path"])
+        metadata = parser.get_metadata()
         paper_text = parser.extract_text()
-        paper_title = getattr(parser, "title", "Unknown Paper")
+        paper_title = (metadata or {}).get("title", "Unknown Paper")
 
         await websocket.send_json(
             {

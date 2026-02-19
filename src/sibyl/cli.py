@@ -14,6 +14,7 @@ from .config import SibylConfig
 from .llm_client import create_client
 from .pdf_parser import PDFParser
 from .reviewer import ReviewSystem
+from .storage import ReviewStorage
 
 console = Console()
 
@@ -136,8 +137,22 @@ def review(pdf_path: str, providers: tuple, output: str, max_pages: int):
         console.print("\n[bold red]Error:[/bold red] No reviews were generated.")
         return
 
+    # Save reviews to storage
+    console.print("\n[bold]Step 3:[/bold] Saving reviews to storage...\n")
+    storage = ReviewStorage()
+    for review in reviews:
+        try:
+            storage.save_review(
+                review=review,
+                pdf_filename=str(Path(pdf_path).name),
+                pdf_path=pdf_path,
+                paper_text=paper_text,
+            )
+        except Exception as e:
+            console.print(f"  [yellow]Warning: Could not save review for {review.reviewer_model} to storage: {e}[/yellow]")
+
     # Generate comparison
-    console.print("\n[bold]Step 3:[/bold] Comparing reviews...\n")
+    console.print("[bold]Step 4:[/bold] Comparing reviews...\n")
     comparison = ReviewComparison(reviews)
 
     # Display results
