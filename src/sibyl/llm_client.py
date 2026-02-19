@@ -67,7 +67,6 @@ class OllamaClient(LLMClient):
         """Generate a response using Ollama's API."""
         # Combine system prompt with user prompt if provided
         full_prompt = prompt
-        print(f"Prompt for {self.get_name()}:\n{full_prompt}\n")
         if system_prompt:
             full_prompt = f"{system_prompt}\n\n{prompt}"
 
@@ -103,7 +102,7 @@ class OllamaClient(LLMClient):
         full_prompt = prompt
         if system_prompt:
             full_prompt = f"{system_prompt}\n\n{prompt}"
-        
+
         print(f"Prompt for {self.get_name()}:\n{full_prompt}\n")
 
         payload = {
