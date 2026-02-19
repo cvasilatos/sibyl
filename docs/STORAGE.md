@@ -34,7 +34,11 @@ Search results include similarity scores showing how closely each result matches
 ### 1. Install Dependencies
 
 ```bash
+# Using pip
 pip install -e ".[web]"
+
+# Or using uv (faster)
+uv pip install -e ".[web]"
 ```
 
 ### 2. (Optional) Install Ollama Embedding Model

@@ -23,7 +23,11 @@ Before starting, ensure you have:
 
 3. **Sibyl installed with web support**:
    ```bash
+   # Using pip
    pip install -e ".[web]"
+   
+   # Or using uv (faster)
+   uv pip install -e ".[web]"
    ```
 
 4. **Configuration file**:

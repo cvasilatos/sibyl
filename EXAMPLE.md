@@ -22,7 +22,12 @@ ollama list
 
 # Clone and install Sibyl
 cd sibyl
+
+# Install with pip (standard)
 pip install -e .
+
+# Or with uv (faster alternative)
+uv pip install -e .
 
 # Set up your configuration
 cp .env.example .env
