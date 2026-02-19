@@ -77,14 +77,26 @@ sibyl web --host 127.0.0.1 --port 8080
 
 ## Using the Web Interface
 
-1. **Open your browser** to `http://localhost:8000`
+1. **Start the Backend** (Terminal 1):
+   ```bash
+   sibyl web
+   ```
 
-2. **Upload a PDF**:
+2. **Start the Frontend** (Terminal 2):
+   ```bash
+   cd web
+   npm install  # First time only
+   npm run dev
+   ```
+
+3. **Open your browser** to `http://localhost:3000`
+
+4. **Upload a PDF**:
    - Click the upload area or drag and drop a PDF file
    - Only `.pdf` files are accepted
    - File is uploaded immediately upon selection
 
-3. **Start Review**:
+5. **Start Review**:
    - Click the "Start Review" button
    - Progress bar shows real-time status:
      - "Uploading file..." (10%)
@@ -93,7 +105,7 @@ sibyl web --host 127.0.0.1 --port 8080
      - "Comparing reviews..." (95%)
      - "Review complete!" (100%)
 
-4. **View Results**:
+6. **View Results**:
    - Overall statistics (mean score, range, consensus)
    - Individual reviews from each model
    - Detailed feedback for each criterion:

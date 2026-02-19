@@ -75,14 +75,6 @@ startxref
         return f.name
 
 
-def test_root_endpoint(client):
-    """Test the root endpoint returns HTML."""
-    response = client.get("/")
-    assert response.status_code == 200
-    assert "Sibyl" in response.text
-    assert "text/html" in response.headers["content-type"]
-
-
 def test_health_check(client):
     """Test the health check endpoint."""
     response = client.get("/api/health")
@@ -142,14 +134,6 @@ def test_session_not_found(client):
     """Test getting status for non-existent session."""
     response = client.get("/api/session/invalid-session-id")
     assert response.status_code == 404
-
-
-def test_static_files_exist():
-    """Test that static files exist."""
-    static_dir = Path(__file__).parent.parent / "src" / "sibyl" / "static"
-    assert (static_dir / "index.html").exists()
-    assert (static_dir / "style.css").exists()
-    assert (static_dir / "app.js").exists()
 
 
 def test_response_models():

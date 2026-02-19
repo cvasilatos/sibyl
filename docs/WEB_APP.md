@@ -1,14 +1,13 @@
-# Sibyl Web Application (FastAPI backend)
+# Sibyl Web Application (FastAPI Backend)
 
 ## Overview
 
-The Sibyl Web Application provides a FastAPI backend for the web interface. This document covers the backend server. For the modern Next.js frontend, see [WEB_APP_NEXTJS.md](WEB_APP_NEXTJS.md).
+The Sibyl Web Application provides a FastAPI backend for the web interface. This document covers the backend server. For the Next.js frontend, see [WEB_APP_NEXTJS.md](WEB_APP_NEXTJS.md).
 
 The backend is built with FastAPI and provides:
-- REST API endpoints for file uploads and health checks
+- REST API endpoints for file uploads, reviews, and health checks
 - WebSocket support for real-time progress updates
-- CORS enabled for Next.js frontend
-- Built-in HTML interface as fallback
+- CORS enabled for Next.js frontend running on port 3000
 
 ## Features
 
@@ -41,26 +40,7 @@ uv pip install -e ".[web]"
 
 ## Quick Start
 
-### Option 1: With Next.js Frontend (Recommended)
-
-1. **Start the Backend**:
-   ```bash
-   sibyl web
-   ```
-
-2. **Start the Frontend** (in a new terminal):
-   ```bash
-   cd web
-   npm install  # First time only
-   npm run dev
-   ```
-
-3. **Open in Browser**:
-   ```
-   http://localhost:3000
-   ```
-
-### Option 2: Backend Only (Built-in HTML Interface)
+You need to run **both** the backend and the Next.js frontend:
 
 1. **Configure Sibyl**:
    ```bash
@@ -72,17 +52,28 @@ uv pip install -e ".[web]"
    # OLLAMA_BASE_URL=http://localhost:11434
    ```
 
-2. **Start the Web Server**:
+2. **Start the Backend** (Terminal 1):
    ```bash
    sibyl web
    ```
+   
+   This starts the FastAPI backend on `http://localhost:8000`
 
-3. **Open in Browser**:
+3. **Start the Frontend** (Terminal 2):
+   ```bash
+   cd web
+   npm install  # First time only
+   npm run dev
    ```
-   http://localhost:8000
+   
+   This starts the Next.js frontend on `http://localhost:3000`
+
+4. **Open in Browser**:
+   ```
+   http://localhost:3000
    ```
 
-4. **Upload and Review**:
+5. **Upload and Review**:
    - Drag and drop a PDF research paper
    - Click "Start Review"
    - Watch real-time progress
@@ -107,12 +98,7 @@ sibyl web --help
 
 ### API Endpoints
 
-The web application provides the following REST API endpoints:
-
-#### `GET /`
-Serves the main web interface.
-
-**Response**: HTML page
+The backend provides the following REST API endpoints for the Next.js frontend:
 
 #### `GET /api/health`
 Health check endpoint to verify service status.
@@ -194,10 +180,13 @@ WebSocket endpoint for real-time review progress updates.
 - **WebSockets**: Real-time bidirectional communication
 - **Pydantic**: Data validation and settings management
 
-### Frontend
+### Frontend (Next.js)
 
-- **Vanilla JavaScript**: No frameworks, fast loading
-- **Modern CSS**: Responsive design with CSS Grid and Flexbox
+- **Next.js 15**: React framework with App Router
+- **React 19**: UI library for component-based development
+- **TypeScript**: Type-safe development
+- **Tailwind CSS**: Utility-first CSS framework
+- **shadcn/ui**: High-quality component library
 - **WebSocket Client**: Real-time progress updates
 
 ### Flow
@@ -236,13 +225,17 @@ pytest -v
 
 ```
 src/sibyl/
-├── web_app.py           # FastAPI application
-├── static/              # Static web assets
-│   ├── index.html      # Main HTML page
-│   ├── style.css       # Stylesheet
-│   └── app.js          # JavaScript client
+├── web_app.py           # FastAPI backend application
 ├── cli.py              # CLI with web command
 └── ...                 # Core modules
+
+web/                     # Next.js frontend (separate)
+├── src/
+│   ├── app/            # Next.js app pages
+│   ├── components/     # React components (including shadcn/ui)
+│   └── lib/            # Utility functions
+├── public/             # Static assets
+└── package.json
 ```
 
 ## Security Considerations
