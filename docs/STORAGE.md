@@ -55,15 +55,23 @@ ollama pull nomic-embed-text
 
 > **Note**: Sibyl will work without this, using a fallback embedding method for testing.
 
-### 3. Start the Web Interface
+### 3. Start the Backend and Frontend
 
+**Terminal 1 - Backend**:
 ```bash
 sibyl web
 ```
 
+**Terminal 2 - Frontend**:
+```bash
+cd web
+npm install  # First time only
+npm run dev
+```
+
 ### 4. Access the Interface
 
-Open http://localhost:8000 in your browser.
+Open http://localhost:3000 in your browser.
 
 ## Using the Web Interface
 
