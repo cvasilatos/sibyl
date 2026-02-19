@@ -163,10 +163,19 @@ class PDFParser:
             Dictionary containing extracted metadata
 
         Note:
-            The XML is from GROBID service (configured by user) and is trusted.
+            The XML comes from a user-configured GROBID service (typically local Docker instance).
+            The user controls the service URL via configuration, and the service should be trusted.
+            For additional security, basic validation is performed on the XML content size.
 
         """
+        # Basic security check: limit XML size to prevent memory attacks
+        max_xml_size = 10 * 1024 * 1024  # 10MB limit
+        if len(tei_xml) > max_xml_size:
+            logger.warning(f"GROBID response too large: {len(tei_xml)} bytes")
+            return None
+
         try:
+            # Parse XML - note: this is from user-configured GROBID service
             root = ET.fromstring(tei_xml)  # noqa: S314
 
             # Define TEI namespace
@@ -186,13 +195,17 @@ class PDFParser:
                 forename = author_elem.find(".//tei:forename", ns)
                 surname = author_elem.find(".//tei:surname", ns)
 
-                if forename is not None and surname is not None:
-                    full_name = f"{forename.text} {surname.text}"
+                # Safely extract text values, handling None cases
+                forename_text = forename.text if forename is not None and forename.text else ""
+                surname_text = surname.text if surname is not None and surname.text else ""
+
+                if forename_text and surname_text:
+                    full_name = f"{forename_text} {surname_text}"
                     authors.append(full_name)
-                elif surname is not None:
-                    authors.append(surname.text)
-                elif forename is not None:
-                    authors.append(forename.text)
+                elif surname_text:
+                    authors.append(surname_text)
+                elif forename_text:
+                    authors.append(forename_text)
 
             author_str = ", ".join(authors) if authors else "Unknown"
 
@@ -210,11 +223,11 @@ class PDFParser:
             if abstract:
                 metadata["abstract"] = abstract
 
+            return metadata  # noqa: TRY300
+
         except ET.ParseError as e:
             logger.warning(f"Failed to parse GROBID TEI XML: {e}")
             return None
         except Exception as e:
             logger.warning(f"Error parsing GROBID response: {e}")
             return None
-        else:
-            return metadata
