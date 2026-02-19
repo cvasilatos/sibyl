@@ -9,6 +9,7 @@ import uuid
 from pathlib import Path
 from typing import Dict, List, Optional
 
+import httpx
 import requests
 from fastapi import FastAPI, File, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -44,6 +45,9 @@ review_sessions: Dict[str, Dict] = {}
 
 # Store active model downloads
 model_downloads: Dict[str, Dict] = {}
+
+# Store active download tasks
+download_tasks: Dict[str, asyncio.Task] = {}
 
 # Initialize storage
 storage = ReviewStorage()
@@ -577,56 +581,61 @@ async def download_model(request: ModelDownloadRequest):
             "completed": 0,
         }
 
-        # Start download in background task
+        # Start download in background task (async to avoid blocking)
         async def download_task():
             try:
-                response = requests.post(
-                    f"{ollama_url}/api/pull",
-                    json={"name": request.model_name},
-                    stream=True,
-                    timeout=600,  # 10 minute timeout for large models
-                )
-                response.raise_for_status()
+                # Use httpx for async HTTP requests to avoid blocking the event loop
+                async with httpx.AsyncClient(timeout=600.0) as client:
+                    async with client.stream(
+                        "POST",
+                        f"{ollama_url}/api/pull",
+                        json={"name": request.model_name},
+                    ) as response:
+                        response.raise_for_status()
 
-                # Process streaming response
-                for line in response.iter_lines():
-                    if line:
-                        data = json.loads(line)
+                        # Process streaming response asynchronously
+                        async for line in response.aiter_lines():
+                            if line:
+                                data = json.loads(line)
 
-                        # Update progress tracking
-                        download_info = model_downloads.get(download_id)
-                        if not download_info:
-                            break  # Download was cancelled
+                                # Update progress tracking
+                                download_info = model_downloads.get(download_id)
+                                if not download_info:
+                                    break  # Download was cancelled
 
-                        status = data.get("status", "")
-                        download_info["message"] = status
+                                status = data.get("status", "")
+                                download_info["message"] = status
 
-                        # Calculate progress based on bytes if available
-                        if "total" in data and "completed" in data:
-                            download_info["total"] = data["total"]
-                            download_info["completed"] = data["completed"]
-                            if data["total"] > 0:
-                                download_info["progress"] = int(
-                                    (data["completed"] / data["total"]) * 100
-                                )
+                                # Calculate progress based on bytes if available
+                                if "total" in data and "completed" in data:
+                                    download_info["total"] = data["total"]
+                                    download_info["completed"] = data["completed"]
+                                    if data["total"] > 0:
+                                        download_info["progress"] = int(
+                                            (data["completed"] / data["total"]) * 100
+                                        )
 
-                        # Check if download is complete
-                        if status == "success":
-                            download_info["status"] = "completed"
-                            download_info["progress"] = 100
-                            download_info["message"] = (
-                                f"Model '{request.model_name}' downloaded successfully"
-                            )
-                            break
+                                # Check if download is complete
+                                if status == "success":
+                                    download_info["status"] = "completed"
+                                    download_info["progress"] = 100
+                                    download_info["message"] = (
+                                        f"Model '{request.model_name}' downloaded successfully"
+                                    )
+                                    break
 
             except Exception as e:
                 download_info = model_downloads.get(download_id)
                 if download_info:
                     download_info["status"] = "error"
                     download_info["message"] = str(e)
+            finally:
+                # Clean up the task reference
+                download_tasks.pop(download_id, None)
 
         # Start background task
-        asyncio.create_task(download_task())
+        task = asyncio.create_task(download_task())
+        download_tasks[download_id] = task
 
         return {
             "download_id": download_id,
