@@ -9,7 +9,7 @@ import uuid
 from pathlib import Path
 from typing import Dict, List, Optional
 
-import requests
+import httpx
 from fastapi import FastAPI, File, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
@@ -44,6 +44,9 @@ review_sessions: Dict[str, Dict] = {}
 
 # Store active model downloads
 model_downloads: Dict[str, Dict] = {}
+
+# Store active download tasks
+download_tasks: Dict[str, asyncio.Task] = {}
 
 # Initialize storage
 storage = ReviewStorage()
@@ -449,16 +452,16 @@ async def list_models():
         if hasattr(config, "ollama") and config.ollama and hasattr(config.ollama, "api_url"):
             ollama_url = config.ollama.api_url or ollama_url
 
-        response = requests.get(f"{ollama_url}/api/tags", timeout=10)
-        print(f"Fetching models from Ollama at URL: {ollama_url} - {response.json()}")
-        response.raise_for_status()
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(f"{ollama_url}/api/tags")
+            response.raise_for_status()
 
-        models_data = response.json()
-        return {
-            "models": models_data.get("models", []),
-            "count": len(models_data.get("models", [])),
-        }
-    except requests.exceptions.RequestException as e:
+            models_data = response.json()
+            return {
+                "models": models_data.get("models", []),
+                "count": len(models_data.get("models", [])),
+            }
+    except httpx.HTTPStatusError as e:
         raise HTTPException(
             status_code=503,
             detail=f"Failed to connect to Ollama. Make sure Ollama is running. Error: {e!s}",
@@ -489,10 +492,11 @@ async def list_available_models():
             result.check_returncode()
             html_content = result.stdout
         except (subprocess.CalledProcessError, FileNotFoundError):
-            # Fallback to requests if curl not available
-            library_response = requests.get("https://ollama.com/library", timeout=30)
-            library_response.raise_for_status()
-            html_content = library_response.text
+            # Fallback to httpx if curl not available
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                library_response = await client.get("https://ollama.com/library")
+                library_response.raise_for_status()
+                html_content = library_response.text
 
         # Extract model names using regex (equivalent to: grep -oP 'href="/library/\K[^"]+')
         model_names = re.findall(r'href="/library/([^"]+)', html_content)
@@ -510,11 +514,12 @@ async def list_available_models():
 
         installed_models = set()
         try:
-            response = requests.get(f"{ollama_url}/api/tags", timeout=10)
-            response.raise_for_status()
-            models_data = response.json()
-            installed_models = {m["name"].split(":")[0] for m in models_data.get("models", [])}
-        except requests.exceptions.RequestException:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.get(f"{ollama_url}/api/tags")
+                response.raise_for_status()
+                models_data = response.json()
+                installed_models = {m["name"].split(":")[0] for m in models_data.get("models", [])}
+        except httpx.HTTPError:
             # If Ollama is not running, just mark all as not installed
             pass
 
@@ -530,7 +535,7 @@ async def list_available_models():
             available_models.append(model_info)
 
         return {"models": available_models, "count": len(available_models)}
-    except requests.exceptions.RequestException as e:
+    except httpx.HTTPError as e:
         raise HTTPException(
             status_code=503,
             detail=f"Failed to fetch models from Ollama library. Error: {e!s}",
@@ -577,63 +582,68 @@ async def download_model(request: ModelDownloadRequest):
             "completed": 0,
         }
 
-        # Start download in background task
+        # Start download in background task (async to avoid blocking)
         async def download_task():
             try:
-                response = requests.post(
-                    f"{ollama_url}/api/pull",
-                    json={"name": request.model_name},
-                    stream=True,
-                    timeout=600,  # 10 minute timeout for large models
-                )
-                response.raise_for_status()
+                # Use httpx for async HTTP requests to avoid blocking the event loop
+                async with httpx.AsyncClient(timeout=600.0) as client:
+                    async with client.stream(
+                        "POST",
+                        f"{ollama_url}/api/pull",
+                        json={"name": request.model_name},
+                    ) as response:
+                        response.raise_for_status()
 
-                # Process streaming response
-                for line in response.iter_lines():
-                    if line:
-                        data = json.loads(line)
+                        # Process streaming response asynchronously
+                        async for line in response.aiter_lines():
+                            if line:
+                                data = json.loads(line)
 
-                        # Update progress tracking
-                        download_info = model_downloads.get(download_id)
-                        if not download_info:
-                            break  # Download was cancelled
+                                # Update progress tracking
+                                download_info = model_downloads.get(download_id)
+                                if not download_info:
+                                    break  # Download was cancelled
 
-                        status = data.get("status", "")
-                        download_info["message"] = status
+                                status = data.get("status", "")
+                                download_info["message"] = status
 
-                        # Calculate progress based on bytes if available
-                        if "total" in data and "completed" in data:
-                            download_info["total"] = data["total"]
-                            download_info["completed"] = data["completed"]
-                            if data["total"] > 0:
-                                download_info["progress"] = int(
-                                    (data["completed"] / data["total"]) * 100
-                                )
+                                # Calculate progress based on bytes if available
+                                if "total" in data and "completed" in data:
+                                    download_info["total"] = data["total"]
+                                    download_info["completed"] = data["completed"]
+                                    if data["total"] > 0:
+                                        download_info["progress"] = int(
+                                            (data["completed"] / data["total"]) * 100
+                                        )
 
-                        # Check if download is complete
-                        if status == "success":
-                            download_info["status"] = "completed"
-                            download_info["progress"] = 100
-                            download_info["message"] = (
-                                f"Model '{request.model_name}' downloaded successfully"
-                            )
-                            break
+                                # Check if download is complete
+                                if status == "success":
+                                    download_info["status"] = "completed"
+                                    download_info["progress"] = 100
+                                    download_info["message"] = (
+                                        f"Model '{request.model_name}' downloaded successfully"
+                                    )
+                                    break
 
             except Exception as e:
                 download_info = model_downloads.get(download_id)
                 if download_info:
                     download_info["status"] = "error"
                     download_info["message"] = str(e)
+            finally:
+                # Clean up the task reference
+                download_tasks.pop(download_id, None)
 
         # Start background task
-        asyncio.create_task(download_task())
+        task = asyncio.create_task(download_task())
+        download_tasks[download_id] = task
 
         return {
             "download_id": download_id,
             "model_name": request.model_name,
             "message": "Download started",
         }
-    except requests.exceptions.RequestException as e:
+    except httpx.HTTPError as e:
         raise HTTPException(
             status_code=503,
             detail=f"Failed to connect to Ollama. Make sure Ollama is running. Error: {e!s}",

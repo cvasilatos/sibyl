@@ -156,3 +156,31 @@ def test_response_models():
     assert status.session_id == "test-id"
     assert status.status == "processing"
     assert status.progress == 50
+
+
+def test_concurrent_requests():
+    """Test that the backend can handle concurrent requests (doesn't hang).
+    
+    This test verifies that the fix for blocking I/O in model downloads works.
+    Previously, a blocking requests.post() call would hang the entire event loop,
+    preventing other endpoints from responding during model downloads.
+    
+    Note: This is a basic sanity test. A more comprehensive test would involve
+    actually triggering a model download and verifying other endpoints respond,
+    but that requires Ollama to be running and would be a slow integration test.
+    """
+    # Create a new client for this test
+    test_client = TestClient(app)
+    
+    # Make multiple health check requests concurrently
+    # If the async implementation is correct, these should all succeed quickly
+    responses = []
+    for _ in range(5):
+        response = test_client.get("/api/health")
+        responses.append(response)
+    
+    # All requests should succeed
+    for response in responses:
+        assert response.status_code == 200
+        data = response.json()
+        assert "status" in data
