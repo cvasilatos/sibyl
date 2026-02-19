@@ -29,7 +29,7 @@ export function DownloadProvider({ children }: { children: ReactNode }) {
 
   const clearError = () => setError(null)
 
-  const startDownload = async (
+  const startDownload = (
     modelName: string,
     onComplete: () => void,
     onError: (message: string) => void,
@@ -40,61 +40,67 @@ export function DownloadProvider({ children }: { children: ReactNode }) {
     setError(null)
 
     try {
-      // Start the download
-      const response = await fetch(`${API_URL}/api/models/download`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ model_name: modelName }),
-      })
-
-      if (!response.ok) {
-        throw new Error("Failed to start model download")
-      }
-
-      const data = await response.json()
-      const downloadId = data.download_id
-
-      // Connect to WebSocket for progress updates
       const wsBaseUrl = getWebSocketUrl()
-      const ws = new WebSocket(`${wsBaseUrl}/ws/models/download/${downloadId}`)
+      // Connect to the new pull endpoint with model_name as a query parameter
+      const ws = new WebSocket(`${wsBaseUrl}/ws/pull?model_name=${encodeURIComponent(modelName)}`)
+      let isFinished = false
+
+      ws.onopen = () => {
+        console.log(`Connected to pull stream for ${modelName}`)
+      }
 
       ws.onmessage = (event) => {
-        const progress: DownloadProgress = JSON.parse(event.data)
-        setDownloadProgress(progress.progress)
+        try {
+          const data = JSON.parse(event.data)
 
-        if (onProgress) {
-          onProgress(progress.progress, progress.message)
-        }
+          if (data.status === "error") {
+             isFinished = true
+             ws.close()
+             setError(data.message)
+             setInstalling(null)
+             setDownloadProgress(0)
+             onError(data.message)
+             return
+          }
 
-        if (progress.status === "completed") {
-          ws.close()
-          setInstalling(null)
-          setDownloadProgress(0)
-          onComplete()
-        } else if (progress.status === "error") {
-          ws.close()
-          setError(progress.message)
-          setInstalling(null)
-          setDownloadProgress(0)
-          onError(progress.message)
+          let progress = 0
+          if (data.total && data.completed) {
+            progress = Math.round((data.completed / data.total) * 100)
+            setDownloadProgress(progress)
+            if (onProgress) onProgress(progress, data.status)
+          } else {
+             if (onProgress) onProgress(downloadProgress, data.status)
+          }
+
+          if (data.status === "success") {
+            isFinished = true
+            ws.close()
+            setInstalling(null)
+            setDownloadProgress(0)
+            onComplete()
+          }
+        } catch (e) {
+          console.error("Error parsing websocket message:", e)
         }
       }
 
-      ws.onerror = () => {
-        setError("WebSocket connection failed")
-        setInstalling(null)
-        setDownloadProgress(0)
-        onError("Failed to connect to download progress stream")
-      }
-
-      ws.onclose = () => {
-        if (installing) {
-          setError("Connection lost during download")
+      ws.onerror = (e) => {
+        console.error("WebSocket error:", e)
+        if (!isFinished) {
+          setError("WebSocket connection failed")
           setInstalling(null)
           setDownloadProgress(0)
-          onError("Connection lost during model download")
+          onError("Failed to connect to download stream")
+        }
+      }
+
+      ws.onclose = (e) => {
+        if (!isFinished) {
+           console.log("WebSocket closed unexpectedly")
+           setError("Connection lost during download")
+           setInstalling(null)
+           setDownloadProgress(0)
+           onError("Connection lost during model download")
         }
       }
 

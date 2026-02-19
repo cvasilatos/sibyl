@@ -83,13 +83,14 @@ class PDFParser:
         pypdf_metadata = self._extract_metadata_pypdf()
 
         # Check if metadata is empty/unknown
-        metadata_is_empty = (
-            pypdf_metadata.get("title") in ("Unknown", "", None)
-            or pypdf_metadata.get("author") in ("Unknown", "", None)
-        )
+        metadata_is_empty = pypdf_metadata.get("title") in (
+            "Unknown",
+            "",
+            None,
+        ) or pypdf_metadata.get("author") in ("Unknown", "", None)
 
         # If metadata is empty and GROBID is enabled, try GROBID
-        if metadata_is_empty and self.use_grobid:
+        if self.use_grobid:
             logger.info("PDF metadata is empty, attempting GROBID extraction...")
             grobid_metadata = self._extract_metadata_grobid()
             if grobid_metadata:
@@ -135,9 +136,11 @@ class PDFParser:
 
             with open(self.pdf_path, "rb") as pdf_file:
                 files = {"input": pdf_file}
+                headers = {"Accept": "application/xml"}
                 # Set a reasonable timeout
-                response = requests.post(url, files=files, timeout=30)
+                response = requests.post(url, files=files, headers=headers, timeout=30)
 
+            print(f"GROBID response status: {response.status_code} - {response.text}...")
             if response.status_code == 200:
                 # Parse the TEI XML response
                 return self._parse_grobid_tei(response.text)

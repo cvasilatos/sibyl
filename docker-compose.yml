@@ -10,7 +10,7 @@
 #   1. cp .env.example .env          # set OLLAMA_MODEL (e.g. llama3.2)
 #   2. docker compose up -d
 #   3. docker compose exec ollama ollama pull llama3.2
-#   4. Open http://localhost:3000
+#   4. Open http://localhost:4000
 #
 # The backend communicates with ollama and grobid using their service names
 # over the internal Docker network.  The Next.js frontend always calls the
@@ -24,10 +24,12 @@ services:
   ollama:
     image: ollama/ollama:latest
     ports:
-      - "11434:11434"
+      - "21434:21434"
     volumes:
       - ollama_data:/root/.ollama
     restart: unless-stopped
+    environment:
+      - OLLAMA_HOST=0.0.0.0
     # Uncomment the section below to enable NVIDIA GPU support:
     # deploy:
     #   resources:
@@ -59,7 +61,7 @@ services:
       - .env
     environment:
       # Override localhost URLs so the backend talks to sibling containers
-      - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_BASE_URL=http://ollama:21434
       - GROBID_URL=http://grobid:8070
       - GROBID_ENABLED=true
     depends_on:
@@ -79,9 +81,9 @@ services:
       args:
         # The browser calls the API directly, so use the host-exposed port.
         # Change this if the backend is served behind a reverse proxy.
-        - NEXT_PUBLIC_API_URL=http://localhost:8000
+        - NEXT_PUBLIC_API_URL=http://hydra.abudhabi.nyu.edu:8000
     ports:
-      - "3000:3000"
+      - "4000:3000"
     depends_on:
       - backend
     restart: unless-stopped

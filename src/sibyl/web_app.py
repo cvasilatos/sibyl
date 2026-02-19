@@ -1,6 +1,5 @@
 """Web application for the Sibyl research paper review system."""
 
-import asyncio
 import json
 import os
 import re
@@ -42,12 +41,6 @@ app.add_middleware(
 # Store active review sessions
 review_sessions: Dict[str, Dict] = {}
 
-# Store active model downloads
-model_downloads: Dict[str, Dict] = {}
-
-# Store active download tasks
-download_tasks: Dict[str, asyncio.Task] = {}
-
 # Initialize storage
 storage = ReviewStorage()
 
@@ -87,16 +80,12 @@ async def upload_paper(file: UploadFile = File(...)):
 
     # Validate content type
     if file.content_type != "application/pdf":
-        raise HTTPException(
-            status_code=400, detail="Invalid file type. Only PDF files are supported"
-        )
+        raise HTTPException(status_code=400, detail="Invalid file type. Only PDF files are supported")
 
     # Read and validate PDF magic bytes
     content = await file.read()
     if not content.startswith(b"%PDF-"):
-        raise HTTPException(
-            status_code=400, detail="Invalid PDF file. File does not appear to be a valid PDF"
-        )
+        raise HTTPException(status_code=400, detail="Invalid PDF file. File does not appear to be a valid PDF")
 
     # Create a session ID
     session_id = str(uuid.uuid4())
@@ -120,6 +109,32 @@ async def upload_paper(file: UploadFile = File(...)):
     return {"session_id": session_id, "filename": file.filename}
 
 
+@app.websocket("/ws/pull")
+async def pull_model(websocket: WebSocket, model_name: str):
+    """WebSocket endpoint to pull a model from Ollama."""
+    await websocket.accept()
+
+    # Use the Docker service name 'ollama' instead of localhost
+    ollama_url = "http://ollama:11434"
+
+    try:
+        async with (
+            httpx.AsyncClient(timeout=600.0) as client,
+            client.stream(
+                "POST",
+                f"{ollama_url}/api/pull",
+                json={"name": model_name},
+            ) as response,
+        ):
+            async for line in response.aiter_lines():
+                if line:
+                    await websocket.send_text(line)
+    except Exception as e:
+        await websocket.send_json({"status": "error", "message": str(e)})
+    finally:
+        await websocket.close()
+
+
 @app.websocket("/ws/{session_id}")
 async def websocket_endpoint(websocket: WebSocket, session_id: str):
     """WebSocket endpoint for real-time review progress updates.
@@ -141,9 +156,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
 
     try:
         # Start the review process
-        await websocket.send_json(
-            {"status": "progress", "progress": 10, "message": "Extracting text from PDF..."}
-        )
+        await websocket.send_json({"status": "progress", "progress": 10, "message": "Extracting text from PDF..."})
 
         # Load configuration
         config = SibylConfig.from_env()
@@ -163,9 +176,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
         )
 
         # Generate review
-        await websocket.send_json(
-            {"status": "progress", "progress": 40, "message": "Generating review..."}
-        )
+        await websocket.send_json({"status": "progress", "progress": 40, "message": "Generating review..."})
 
         # Get the active provider (defaulting to ollama)
         providers = config.get_active_providers()
@@ -231,17 +242,13 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
                 return
 
         # Generate comparison
-        await websocket.send_json(
-            {"status": "progress", "progress": 90, "message": "Comparing reviews..."}
-        )
+        await websocket.send_json({"status": "progress", "progress": 90, "message": "Comparing reviews..."})
 
         comparison = ReviewComparison(reviews)
         comparison_data = comparison.get_comparative_analysis()
 
         # Save reviews to storage
-        await websocket.send_json(
-            {"status": "progress", "progress": 95, "message": "Saving to storage..."}
-        )
+        await websocket.send_json({"status": "progress", "progress": 95, "message": "Saving to storage..."})
 
         for review in reviews:
             try:
@@ -447,11 +454,7 @@ async def list_models():
     """
     try:
         config = SibylConfig.from_env()
-        ollama_url = "http://localhost:11434"  # Default URL
-
-        # Try to get URL from config if available
-        if hasattr(config, "ollama") and config.ollama and hasattr(config.ollama, "api_url"):
-            ollama_url = config.ollama.api_url or ollama_url
+        ollama_url = config.ollama.api_url
 
         async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.get(f"{ollama_url}/api/tags")
@@ -507,11 +510,7 @@ async def list_available_models():
 
         # Get installed models
         config = SibylConfig.from_env()
-        ollama_url = "http://localhost:11434"  # Default URL
-
-        # Try to get URL from config if available
-        if hasattr(config, "ollama") and config.ollama and hasattr(config.ollama, "api_url"):
-            ollama_url = config.ollama.api_url or ollama_url
+        ollama_url = config.ollama.api_url
 
         installed_models = set()
         try:
@@ -545,173 +544,6 @@ async def list_available_models():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-class ModelDownloadRequest(BaseModel):
-    """Request model for downloading an Ollama model."""
-
-    model_name: str
-
-
-@app.post("/api/models/download")
-async def download_model(request: ModelDownloadRequest):
-    """Initiate download/pull of an Ollama model asynchronously.
-
-    Args:
-        request: Model download request with model name
-
-    Returns:
-        Download ID for tracking progress via WebSocket
-
-    """
-    try:
-        config = SibylConfig.from_env()
-        ollama_url = "http://localhost:11434"  # Default URL
-
-        # Try to get URL from config if available
-        if hasattr(config, "ollama") and config.ollama and hasattr(config.ollama, "api_url"):
-            ollama_url = config.ollama.api_url or ollama_url
-
-        # Generate download ID
-        download_id = str(uuid.uuid4())
-
-        # Initialize download tracking
-        model_downloads[download_id] = {
-            "model_name": request.model_name,
-            "status": "initiated",
-            "progress": 0,
-            "message": "Starting download...",
-            "total": 0,
-            "completed": 0,
-        }
-
-        # Start download in background task (async to avoid blocking)
-        async def download_task():
-            try:
-                # Use httpx for async HTTP requests to avoid blocking the event loop
-                async with httpx.AsyncClient(timeout=600.0) as client:
-                    async with client.stream(
-                        "POST",
-                        f"{ollama_url}/api/pull",
-                        json={"name": request.model_name},
-                    ) as response:
-                        response.raise_for_status()
-
-                        # Process streaming response asynchronously
-                        async for line in response.aiter_lines():
-                            if line:
-                                data = json.loads(line)
-
-                                # Update progress tracking
-                                download_info = model_downloads.get(download_id)
-                                if not download_info:
-                                    break  # Download was cancelled
-
-                                status = data.get("status", "")
-                                download_info["message"] = status
-
-                                # Calculate progress based on bytes if available
-                                if "total" in data and "completed" in data:
-                                    download_info["total"] = data["total"]
-                                    download_info["completed"] = data["completed"]
-                                    if data["total"] > 0:
-                                        download_info["progress"] = int(
-                                            (data["completed"] / data["total"]) * 100
-                                        )
-
-                                # Check if download is complete
-                                if status == "success":
-                                    download_info["status"] = "completed"
-                                    download_info["progress"] = 100
-                                    download_info["message"] = (
-                                        f"Model '{request.model_name}' downloaded successfully"
-                                    )
-                                    break
-
-            except Exception as e:
-                download_info = model_downloads.get(download_id)
-                if download_info:
-                    download_info["status"] = "error"
-                    download_info["message"] = str(e)
-            finally:
-                # Clean up the task reference
-                download_tasks.pop(download_id, None)
-
-        # Start background task
-        task = asyncio.create_task(download_task())
-        download_tasks[download_id] = task
-
-        return {
-            "download_id": download_id,
-            "model_name": request.model_name,
-            "message": "Download started",
-        }
-    except httpx.HTTPError as e:
-        raise HTTPException(
-            status_code=503,
-            detail=f"Failed to connect to Ollama. Make sure Ollama is running. Error: {e!s}",
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.get("/api/models/download/{download_id}")
-async def get_download_status(download_id: str):
-    """Get the status of a model download.
-
-    Args:
-        download_id: ID of the download to check
-
-    Returns:
-        Download progress and status
-
-    """
-    if download_id not in model_downloads:
-        raise HTTPException(status_code=404, detail="Download not found")
-
-    return model_downloads[download_id]
-
-
-@app.websocket("/ws/models/download/{download_id}")
-async def model_download_websocket(websocket: WebSocket, download_id: str):
-    """WebSocket endpoint for real-time model download progress updates.
-
-    Args:
-        websocket: WebSocket connection
-        download_id: ID of the download to track
-
-    """
-    await websocket.accept()
-
-    if download_id not in model_downloads:
-        await websocket.send_json({"status": "error", "message": "Download not found"})
-        await websocket.close()
-        return
-
-    try:
-        # Send progress updates
-        while True:
-            download_info = model_downloads.get(download_id)
-            if not download_info:
-                await websocket.send_json({"status": "error", "message": "Download cancelled"})
-                break
-
-            # Send current progress
-            await websocket.send_json(download_info)
-
-            # Check if download is complete or failed
-            if download_info["status"] in ["completed", "error"]:
-                break
-
-            # Wait a bit before sending next update
-            await asyncio.sleep(0.5)
-
-    except WebSocketDisconnect:
-        pass  # Client disconnected, download continues in background
-    except Exception as e:
-        await websocket.send_json({"status": "error", "message": str(e)})
-    finally:
-        await websocket.close()
-
-
 @app.get("/api/reviews/{review_id}/pdf")
 async def download_review_pdf(review_id: str):
     """Download the PDF file associated with a review.
@@ -733,9 +565,7 @@ async def download_review_pdf(review_id: str):
             raise HTTPException(status_code=404, detail="PDF file not found")
 
         # Return the PDF file with appropriate headers for download
-        return FileResponse(
-            pdf_path, media_type="application/pdf", filename=review.get("pdf_filename", "paper.pdf")
-        )
+        return FileResponse(pdf_path, media_type="application/pdf", filename=review.get("pdf_filename", "paper.pdf"))
     except HTTPException:
         raise
     except Exception as e:
