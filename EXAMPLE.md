@@ -52,7 +52,7 @@ sibyl check-config
 Sibyl Configuration Check
 
 ┏━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┓
-┃ Provider   ┃ Model                     ┃ Status        ┃
+┃ Provider   ┃ Model                    ┃ Status        ┃
 ┡━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━┩
 │ Ollama     │ llama3.2                 │ ✓ Configured  │
 └────────────┴──────────────────────────┴───────────────┘
@@ -80,7 +80,7 @@ sibyl review machine_learning_paper.pdf
 2. **Review Generation** (1-5 minutes depending on model size and hardware)
    ```
    Step 2: Generating reviews...
-   
+
    ⠋ Reviewing with ollama...
      ✓ ollama: Score 8/10, Recommendation: Accept
    ```
@@ -88,18 +88,18 @@ sibyl review machine_learning_paper.pdf
 3. **Results Display** (instant)
    ```
    Step 3: Comparing reviews...
-   
+
    ┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━━━━━━━━━━┓
    ┃ Reviewer                 ┃ Score ┃ Recommendation ┃
    ┡━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━━━━━━━━━━┩
-   │ Ollama (llama3.2)       │  8/10 │     Accept     │
+   │ Ollama (llama3.2)        │  8/10 │     Accept     │
    └──────────────────────────┴───────┴────────────────┘
-   
+
    Score Statistics:
      Mean: 8.00
      Std Dev: 0.00
      Range: 8 - 8
-   
+
    Consensus: Accept
    ```
 
@@ -157,30 +157,30 @@ Let's say Llama 3.2 provided this review:
 
 ```
 NOVELTY:
-The paper introduces a hybrid architecture combining CNNs and Transformers 
-in a novel way. While individual components are well-known, their integration 
+The paper introduces a hybrid architecture combining CNNs and Transformers
+in a novel way. While individual components are well-known, their integration
 for this specific task is original. Score: 8/10
 
 METHODOLOGY:
-The experimental design is solid with appropriate baselines and ablation studies. 
-Dataset selection is appropriate, though sample size could be larger. 
+The experimental design is solid with appropriate baselines and ablation studies.
+Dataset selection is appropriate, though sample size could be larger.
 Statistical analysis is rigorous. Score: 7/10
 
 RESULTS:
-Results show significant improvement over baselines (15% on average). 
-Results are well-presented with appropriate visualizations. 
+Results show significant improvement over baselines (15% on average).
+Results are well-presented with appropriate visualizations.
 Some edge cases need more discussion. Score: 8/10
 
 CLARITY:
-Paper is well-written with clear structure. Some technical sections could 
+Paper is well-written with clear structure. Some technical sections could
 benefit from more explanation. Figures are clear and informative. Score: 8/10
 
 IMPACT:
-Moderate to high impact. The technique is applicable to various domains 
+Moderate to high impact. The technique is applicable to various domains
 and results are reproducible. Code availability is a plus. Score: 7/10
 
 LIMITATIONS:
-Authors acknowledge computational cost and limited dataset scope. 
+Authors acknowledge computational cost and limited dataset scope.
 More discussion on failure cases would strengthen the paper.
 
 STRENGTHS:
@@ -195,7 +195,7 @@ SCORE: 8
 RECOMMENDATION: Accept
 
 DETAILED FEEDBACK:
-This is a strong paper that makes a solid contribution to the field. 
+This is a strong paper that makes a solid contribution to the field.
 The hybrid architecture is novel and results are convincing...
 [continues]
 ```

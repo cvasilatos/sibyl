@@ -44,14 +44,14 @@ Each review includes assessment of:
 ### Setup
 
 1. **Install Ollama**:
-   
+
    Visit [https://ollama.ai](https://ollama.ai) and follow the installation instructions for your operating system.
 
 2. **Pull a model**:
    ```bash
    # Pull a recommended model (Llama 3.2 is a good starting point)
    ollama pull llama3.2
-   
+
    # Or choose from other models:
    # ollama pull mistral
    # ollama pull phi3
@@ -69,10 +69,10 @@ Each review includes assessment of:
    ```bash
    # macOS and Linux
    curl -LsSf https://astral.sh/uv/install.sh | sh
-   
+
    # Windows
    powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
-   
+
    # Or with pip if you already have it
    pip install uv
    ```
@@ -81,7 +81,7 @@ Each review includes assessment of:
    ```bash
    # For CLI only
    uv pip install -e .
-   
+
    # For CLI + Web Interface
    uv pip install -e ".[web]"
    ```
@@ -211,7 +211,7 @@ Step 3: Comparing reviews...
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━━━━━━━━━━┓
 ┃ Reviewer                 ┃ Score ┃ Recommendation ┃
 ┡━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━━━━━━━━━━┩
-│ Ollama (llama3.2)       │  8/10 │     Accept     │
+│ Ollama (llama3.2)        │  8/10 │     Accept     │
 └──────────────────────────┴───────┴────────────────┘
 
 Score Statistics:
@@ -264,7 +264,7 @@ sibyl/
 ### Install Development Dependencies
 
 ```bash
-uv pip install -e ".[dev]"
+uv sync --extra dev"
 ```
 
 ### Run Tests
@@ -276,14 +276,7 @@ pytest
 ### Code Formatting
 
 ```bash
-black src/
 ruff check src/
-```
-
-### Type Checking
-
-```bash
-mypy src/
 ```
 
 ## Model Comparison
