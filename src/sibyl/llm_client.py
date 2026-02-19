@@ -52,6 +52,7 @@ class OllamaClient(LLMClient):
         """Generate a response using Ollama's API."""
         # Combine system prompt with user prompt if provided
         full_prompt = prompt
+        print(f"Prompt for {self.get_name()}:\n{full_prompt}\n")
         if system_prompt:
             full_prompt = f"{system_prompt}\n\n{prompt}"
 
@@ -73,6 +74,7 @@ class OllamaClient(LLMClient):
             )
             response.raise_for_status()
             result = response.json()
+            print(f"Raw response from {self.get_name()}:\n{result.get('response')}\n")
             return result.get("response", "")
         except requests.exceptions.RequestException as e:
             raise RuntimeError(

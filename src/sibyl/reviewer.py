@@ -34,7 +34,10 @@ class PaperReview(BaseModel):
 class ReviewSystem:
     """System for reviewing research papers using LLMs."""
 
-    REVIEW_PROMPT_TEMPLATE = """You are an expert research paper reviewer. Please provide a comprehensive review of the following research paper.
+    REVIEW_PROMPT_TEMPLATE = """You are an expert research paper reviewer. Please provide a comprehensive review in the following format for the following research paper:
+
+Research Paper:
+{paper_text}
 
 Your review should cover:
 1. Novelty and originality of the research
@@ -84,8 +87,6 @@ DETAILED FEEDBACK:
 
 ---
 
-Research Paper:
-{paper_text}
 """
 
     SYSTEM_PROMPT = """You are a senior researcher and expert peer reviewer with extensive experience in evaluating academic papers. You provide thorough, constructive, and balanced reviews that help authors improve their work."""
@@ -158,42 +159,42 @@ Research Paper:
 
             if line_upper.startswith("NOVELTY:"):
                 current_section = "novelty"
-                content = line[len("NOVELTY:"):].strip()
+                content = line[len("NOVELTY:") :].strip()
                 if content:
                     sections[current_section] = content
             elif line_upper.startswith("METHODOLOGY:"):
                 current_section = "methodology"
-                content = line[len("METHODOLOGY:"):].strip()
+                content = line[len("METHODOLOGY:") :].strip()
                 if content:
                     sections[current_section] = content
             elif line_upper.startswith("RESULTS:"):
                 current_section = "results"
-                content = line[len("RESULTS:"):].strip()
+                content = line[len("RESULTS:") :].strip()
                 if content:
                     sections[current_section] = content
             elif line_upper.startswith("CLARITY:"):
                 current_section = "clarity"
-                content = line[len("CLARITY:"):].strip()
+                content = line[len("CLARITY:") :].strip()
                 if content:
                     sections[current_section] = content
             elif line_upper.startswith("IMPACT:"):
                 current_section = "impact"
-                content = line[len("IMPACT:"):].strip()
+                content = line[len("IMPACT:") :].strip()
                 if content:
                     sections[current_section] = content
             elif line_upper.startswith("LIMITATIONS:"):
                 current_section = "limitations"
-                content = line[len("LIMITATIONS:"):].strip()
+                content = line[len("LIMITATIONS:") :].strip()
                 if content:
                     sections[current_section] = content
             elif line_upper.startswith("STRENGTHS:"):
                 current_section = "strengths"
-                content = line[len("STRENGTHS:"):].strip()
+                content = line[len("STRENGTHS:") :].strip()
                 if content:
                     sections[current_section] = content
             elif line_upper.startswith("SCORE:"):
                 current_section = "overall_score"
-                score_text = line[len("SCORE:"):].strip()
+                score_text = line[len("SCORE:") :].strip()
                 # Extract number from score text if present on same line
                 if score_text:
                     try:
@@ -207,13 +208,13 @@ Research Paper:
                 # Otherwise, wait for next line to get score
             elif line_upper.startswith("RECOMMENDATION:"):
                 current_section = "recommendation"
-                content = line[len("RECOMMENDATION:"):].strip()
+                content = line[len("RECOMMENDATION:") :].strip()
                 if content:
                     sections[current_section] = content
                     recommendation_parsed_from_header = True
             elif line_upper.startswith("DETAILED FEEDBACK:"):
                 current_section = "detailed_feedback"
-                content = line[len("DETAILED FEEDBACK:"):].strip()
+                content = line[len("DETAILED FEEDBACK:") :].strip()
                 if content:
                     sections[current_section] = content
             elif current_section and line.strip():
@@ -229,7 +230,7 @@ Research Paper:
                         except (ValueError, IndexError):
                             pass
                     continue
-                
+
                 # Don't append multiple recommendations (single value field)
                 # Only set from next line if not already parsed from header
                 if current_section == "recommendation":
@@ -237,7 +238,7 @@ Research Paper:
                         sections[current_section] = line.strip()
                         recommendation_parsed_from_header = True
                     continue
-                    
+
                 # Append content to other sections (multi-line text fields)
                 if sections[current_section]:
                     sections[current_section] += "\n" + line.strip()
@@ -249,7 +250,7 @@ Research Paper:
             sections["overall_score"] = 1
         elif sections["overall_score"] > 10:
             sections["overall_score"] = 10
-        
+
         # Set default recommendation if not found
         if not sections["recommendation"]:
             sections["recommendation"] = "Revise"
