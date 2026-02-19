@@ -51,32 +51,55 @@
    - Model selection options
    - Configuration checking
 
+6. **Web Interface**
+   - Modern Next.js frontend with React 19
+   - FastAPI backend with WebSocket support
+   - Drag-and-drop PDF upload
+   - Real-time progress tracking
+   - Responsive design with dark mode
+   - Built with TypeScript and Tailwind CSS
+   - shadcn/ui component library
+
 ### Project Structure
 
 ```
 sibyl/
 ├── src/sibyl/              # Main source code
 │   ├── __init__.py         # Package initialization
-│   ├── cli.py             # Command-line interface (127 lines)
-│   ├── config.py          # Configuration management (37 lines)
-│   ├── pdf_parser.py      # PDF text extraction (25 lines)
-│   ├── llm_client.py      # LLM provider clients (70 lines)
-│   ├── reviewer.py        # Review generation (79 lines)
-│   └── comparison.py      # Multi-review comparison (61 lines)
+│   ├── cli.py             # Command-line interface
+│   ├── config.py          # Configuration management
+│   ├── pdf_parser.py      # PDF text extraction
+│   ├── llm_client.py      # LLM provider clients
+│   ├── reviewer.py        # Review generation
+│   ├── comparison.py      # Multi-review comparison
+│   ├── web_app.py         # FastAPI web backend
+│   └── storage.py         # Review storage system
 │
-├── tests/                  # Test suite (15 tests, all passing)
+├── web/                    # Next.js web frontend
+│   ├── src/
+│   │   ├── app/           # Next.js app router pages
+│   │   ├── components/    # React components (shadcn/ui)
+│   │   └── lib/           # Utility functions
+│   ├── public/            # Static assets
+│   ├── package.json       # Node.js dependencies
+│   └── tsconfig.json      # TypeScript configuration
+│
+├── tests/                  # Test suite
 │   ├── test_config.py     # Configuration tests
 │   ├── test_pdf_parser.py # PDF parsing tests
 │   ├── test_reviewer.py   # Review system tests
 │   └── test_comparison.py # Comparison engine tests
 │
 ├── docs/                   # Documentation
-│   └── MODEL_COMPARISON.md # Model comparison guide
+│   ├── MODEL_COMPARISON.md # Model comparison guide
+│   ├── WEB_APP_NEXTJS.md  # Web interface docs
+│   ├── WEB_APP.md         # FastAPI backend docs
+│   └── STORAGE.md         # Storage system docs
 │
 ├── examples/               # Example scripts
 │   └── example_usage.py    # Programmatic usage example
 │
-├── README.md              # Main documentation (comprehensive)
+├── README.md              # Main documentation
 ├── GETTING_STARTED.md     # Quick start guide
 ├── USAGE.md               # Detailed usage guide
 ├── CONTRIBUTING.md        # Contribution guidelines
@@ -97,6 +120,22 @@ sibyl/
 - **rich** (>=13.0.0) - Terminal formatting
 - **python-dotenv** (>=1.0.0) - Environment variable management
 - **tabulate** (>=0.9.0) - Table formatting
+- **chromadb** (>=0.4.0) - Vector storage for reviews
+
+### Web Dependencies (Optional)
+
+- **fastapi** (>=0.104.0) - Modern web framework
+- **uvicorn** (>=0.24.0) - ASGI server
+- **python-multipart** (>=0.0.6) - File upload support
+- **websockets** (>=12.0) - Real-time communication
+
+### Frontend Dependencies
+
+- **Next.js 16** - React framework
+- **React 19** - UI library
+- **TypeScript 5** - Type safety
+- **Tailwind CSS 4** - Utility-first CSS
+- **shadcn/ui** - Component library
 
 ### Development Dependencies
 
@@ -261,7 +300,7 @@ Potential improvements identified:
 
 - [ ] Support for multiple concurrent model comparisons
 - [ ] Batch processing of multiple papers
-- [ ] Web interface (FastAPI/Streamlit)
+- [x] Web interface (Next.js + FastAPI) - **Completed!**
 - [ ] Custom review templates
 - [ ] Citation analysis integration
 - [ ] LaTeX document support

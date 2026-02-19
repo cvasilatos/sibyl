@@ -1,8 +1,14 @@
-# Sibyl Web Application
+# Sibyl Web Application (FastAPI Backend)
 
 ## Overview
 
-The Sibyl Web Application provides a user-friendly web interface for reviewing research papers using local LLM models. Built with FastAPI and modern web technologies, it offers real-time progress updates and a clean, responsive design.
+The Sibyl Web Application provides a FastAPI backend for the web interface. This document covers the backend server. For the modern Next.js frontend, see [WEB_APP_NEXTJS.md](WEB_APP_NEXTJS.md).
+
+The backend is built with FastAPI and provides:
+- REST API endpoints for file uploads and health checks
+- WebSocket support for real-time progress updates
+- CORS enabled for Next.js frontend
+- Built-in HTML interface as fallback
 
 ## Features
 
@@ -17,21 +23,47 @@ The Sibyl Web Application provides a user-friendly web interface for reviewing r
 
 ### Prerequisites
 
-- Python 3.9 or higher
+- Python 3.9 or higher (3.12+ recommended)
 - [Ollama](https://ollama.ai) installed and running
 - A local LLM model (e.g., `llama3.2`)
+- Node.js 18+ and npm (for Next.js frontend, optional)
 
 ### Install Sibyl with Web Support
 
 ```bash
 # Install Sibyl with web dependencies
+# Using pip
 pip install -e ".[web]"
 
-# Or if already installed, add web dependencies
+# Or using uv (faster)
+uv pip install -e ".[web]"
+
+# Or if already installed, add web dependencies manually
 pip install fastapi uvicorn python-multipart websockets
 ```
 
 ## Quick Start
+
+### Option 1: With Next.js Frontend (Recommended)
+
+1. **Start the Backend**:
+   ```bash
+   sibyl web
+   ```
+
+2. **Start the Frontend** (in a new terminal):
+   ```bash
+   cd web
+   npm install  # First time only
+   npm run dev
+   ```
+
+3. **Open in Browser**:
+   ```
+   http://localhost:3000
+   ```
+
+### Option 2: Backend Only (Built-in HTML Interface)
 
 1. **Configure Sibyl**:
    ```bash
