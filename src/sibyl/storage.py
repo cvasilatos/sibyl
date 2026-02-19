@@ -1,6 +1,7 @@
 """Storage module for persisting and searching reviews and PDFs using vector database."""
 
 import json
+import os
 import shutil
 from datetime import datetime
 from pathlib import Path
@@ -36,13 +37,15 @@ class ReviewStorage:
     def __init__(
         self,
         storage_path: str = "./sibyl_storage",
-        ollama_url: str = "http://localhost:11434",
+        ollama_url: Optional[str] = None,
     ):
         """Initialize the storage system.
 
         Args:
             storage_path: Path to the storage directory for ChromaDB and PDFs
-            ollama_url: URL for Ollama API to generate embeddings
+            ollama_url: URL for Ollama API to generate embeddings.
+                        Defaults to the OLLAMA_BASE_URL environment variable,
+                        falling back to http://localhost:11434.
 
         """
         self.storage_path = Path(storage_path)
@@ -52,7 +55,7 @@ class ReviewStorage:
         self.pdf_storage = self.storage_path / "pdfs"
         self.pdf_storage.mkdir(exist_ok=True)
         
-        self.ollama_url = ollama_url
+        self.ollama_url = ollama_url or os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
         
         # Initialize ChromaDB
         self.client = chromadb.PersistentClient(
