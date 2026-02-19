@@ -101,9 +101,10 @@ class OllamaClient(LLMClient):
         """Generate a response using Ollama's API asynchronously."""
         # Combine system prompt with user prompt if provided
         full_prompt = prompt
-        print(f"Prompt for {self.get_name()}:\n{full_prompt}\n")
         if system_prompt:
             full_prompt = f"{system_prompt}\n\n{prompt}"
+        
+        print(f"Prompt for {self.get_name()}:\n{full_prompt}\n")
 
         payload = {
             "model": self.config.model,
@@ -125,7 +126,7 @@ class OllamaClient(LLMClient):
                 result = response.json()
                 print(f"Raw response from {self.get_name()}:\n{result.get('response')}\n")
                 return result.get("response", "")
-        except httpx.HTTPError as e:
+        except httpx.RequestError as e:
             raise RuntimeError(
                 f"Failed to connect to Ollama at {self.base_url}. "
                 f"Make sure Ollama is running. Error: {e}"
