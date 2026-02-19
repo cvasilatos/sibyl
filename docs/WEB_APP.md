@@ -46,7 +46,7 @@ You need to run **both** the backend and the Next.js frontend:
    ```bash
    # Create .env file
    cp .env.example .env
-   
+
    # Edit .env and set your model
    # OLLAMA_MODEL=llama3.2
    # OLLAMA_BASE_URL=http://localhost:11434
@@ -56,7 +56,7 @@ You need to run **both** the backend and the Next.js frontend:
    ```bash
    sibyl web
    ```
-   
+
    This starts the FastAPI backend on `http://localhost:8000`
 
 3. **Start the Frontend** (Terminal 2):
@@ -65,7 +65,7 @@ You need to run **both** the backend and the Next.js frontend:
    npm install  # First time only
    npm run dev
    ```
-   
+
    This starts the Next.js frontend on `http://localhost:3000`
 
 4. **Open in Browser**:
@@ -92,6 +92,9 @@ sibyl web
 # Custom host and port
 sibyl web --host 127.0.0.1 --port 8080
 
+# Enable SSL with self-signed certificate
+sibyl web --ssl
+
 # Help
 sibyl web --help
 ```
@@ -115,7 +118,7 @@ Health check endpoint to verify service status.
 #### `POST /api/upload`
 Upload a PDF file for review.
 
-**Request**: 
+**Request**:
 - Form data with `file` field containing PDF
 
 **Response**:
@@ -261,7 +264,7 @@ uv pip install -e ".[web]"
 
 **Issue**: Health check shows "unhealthy"
 
-**Solution**: 
+**Solution**:
 1. Ensure Ollama is running: `ollama list`
 2. Check `.env` configuration
 3. Verify `OLLAMA_BASE_URL` is correct

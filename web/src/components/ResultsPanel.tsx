@@ -25,6 +25,7 @@ type Review = {
   paper_title: string
   reviewer_model: string
   criteria: ReviewCriteria
+  raw_response: string
 }
 
 type ReviewResults = {

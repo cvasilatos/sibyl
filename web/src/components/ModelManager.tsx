@@ -4,9 +4,9 @@ import { useState, useEffect } from "react"
 import { Download, RefreshCw, Loader2, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
 import { useToast } from "@/components/ui/use-toast"
-import { API_URL, getWebSocketUrl } from "@/lib/config"
+import { API_URL } from "@/lib/config"
+import { useDownload } from "@/lib/download-context"
 
 interface Model {
   name: string
@@ -32,29 +32,18 @@ interface AvailableModelsResponse {
   count: number
 }
 
-interface DownloadProgress {
-  model_name: string
-  status: string
-  progress: number
-  message: string
-  total: number
-  completed: number
-}
-
 export default function ModelManager() {
   const [models, setModels] = useState<Model[]>([])
   const [availableModels, setAvailableModels] = useState<AvailableModel[]>([])
   const [filteredModels, setFilteredModels] = useState<AvailableModel[]>([])
   const [loading, setLoading] = useState(true)
-  const [installing, setInstalling] = useState<string | null>(null)
-  const [downloadProgress, setDownloadProgress] = useState<number>(0)
-  const [error, setError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const { toast } = useToast()
+  const { installing, error, startDownload, clearError } = useDownload()
 
   const loadModels = async () => {
     setLoading(true)
-    setError(null)
+    clearError()
     try {
       const response = await fetch(`${API_URL}/api/models`)
       if (!response.ok) {
@@ -63,7 +52,8 @@ export default function ModelManager() {
       const data: ModelsResponse = await response.json()
       setModels(data.models || [])
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load models")
+      // Note: error handling moved to context
+      console.error("Failed to load models:", err)
     } finally {
       setLoading(false)
     }
@@ -104,98 +94,44 @@ export default function ModelManager() {
   }, [searchQuery, availableModels])
 
   const installModel = async (modelName: string) => {
-    setInstalling(modelName)
-    setDownloadProgress(0)
-    setError(null)
-    
-    try {
-      // Start the download
-      const response = await fetch(`${API_URL}/api/models/download`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ model_name: modelName }),
-      })
+    clearError()
 
-      if (!response.ok) {
-        throw new Error("Failed to start model download")
-      }
+    // Show initial toast
+    const toastId = toast({
+      title: "Downloading Model",
+      description: `Installing ${modelName}...`,
+    })
 
-      const data = await response.json()
-      const downloadId = data.download_id
-
-      // Show toast notification
-      const toastId = toast({
-        title: "Downloading Model",
-        description: `Installing ${modelName}...`,
-      })
-
-      // Connect to WebSocket for progress updates
-      const wsBaseUrl = getWebSocketUrl()
-      const ws = new WebSocket(`${wsBaseUrl}/ws/models/download/${downloadId}`)
-
-      ws.onmessage = (event) => {
-        const progress: DownloadProgress = JSON.parse(event.data)
-        setDownloadProgress(progress.progress)
-
-        // Update toast with progress
+    startDownload(
+      modelName,
+      () => {
+        // On complete
+        loadModels()
+        loadAvailableModels()
+        toastId.dismiss()
+        toast({
+          title: "Installation Complete",
+          description: `${modelName} has been successfully installed!`,
+        })
+      },
+      (message: string) => {
+        // On error
+        toastId.dismiss()
+        toast({
+          title: "Installation Failed",
+          description: message,
+          variant: "destructive",
+        })
+      },
+      (progress: number, message: string) => {
+        // On progress
         toastId.update({
           id: toastId.id,
           title: "Downloading Model",
-          description: `${modelName}: ${progress.progress}% - ${progress.message}`,
-        })
-
-        if (progress.status === "completed") {
-          ws.close()
-          setInstalling(null)
-          setDownloadProgress(0)
-          loadModels()
-          loadAvailableModels()
-          
-          // Dismiss the progress toast and show success toast
-          toastId.dismiss()
-          toast({
-            title: "Installation Complete",
-            description: `${modelName} has been successfully installed!`,
-          })
-        } else if (progress.status === "error") {
-          ws.close()
-          setError(progress.message)
-          setInstalling(null)
-          setDownloadProgress(0)
-          
-          // Dismiss the progress toast and show error toast
-          toastId.dismiss()
-          toast({
-            title: "Installation Failed",
-            description: progress.message,
-            variant: "destructive",
-          })
-        }
-      }
-
-      ws.onerror = () => {
-        setError("WebSocket connection failed")
-        setInstalling(null)
-        setDownloadProgress(0)
-        toast({
-          title: "Connection Error",
-          description: "Failed to connect to download progress stream",
-          variant: "destructive",
+          description: `${modelName}: ${progress}% - ${message}`,
         })
       }
-
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to install model")
-      setInstalling(null)
-      setDownloadProgress(0)
-      toast({
-        title: "Installation Error",
-        description: err instanceof Error ? err.message : "Failed to start model installation",
-        variant: "destructive",
-      })
-    }
+    )
   }
 
   const formatSize = (bytes: number) => {
@@ -232,7 +168,7 @@ export default function ModelManager() {
         {/* Search and install models */}
         <div className="space-y-2">
           <h3 className="text-sm font-semibold">Browse & Install Models</h3>
-          
+
           {/* Search box */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -247,15 +183,7 @@ export default function ModelManager() {
           </div>
 
           {/* Progress bar for active download */}
-          {installing && (
-            <div className="space-y-2 p-3 bg-muted rounded-md">
-              <div className="flex items-center justify-between text-sm">
-                <span>Installing {installing}...</span>
-                <span>{downloadProgress}%</span>
-              </div>
-              <Progress value={downloadProgress} />
-            </div>
-          )}
+          {/* Moved to global layout */}
 
           {/* Available models list */}
           <div className="max-h-96 overflow-y-auto space-y-2 border rounded-md p-2">

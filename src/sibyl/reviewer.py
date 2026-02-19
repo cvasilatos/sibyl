@@ -173,76 +173,67 @@ DETAILED FEEDBACK:
             "detailed_feedback": "",
         }
 
+        # Define section headers
+        section_headers = [
+            ("novelty", ["**NOVELTY:**", "NOVELTY:"]),
+            ("methodology", ["**METHODOLOGY:**", "METHODOLOGY:"]),
+            ("results", ["**RESULTS:**", "RESULTS:"]),
+            ("clarity", ["**CLARITY:**", "CLARITY:"]),
+            ("impact", ["**IMPACT:**", "IMPACT:"]),
+            ("limitations", ["**LIMITATIONS:**", "LIMITATIONS:"]),
+            ("strengths", ["**STRENGTHS:**", "STRENGTHS:"]),
+            ("overall_score", ["**SCORE:**", "SCORE:"]),
+            ("recommendation", ["**RECOMMENDATION:**", "RECOMMENDATION:"]),
+            ("detailed_feedback", ["**DETAILED FEEDBACK:**", "DETAILED FEEDBACK:"]),
+        ]
+
         # Parse sections from the response
-        lines = response.split("\n")
+        lines: list[str] = response.split("\n")
         current_section = None
         score_parsed_from_header = False  # Track if score was already parsed
         recommendation_parsed_from_header = False  # Track if recommendation was already parsed
 
         for line in lines:
             line_upper = line.strip().upper()
+            header_found = False
 
-            if line_upper.startswith("NOVELTY:"):
-                current_section = "novelty"
-                content = line[len("NOVELTY:") :].strip()
-                if content:
-                    sections[current_section] = content
-            elif line_upper.startswith("METHODOLOGY:"):
-                current_section = "methodology"
-                content = line[len("METHODOLOGY:") :].strip()
-                if content:
-                    sections[current_section] = content
-            elif line_upper.startswith("RESULTS:"):
-                current_section = "results"
-                content = line[len("RESULTS:") :].strip()
-                if content:
-                    sections[current_section] = content
-            elif line_upper.startswith("CLARITY:"):
-                current_section = "clarity"
-                content = line[len("CLARITY:") :].strip()
-                if content:
-                    sections[current_section] = content
-            elif line_upper.startswith("IMPACT:"):
-                current_section = "impact"
-                content = line[len("IMPACT:") :].strip()
-                if content:
-                    sections[current_section] = content
-            elif line_upper.startswith("LIMITATIONS:"):
-                current_section = "limitations"
-                content = line[len("LIMITATIONS:") :].strip()
-                if content:
-                    sections[current_section] = content
-            elif line_upper.startswith("STRENGTHS:"):
-                current_section = "strengths"
-                content = line[len("STRENGTHS:") :].strip()
-                if content:
-                    sections[current_section] = content
-            elif line_upper.startswith("SCORE:"):
-                current_section = "overall_score"
-                score_text = line[len("SCORE:") :].strip()
-                # Extract number from score text if present on same line
-                if score_text:
-                    try:
-                        sections[current_section] = int(
-                            "".join(c for c in score_text if c.isdigit())[:2]
-                        )
-                        score_parsed_from_header = True
-                    except (ValueError, IndexError):
-                        sections[current_section] = 5
-                        score_parsed_from_header = True
-                # Otherwise, wait for next line to get score
-            elif line_upper.startswith("RECOMMENDATION:"):
-                current_section = "recommendation"
-                content = line[len("RECOMMENDATION:") :].strip()
-                if content:
-                    sections[current_section] = content
-                    recommendation_parsed_from_header = True
-            elif line_upper.startswith("DETAILED FEEDBACK:"):
-                current_section = "detailed_feedback"
-                content = line[len("DETAILED FEEDBACK:") :].strip()
-                if content:
-                    sections[current_section] = content
-            elif current_section and line.strip():
+            # Check for section headers
+            for section_key, headers in section_headers:
+                for header in headers:
+                    if line_upper.startswith(header.upper()):
+                        current_section = section_key
+                        content = line.replace(header, "").strip()
+
+                        if section_key == "recommendation":
+                            content = content.strip("**").strip()
+
+                        if content:
+                            sections[current_section] = content
+
+                        if section_key == "overall_score":
+                            # Extract number from score text, handling formats like 7.5/10 or **7.5/10**
+                            import re
+
+                            match = re.search(r"(\d+(?:\.\d+)?)", content)
+                            if match:
+                                try:
+                                    score = float(match.group(1))
+                                    sections[current_section] = int(
+                                        score
+                                    )  # Convert to int, so 7.5 becomes 7
+                                    score_parsed_from_header = True
+                                except (ValueError, IndexError):
+                                    sections[current_section] = 5
+                                    score_parsed_from_header = True
+                        elif section_key == "recommendation":
+                            recommendation_parsed_from_header = True
+
+                        header_found = True
+                        break
+                if header_found:
+                    break
+
+            if not header_found and current_section and line.strip():
                 # Continue appending to current section
                 # Handle score on next line (only if not already parsed from header)
                 if current_section == "overall_score":

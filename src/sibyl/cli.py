@@ -247,20 +247,75 @@ def check_config():
 @main.command()
 @click.option("--host", default="0.0.0.0", help="Host to bind to (default: 0.0.0.0)")
 @click.option("--port", default=8000, type=int, help="Port to bind to (default: 8000)")
-def web(host: str, port: int):
+@click.option("--ssl", is_flag=True, help="Enable SSL with self-signed certificate")
+def web(host: str, port: int, ssl: bool):
     """Start the web interface for Sibyl.
 
     This launches a web server that provides a user-friendly interface
     for uploading and reviewing research papers.
     """
     console.print("\n[bold blue]Starting Sibyl Web Interface[/bold blue]\n")
-    console.print(f"[bold]Server:[/bold] http://{host}:{port}")
+
+    ssl_certfile = None
+    ssl_keyfile = None
+
+    if ssl:
+        import subprocess
+        import tempfile
+        from pathlib import Path
+
+        # Generate self-signed certificate
+        cert_dir = Path(tempfile.gettempdir()) / "sibyl_certs"
+        cert_dir.mkdir(exist_ok=True)
+        cert_file = cert_dir / "cert.pem"
+        key_file = cert_dir / "key.pem"
+
+        if not cert_file.exists() or not key_file.exists():
+            console.print("[bold]Generating self-signed SSL certificate...[/bold]")
+            try:
+                subprocess.run(
+                    [
+                        "openssl",
+                        "req",
+                        "-x509",
+                        "-newkey",
+                        "rsa:4096",
+                        "-keyout",
+                        str(key_file),
+                        "-out",
+                        str(cert_file),
+                        "-days",
+                        "365",
+                        "-nodes",
+                        "-subj",
+                        "/C=US/ST=State/L=City/O=Organization/CN=localhost",
+                    ],
+                    check=True,
+                    capture_output=True,
+                )
+                console.print("[green]SSL certificate generated successfully.[/green]")
+            except subprocess.CalledProcessError as e:
+                console.print(f"[bold red]Error generating SSL certificate:[/bold red] {e}")
+                return
+            except FileNotFoundError:
+                console.print(
+                    "[bold red]Error: openssl not found. Please install openssl to use SSL.[/bold red]"
+                )
+                return
+
+        ssl_certfile = str(cert_file)
+        ssl_keyfile = str(key_file)
+        protocol = "https"
+    else:
+        protocol = "http"
+
+    console.print(f"[bold]Server:[/bold] {protocol}://{host}:{port}")
     console.print("[bold]Press Ctrl+C to stop[/bold]\n")
 
     try:
         from .web_app import run_server
 
-        run_server(host=host, port=port)
+        run_server(host=host, port=port, ssl_certfile=ssl_certfile, ssl_keyfile=ssl_keyfile)
     except ImportError:
         console.print(
             "[bold red]Error:[/bold red] FastAPI and uvicorn are required for the web interface.\n"

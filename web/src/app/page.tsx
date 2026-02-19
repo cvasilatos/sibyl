@@ -27,6 +27,7 @@ interface Review {
   paper_title: string
   reviewer_model: string
   criteria: ReviewCriteria
+  raw_response: string
 }
 
 interface ComparisonStats {
@@ -190,7 +191,7 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-500 via-purple-600 to-purple-700 p-4 md:p-8">
+    <div className="min-h-screen bg-linear-to-t from-black-900 via-black-600 to-gray-100 p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
         <Card className="mb-8">
           <CardHeader className="text-center">
@@ -253,5 +254,3 @@ export default function Home() {
     </div>
   )
 }
-
-/* ReviewSection moved to /src/components/ReviewSection.tsx */
