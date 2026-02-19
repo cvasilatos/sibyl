@@ -24,13 +24,23 @@ interface ReviewsResponse {
   offset: number
 }
 
+interface Statistics {
+  total_reviews: number
+  avg_score: number
+  min_score: number
+  max_score: number
+  unique_papers: number
+  unique_models: number
+  recommendations: Record<string, number>
+}
+
 export default function ReviewLibrary() {
   const [reviews, setReviews] = useState<StoredReview[]>([])
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [downloading, setDownloading] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [stats, setStats] = useState<any>(null)
+  const [stats, setStats] = useState<Statistics | null>(null)
 
   const loadReviews = async () => {
     setLoading(true)

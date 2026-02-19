@@ -82,6 +82,8 @@ export default function ModelManager() {
     return new Date(dateString).toLocaleDateString()
   }
 
+  // Popular models that can be quickly installed
+  // These are commonly used models that work well for paper reviews
   const popularModels = [
     "llama3.2",
     "llama3.1",
