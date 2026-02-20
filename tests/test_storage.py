@@ -193,6 +193,32 @@ def test_delete_review(storage, sample_review):
         storage.delete_review(review_id)
 
 
+def test_delete_all_reviews(storage, sample_review):
+    """Test deleting all reviews."""
+    for i in range(3):
+        modified_review = PaperReview(
+            paper_title=f"Paper {i}",
+            reviewer_model=sample_review.reviewer_model,
+            criteria=sample_review.criteria,
+            raw_response=sample_review.raw_response,
+        )
+        storage.save_review(review=modified_review, pdf_filename=f"paper_{i}.pdf")
+
+    assert storage.count_reviews() == 3
+
+    count = storage.delete_all_reviews()
+    assert count == 3
+    assert storage.count_reviews() == 0
+
+
+def test_delete_all_reviews_empty(storage):
+    """Test deleting all reviews when none exist."""
+    count = storage.delete_all_reviews()
+    assert count == 0
+    assert storage.count_reviews() == 0
+
+
+
 def test_count_reviews(storage, sample_review):
     """Test counting reviews."""
     assert storage.count_reviews() == 0

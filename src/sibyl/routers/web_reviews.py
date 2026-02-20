@@ -71,6 +71,12 @@ async def get_review_details(review_id: str):
     return review
 
 
+@router.delete("/reviews")
+async def delete_all_reviews():
+    count = storage.delete_all_reviews()
+    return {"message": f"Deleted {count} reviews", "count": count}
+
+
 @router.delete("/reviews/{review_id}")
 async def delete_review(review_id: str):
     storage.delete_review(review_id)
