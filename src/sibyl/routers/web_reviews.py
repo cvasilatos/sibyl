@@ -147,6 +147,23 @@ async def list_available_models() -> dict:
     return {"models": available_models, "count": len(available_models)}
 
 
+@router.get("/models/available/{model_name}/tags")
+async def get_model_tags(model_name: str) -> dict:
+    """Fetch numerical size tags (e.g. 1.5b, 7b, 70b) for a specific Ollama library model."""
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(f"https://ollama.com/library/{model_name}")
+            response.raise_for_status()
+            html_content = response.text
+    except httpx.HTTPError as e:
+        raise HTTPException(status_code=502, detail=f"Failed to fetch model tags: {e}") from e
+
+    raw_tags = re.findall(rf'href="/library/{re.escape(model_name)}:([^"]+)"', html_content)
+    numerical_tags = sorted({tag for tag in raw_tags if re.fullmatch(r"\d+(\.\d+)?[bBmMkK]", tag)})
+
+    return {"model": model_name, "tags": numerical_tags}
+
+
 @router.get("/reviews/{review_id}/pdf")
 async def download_review_pdf(review_id: str) -> FileResponse:
     review = storage.get_review(review_id)

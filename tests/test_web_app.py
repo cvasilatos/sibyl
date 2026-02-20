@@ -165,6 +165,40 @@ def test_delete_all_reviews(client):
     assert "message" in data
 
 
+def test_get_model_tags_response_shape(client):
+    """Test that the model tags endpoint returns model and tags fields."""
+    from unittest.mock import AsyncMock, MagicMock, patch
+
+    model_name = "deepseek-r1"
+    fake_html = (
+        '<a href="/library/deepseek-r1:1.5b">1.5b</a>'
+        '<a href="/library/deepseek-r1:7b">7b</a>'
+        '<a href="/library/deepseek-r1:latest">latest</a>'
+        '<a href="/library/deepseek-r1:v1-preview">v1-preview</a>'
+    )
+
+    mock_response = MagicMock()
+    mock_response.text = fake_html
+    mock_response.raise_for_status = MagicMock()
+
+    mock_client = AsyncMock()
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=None)
+    mock_client.get = AsyncMock(return_value=mock_response)
+
+    with patch("sibyl.routers.web_reviews.httpx.AsyncClient", return_value=mock_client):
+        response = client.get(f"/api/models/available/{model_name}/tags")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["model"] == model_name
+    assert isinstance(data["tags"], list)
+    assert "1.5b" in data["tags"]
+    assert "7b" in data["tags"]
+    # Non-size tags must be filtered out
+    assert "latest" not in data["tags"]
+    assert "v1-preview" not in data["tags"]
+
 
 def test_concurrent_requests():
     """Test that the backend can handle concurrent requests (doesn't hang)."""

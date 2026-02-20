@@ -32,12 +32,21 @@ interface AvailableModelsResponse {
   count: number
 }
 
+interface ModelTagsResponse {
+  model: string
+  tags: string[]
+}
+
 export default function ModelManager() {
   const [models, setModels] = useState<Model[]>([])
   const [availableModels, setAvailableModels] = useState<AvailableModel[]>([])
   const [filteredModels, setFilteredModels] = useState<AvailableModel[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
+  const [modelTags, setModelTags] = useState<Record<string, string[]>>({})
+  const [fetchingTags, setFetchingTags] = useState<Set<string>>(new Set())
+  const [selectedTags, setSelectedTags] = useState<Record<string, string>>({})
+  const [expandedModel, setExpandedModel] = useState<string | null>(null)
   const { toast } = useToast()
   const { installing, error, startDownload, clearError } = useDownload()
 
@@ -93,29 +102,55 @@ export default function ModelManager() {
     }
   }, [searchQuery, availableModels])
 
-  const installModel = async (modelName: string) => {
-    clearError()
+  const fetchModelTags = async (modelName: string) => {
+    if (modelTags[modelName] !== undefined || fetchingTags.has(modelName)) return
+    setFetchingTags((prev) => new Set(prev).add(modelName))
+    try {
+      const response = await fetch(`${API_URL}/api/models/available/${modelName}/tags`)
+      if (!response.ok) throw new Error("Failed to fetch tags")
+      const data: ModelTagsResponse = await response.json()
+      setModelTags((prev) => ({ ...prev, [modelName]: data.tags }))
+      if (data.tags.length > 0) {
+        setSelectedTags((prev) => ({ ...prev, [modelName]: data.tags[0] }))
+      }
+    } catch (err) {
+      console.error(`Failed to load tags for ${modelName}:`, err)
+      setModelTags((prev) => ({ ...prev, [modelName]: [] }))
+    } finally {
+      setFetchingTags((prev) => { const next = new Set(prev); next.delete(modelName); return next })
+    }
+  }
 
-    // Show initial toast
+  const handleInstallClick = async (modelName: string) => {
+    if (expandedModel === modelName) {
+      setExpandedModel(null)
+      return
+    }
+    setExpandedModel(modelName)
+    await fetchModelTags(modelName)
+  }
+
+  const doInstall = (fullModelName: string) => {
+    clearError()
+    setExpandedModel(null)
+
     const toastId = toast({
       title: "Downloading Model",
-      description: `Installing ${modelName}...`,
+      description: `Installing ${fullModelName}...`,
     })
 
     startDownload(
-      modelName,
+      fullModelName,
       () => {
-        // On complete
         loadModels()
         loadAvailableModels()
         toastId.dismiss()
         toast({
           title: "Installation Complete",
-          description: `${modelName} has been successfully installed!`,
+          description: `${fullModelName} has been successfully installed!`,
         })
       },
       (message: string) => {
-        // On error
         toastId.dismiss()
         toast({
           title: "Installation Failed",
@@ -124,11 +159,10 @@ export default function ModelManager() {
         })
       },
       (progress: number, message: string) => {
-        // On progress
         toastId.update({
           id: toastId.id,
           title: "Downloading Model",
-          description: `${modelName}: ${progress}% - ${message}`,
+          description: `${fullModelName}: ${progress}% - ${message}`,
         })
       }
     )
@@ -186,35 +220,85 @@ export default function ModelManager() {
 
           {/* Available models list */}
           <div className="max-h-96 overflow-y-auto space-y-2 border rounded-md p-2">
-            {filteredModels.map((model) => (
-              <div
-                key={model.name}
-                className="flex items-center justify-between p-3 bg-muted/50 rounded-md hover:bg-muted"
-              >
-                <div className="flex-1">
-                  <p className="text-sm font-medium">{model.name}</p>
-                  <p className="text-xs text-muted-foreground">{model.description}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{model.size}</p>
-                </div>
-                <Button
-                  onClick={() => installModel(model.name)}
-                  disabled={installing.includes(model.name) || model.installed}
-                  size="sm"
-                  variant={model.installed ? "outline" : "default"}
+            {filteredModels.map((model) => {
+              const tags = modelTags[model.name]
+              const isFetchingTags = fetchingTags.has(model.name)
+              const isExpanded = expandedModel === model.name
+              const selectedTag = selectedTags[model.name]
+              const isInstallingModel = installing.some(
+                (n) => n === model.name || n.startsWith(`${model.name}:`)
+              )
+              return (
+                <div
+                  key={model.name}
+                  className="p-3 bg-muted/50 rounded-md hover:bg-muted"
                 >
-                  {installing.includes(model.name) ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : model.installed ? (
-                    "Installed"
-                  ) : (
-                    <>
-                      <Download className="h-4 w-4 mr-1" />
-                      Install
-                    </>
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">{model.name}</p>
+                      <p className="text-xs text-muted-foreground">{model.description}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{model.size}</p>
+                    </div>
+                    <Button
+                      onClick={() => handleInstallClick(model.name)}
+                      disabled={isInstallingModel || model.installed}
+                      size="sm"
+                      variant={model.installed ? "outline" : "default"}
+                    >
+                      {isInstallingModel ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : model.installed ? (
+                        "Installed"
+                      ) : (
+                        <>
+                          <Download className="h-4 w-4 mr-1" />
+                          Install
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  {isExpanded && !model.installed && (
+                    <div className="mt-2 pt-2 border-t border-border">
+                      {isFetchingTags ? (
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          Loading variants…
+                        </div>
+                      ) : tags && tags.length > 0 ? (
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs text-muted-foreground">Variant:</span>
+                          <select
+                            value={selectedTag}
+                            onChange={(e) => setSelectedTags((prev) => ({ ...prev, [model.name]: e.target.value }))}
+                            className="text-xs border border-input rounded px-2 py-1 bg-background"
+                          >
+                            {tags.map((tag) => (
+                              <option key={tag} value={tag}>{tag}</option>
+                            ))}
+                          </select>
+                          <Button
+                            size="sm"
+                            onClick={() => doInstall(`${model.name}:${selectedTag}`)}
+                            disabled={isInstallingModel}
+                          >
+                            <Download className="h-3 w-3 mr-1" />
+                            Confirm
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground">No size variants found.</span>
+                          <Button size="sm" onClick={() => doInstall(model.name)} disabled={isInstallingModel}>
+                            <Download className="h-3 w-3 mr-1" />
+                            Install latest
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                   )}
-                </Button>
-              </div>
-            ))}
+                </div>
+              )
+            })}
             {filteredModels.length === 0 && (
               <p className="text-sm text-muted-foreground text-center py-4">
                 No models found matching "{searchQuery}"
