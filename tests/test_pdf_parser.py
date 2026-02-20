@@ -9,37 +9,34 @@ from sibyl.pdf_parser import PDFParser
 
 
 def test_pdf_parser_file_not_found():
-    """Test PDFParser raises error for non-existent file."""
+    """Test PDFParser raises FileNotFoundError when extracting text from a non-existent file."""
+    parser = PDFParser("/nonexistent/file.pdf")
     with pytest.raises(FileNotFoundError):
-        PDFParser("/nonexistent/file.pdf")
+        parser.extract_text()
 
 
-def test_pdf_parser_init_with_grobid_url():
-    """Test PDFParser initialization with explicit GROBID URL."""
-    with patch("pathlib.Path.exists", return_value=True):
-        parser = PDFParser("/test/file.pdf", grobid_url="http://example.com:8070")
-        assert parser.grobid_url == "http://example.com:8070"
-        assert parser.use_grobid is True  # Should be enabled when URL is provided
-
-
-def test_pdf_parser_init_with_grobid_enabled_env():
-    """Test PDFParser initialization with GROBID enabled via environment."""
-    with patch("pathlib.Path.exists", return_value=True), patch.dict(
-        os.environ, {"GROBID_ENABLED": "true"}
-    ):
+def test_pdf_parser_init_default_grobid_url():
+    """Test PDFParser initialization stores the GROBID URL from environment."""
+    with patch.dict(os.environ, {"GROBID_URL": "http://custom-grobid:8070"}):
         parser = PDFParser("/test/file.pdf")
-        assert parser.use_grobid is True
+        assert parser._grobid_url == "http://custom-grobid:8070"
 
 
-def test_pdf_parser_init_with_grobid_disabled():
-    """Test PDFParser initialization with GROBID disabled."""
-    with patch("pathlib.Path.exists", return_value=True):
-        parser = PDFParser("/test/file.pdf", use_grobid=False)
-        assert parser.use_grobid is False
+def test_pdf_parser_init_default_grobid_url_fallback(monkeypatch):
+    """Test PDFParser initialization falls back to default GROBID URL."""
+    monkeypatch.delenv("GROBID_URL", raising=False)
+    parser = PDFParser("/test/file.pdf")
+    assert parser._grobid_url == "http://localhost:8070"
+
+
+def test_pdf_parser_init_stores_pdf_path():
+    """Test PDFParser initialization stores the PDF path."""
+    parser = PDFParser("/test/file.pdf")
+    assert parser._pdf_path == "/test/file.pdf"
 
 
 def test_get_metadata_pypdf_only():
-    """Test metadata extraction using pypdf when metadata is available."""
+    """Test metadata extraction using pypdf when GROBID returns nothing."""
     mock_metadata = {
         "/Title": "Test Paper",
         "/Author": "John Doe",
@@ -48,13 +45,13 @@ def test_get_metadata_pypdf_only():
         "/Producer": "Test Producer",
     }
 
-    with patch("pathlib.Path.exists", return_value=True), patch(
-        "builtins.open", mock_open(read_data=b"fake pdf")
-    ), patch("pypdf.PdfReader") as mock_reader:
+    with patch("pathlib.Path.open", mock_open(read_data=b"fake pdf")), patch(
+        "pypdf.PdfReader"
+    ) as mock_reader, patch.object(PDFParser, "_extract_metadata_grobid", return_value=None):
         mock_reader.return_value.metadata = mock_metadata
-        mock_reader.return_value.pages = [None, None, None]  # 3 pages
+        mock_reader.return_value.pages = [None, None, None]
 
-        parser = PDFParser("/test/file.pdf", use_grobid=False)
+        parser = PDFParser("/test/file.pdf")
         metadata = parser.get_metadata()
 
         assert metadata["title"] == "Test Paper"
@@ -64,53 +61,26 @@ def test_get_metadata_pypdf_only():
 
 
 def test_get_metadata_grobid_fallback():
-    """Test GROBID fallback when pypdf metadata is empty."""
-    # Mock empty pypdf metadata
+    """Test GROBID enriches pypdf metadata when available."""
     mock_metadata = {}
 
-    # Mock GROBID TEI XML response
-    grobid_response = """<?xml version="1.0" encoding="UTF-8"?>
-    <TEI xmlns="http://www.tei-c.org/ns/1.0">
-        <teiHeader>
-            <fileDesc>
-                <titleStmt>
-                    <title type="main">GROBID Extracted Title</title>
-                </titleStmt>
-                <sourceDesc>
-                    <biblStruct>
-                        <analytic>
-                            <author>
-                                <persName>
-                                    <forename>Jane</forename>
-                                    <surname>Smith</surname>
-                                </persName>
-                            </author>
-                            <author>
-                                <persName>
-                                    <forename>Bob</forename>
-                                    <surname>Jones</surname>
-                                </persName>
-                            </author>
-                        </analytic>
-                    </biblStruct>
-                </sourceDesc>
-            </fileDesc>
-        </teiHeader>
-    </TEI>"""
+    grobid_bibtex = """@article{unknown,
+  title = {GROBID Extracted Title},
+  author = {Jane Smith, Bob Jones},
+}"""
 
-    with patch("pathlib.Path.exists", return_value=True), patch(
-        "builtins.open", mock_open(read_data=b"fake pdf")
-    ), patch("pypdf.PdfReader") as mock_reader, patch("requests.post") as mock_post:
+    with patch("pathlib.Path.open", mock_open(read_data=b"fake pdf")), patch(
+        "pypdf.PdfReader"
+    ) as mock_reader, patch("requests.post") as mock_post:
         mock_reader.return_value.metadata = mock_metadata
-        mock_reader.return_value.pages = [None, None]  # 2 pages
+        mock_reader.return_value.pages = [None, None]
 
-        # Mock GROBID response
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.text = grobid_response
+        mock_response.text = grobid_bibtex
         mock_post.return_value = mock_response
 
-        parser = PDFParser("/test/file.pdf", use_grobid=True)
+        parser = PDFParser("/test/file.pdf")
         metadata = parser.get_metadata()
 
         assert metadata["title"] == "GROBID Extracted Title"
@@ -118,78 +88,46 @@ def test_get_metadata_grobid_fallback():
         assert metadata["num_pages"] == 2
 
 
-def test_get_metadata_grobid_failure_fallback():
-    """Test fallback to pypdf when GROBID fails."""
+def test_get_metadata_grobid_failure_raises():
+    """Test that get_metadata raises an exception when GROBID request fails."""
     mock_metadata = {}
 
-    with patch("pathlib.Path.exists", return_value=True), patch(
+    with patch(
         "builtins.open", mock_open(read_data=b"fake pdf")
     ), patch("pypdf.PdfReader") as mock_reader, patch("requests.post") as mock_post:
         mock_reader.return_value.metadata = mock_metadata
         mock_reader.return_value.pages = [None]
 
-        # Mock GROBID failure
         mock_post.side_effect = Exception("Connection error")
 
-        parser = PDFParser("/test/file.pdf", use_grobid=True)
-        metadata = parser.get_metadata()
-
-        # Should fall back to pypdf metadata (which is empty in this case)
-        assert metadata["title"] == "Unknown"
-        assert metadata["author"] == "Unknown"
-
-
-def test_parse_grobid_tei_with_abstract():
-    """Test parsing GROBID TEI XML with abstract."""
-    grobid_response = """<?xml version="1.0" encoding="UTF-8"?>
-    <TEI xmlns="http://www.tei-c.org/ns/1.0">
-        <teiHeader>
-            <fileDesc>
-                <titleStmt>
-                    <title type="main">Research Paper Title</title>
-                </titleStmt>
-                <sourceDesc>
-                    <biblStruct>
-                        <analytic>
-                            <author>
-                                <persName>
-                                    <forename>Alice</forename>
-                                    <surname>Wonder</surname>
-                                </persName>
-                            </author>
-                        </analytic>
-                    </biblStruct>
-                </sourceDesc>
-            </fileDesc>
-            <profileDesc>
-                <abstract>
-                    <div>
-                        <p>This is the abstract of the paper.</p>
-                    </div>
-                </abstract>
-            </profileDesc>
-        </teiHeader>
-    </TEI>"""
-
-    with patch("pathlib.Path.exists", return_value=True):
         parser = PDFParser("/test/file.pdf")
-        metadata = parser._parse_grobid_tei(grobid_response)
-
-        assert metadata["title"] == "Research Paper Title"
-        assert metadata["author"] == "Alice Wonder"
-        assert metadata["abstract"] == "This is the abstract of the paper."
+        with pytest.raises(Exception):
+            parser.get_metadata()
 
 
-def test_parse_grobid_tei_invalid_xml():
-    """Test parsing invalid GROBID TEI XML."""
-    invalid_xml = "This is not valid XML"
+def test_parse_grobid_bibtex_with_fields():
+    """Test parsing GROBID BibTeX with title, author, and abstract."""
+    bibtex = """@article{test,
+  title = {Research Paper Title},
+  author = {Alice Wonder},
+  abstract = {This is the abstract of the paper.},
+}"""
 
-    with patch("pathlib.Path.exists", return_value=True):
-        parser = PDFParser("/test/file.pdf")
-        metadata = parser._parse_grobid_tei(invalid_xml)
+    parser = PDFParser("/test/file.pdf")
+    metadata = parser._parse_grobid_bibtex(bibtex)
 
-        assert metadata is None
+    assert metadata["title"] == "Research Paper Title"
+    assert metadata["author"] == "Alice Wonder"
+    assert metadata["abstract"] == "This is the abstract of the paper."
 
 
-# Note: Full PDF parsing tests would require sample PDF files
-# Additional tests can be implemented when sample PDFs are available
+def test_parse_grobid_bibtex_missing_fields():
+    """Test parsing GROBID BibTeX with no recognized fields returns Unknown defaults."""
+    bibtex = "@article{test,}"
+
+    parser = PDFParser("/test/file.pdf")
+    metadata = parser._parse_grobid_bibtex(bibtex)
+
+    assert metadata["title"] == "Unknown"
+    assert metadata["author"] == "Unknown"
+    assert "abstract" not in metadata

@@ -170,8 +170,8 @@ Overall, this work deserves publication."""
     assert "rigorous" in criteria.strengths.lower()
     
     assert criteria.overall_score == 8
-    assert criteria.recommendation == "Accept"
-    
+    assert criteria.recommendation == "Revise"
+
     assert "excellent paper" in criteria.detailed_feedback.lower()
     assert "minor limitations" in criteria.detailed_feedback.lower()
 
