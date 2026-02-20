@@ -29,9 +29,11 @@ type ReviewResults = {
 export default function ResultsPanel({
   results,
   getRecommendationColor,
+  maxScore,
 }: {
   results: ReviewResults
   getRecommendationColor: (rec: string) => string
+  maxScore: number
 }) {
   return (
     <div className="space-y-6">
@@ -43,7 +45,7 @@ export default function ResultsPanel({
                 🤖 {review.reviewer_model}
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-3xl font-bold text-primary">{review.criteria.score}/10</span>
+                <span className="text-3xl font-bold text-primary">{review.criteria.score}/{maxScore}</span>
                 <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getRecommendationColor(review.criteria.recommendation)}`}>
                   {review.criteria.recommendation}
                 </span>

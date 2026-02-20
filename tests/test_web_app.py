@@ -79,6 +79,16 @@ def test_health_check(client):
     assert "status" in data
 
 
+def test_config_endpoint(client):
+    """Test the config endpoint returns max_score."""
+    response = client.get("/api/config")
+    assert response.status_code == 200
+    data = response.json()
+    assert "max_score" in data
+    assert isinstance(data["max_score"], int)
+    assert data["max_score"] > 0
+
+
 def test_upload_pdf(client, sample_pdf):
     """Test uploading a PDF file."""
     with open(sample_pdf, "rb") as f:

@@ -2,6 +2,7 @@
 
 from typing import Any
 
+from sibyl.config import MAX_SCORE
 from sibyl.reviewer import PaperReview
 
 
@@ -73,7 +74,7 @@ class ReviewComparison:
 
         for i, review in enumerate(self.reviews, 1):
             lines.append(f"\n--- Review {i}: {review.reviewer_model} ---")
-            lines.append(f"Score: {review.criteria.score}/5")
+            lines.append(f"Score: {review.criteria.score}/{MAX_SCORE}")
             lines.append(f"Recommendation: {review.criteria.recommendation}")
             lines.append(f"\nNovelty:\n{review.criteria.novelty}")
             lines.append(f"\nMethodology:\n{review.criteria.methodology}")

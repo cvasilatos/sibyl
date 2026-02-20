@@ -16,7 +16,7 @@ import chromadb
 import requests
 from chromadb.config import Settings
 
-from sibyl.config import OLLAMA_BASE_URL
+from sibyl.config import MAX_SCORE, OLLAMA_BASE_URL
 from sibyl.reviewer import PaperReview
 from sibyl.storage.review import Review
 
@@ -102,7 +102,7 @@ class Engine:
         searchable_content = f"""
         Title: {review.paper_title}
         Reviewer: {review.reviewer_model}
-        Score: {review.criteria.score}/5
+        Score: {review.criteria.score}/{MAX_SCORE}
         Recommendation: {review.criteria.recommendation}
 
         Novelty: {review.criteria.novelty}
