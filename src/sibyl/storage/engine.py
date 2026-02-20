@@ -318,15 +318,11 @@ class Engine:
         if not all_results["ids"]:
             return {
                 "total_reviews": 0,
-                "avg_score": 0,
-                "min_score": 0,
-                "max_score": 0,
                 "unique_papers": 0,
                 "unique_models": 0,
                 "recommendations": {},
             }
 
-        scores = [m["score"] for m in all_results["metadatas"]]
         papers = set(m["paper_title"] for m in all_results["metadatas"])
         models = set(m["reviewer_model"] for m in all_results["metadatas"])
 
@@ -337,9 +333,6 @@ class Engine:
 
         return {
             "total_reviews": len(all_results["ids"]),
-            "avg_score": sum(scores) / len(scores) if scores else 0,
-            "min_score": min(scores) if scores else 0,
-            "max_score": max(scores) if scores else 0,
             "unique_papers": len(papers),
             "unique_models": len(models),
             "recommendations": recommendations,

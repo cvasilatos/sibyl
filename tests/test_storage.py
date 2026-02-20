@@ -39,7 +39,7 @@ def sample_review():
         impact="High potential impact",
         limitations="Minor limitations identified",
         strengths="Multiple key strengths",
-        overall_score=8,
+        score=8,
         recommendation="Accept",
         detailed_feedback="Excellent work overall with minor suggestions",
     )
@@ -85,7 +85,7 @@ def test_get_review(storage, sample_review):
     assert retrieved["paper_title"] == "Test Paper on Machine Learning"
     assert retrieved["pdf_filename"] == "test_paper.pdf"
     assert retrieved["reviewer_model"] == "TestModel v1.0"
-    assert retrieved["overall_score"] == 8
+    assert retrieved["score"] == 8
     assert retrieved["recommendation"] == "Accept"
 
 
@@ -153,7 +153,7 @@ def test_search_reviews_semantic(storage, sample_review):
         impact="Good",
         limitations="Some",
         strengths="Several",
-        overall_score=7,
+        score=7,
         recommendation="Revise",
         detailed_feedback="Good work on quantum computing research",
     )
@@ -219,7 +219,7 @@ def test_get_statistics(storage, sample_review):
         impact="Good",
         limitations="Some",
         strengths="Several",
-        overall_score=6,
+        score=6,
         recommendation="Revise",
         detailed_feedback="Good",
     )
@@ -233,9 +233,6 @@ def test_get_statistics(storage, sample_review):
 
     stats = storage.get_statistics()
     assert stats["total_reviews"] == 2
-    assert stats["avg_score"] == 7.0
-    assert stats["min_score"] == 6
-    assert stats["max_score"] == 8
     assert stats["unique_papers"] == 2
     assert stats["unique_models"] == 2
     assert "Accept" in stats["recommendations"]

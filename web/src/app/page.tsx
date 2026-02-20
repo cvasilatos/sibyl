@@ -18,7 +18,7 @@ interface ReviewCriteria {
   impact: string
   limitations: string
   strengths: string
-  overall_score: number
+  score: number
   recommendation: string
   detailed_feedback: string
 }
@@ -30,22 +30,9 @@ interface Review {
   raw_response: string
 }
 
-interface ComparisonStats {
-  mean: number
-  std: number
-  min: number
-  max: number
-}
-
 interface ReviewResults {
   paper_title: string
   reviews: Review[]
-  comparison: {
-    score_statistics: ComparisonStats
-    consensus: string
-    total_reviews: number
-    reviewers: string[]
-  }
 }
 
 export default function Home() {

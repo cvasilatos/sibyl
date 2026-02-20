@@ -13,7 +13,7 @@ interface StoredReview {
   pdf_filename: string
   pdf_path: string | null
   reviewer_model: string
-  overall_score: number
+  score: number
   recommendation: string
   review_summary: string
   created_at: string
@@ -27,7 +27,7 @@ interface ReviewCriteria {
   impact: string
   limitations: string
   strengths: string
-  overall_score: number
+  score: number
   recommendation: string
   detailed_feedback: string
 }
@@ -38,7 +38,7 @@ interface FullReview {
   pdf_filename: string
   pdf_path: string | null
   reviewer_model: string
-  overall_score: number
+  score: number
   recommendation: string
   created_at: string
   criteria: ReviewCriteria
@@ -54,9 +54,6 @@ interface ReviewsResponse {
 
 interface Statistics {
   total_reviews: number
-  avg_score: number
-  min_score: number
-  max_score: number
   unique_papers: number
   unique_models: number
   recommendations: Record<string, number>
@@ -211,14 +208,10 @@ export default function ReviewLibrary() {
 
         {/* Statistics */}
         {stats && (
-          <div className="grid grid-cols-3 gap-4 p-4 bg-muted rounded-md">
+          <div className="grid grid-cols-2 gap-4 p-4 bg-muted rounded-md">
             <div className="text-center">
               <p className="text-2xl font-bold text-primary">{stats.total_reviews}</p>
               <p className="text-xs text-muted-foreground">Total Reviews</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-primary">{stats.avg_score?.toFixed(1)}</p>
-              <p className="text-xs text-muted-foreground">Avg Score</p>
             </div>
             <div className="text-center">
               <p className="text-2xl font-bold text-primary">{stats.unique_papers}</p>
@@ -254,7 +247,7 @@ export default function ReviewLibrary() {
                     </p>
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-sm font-semibold text-primary">
-                        {review.overall_score}/10
+                        {review.score}/10
                       </span>
                       <span
                         className={`px-2 py-0.5 rounded-full text-xs font-semibold ${getRecommendationColor(

@@ -7,7 +7,6 @@ import httpx
 from decimalog.logger import CustomLogger
 from fastapi import APIRouter, Query, WebSocket
 
-from sibyl.comparison import ReviewComparison
 from sibyl.config import OLLAMA_BASE_URL, LLMConfig, SibylConfig
 from sibyl.llm.client.ollama import OllamaClient
 from sibyl.pdf_parser import PDFParser
@@ -68,12 +67,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, model: str =
             await websocket.send_json({"status": "error", "message": f"Error reviewing with {model}: {e!s}"})
             return
 
-        await websocket.send_json({"status": "progress", "progress": 90, "message": "Comparing reviews..."})
-
-        comparison = ReviewComparison([review])
-        comparison_data = comparison.get_comparative_analysis()
-
-        await websocket.send_json({"status": "progress", "progress": 95, "message": "Saving to storage..."})
+        await websocket.send_json({"status": "progress", "progress": 90, "message": "Saving to storage..."})
 
         review_id = storage.save_review(
             review=review,
@@ -101,14 +95,12 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, model: str =
                 "results": {
                     "paper_title": paper_title,
                     "reviews": reviews_dict,
-                    "comparison": comparison_data,
                 },
             }
         )
 
         session["status"] = "completed"
         session["reviews"] = reviews_dict
-        session["comparison"] = comparison_data
 
     except Exception as e:
         await websocket.send_json({"status": "error", "message": str(e)})

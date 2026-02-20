@@ -1,6 +1,5 @@
 """Comparison and evaluation of multiple LLM reviews."""
 
-from statistics import mean, stdev
 from typing import Any
 
 from sibyl.reviewer import PaperReview
@@ -17,28 +16,6 @@ class ReviewComparison:
 
         """
         self.reviews = reviews
-
-    def get_score_statistics(self) -> dict[str, float]:
-        """Calculate statistics for review scores.
-
-        Returns:
-            Dictionary containing mean, std, min, and max scores
-
-        """
-        scores = [review.criteria.score for review in self.reviews]
-
-        stats = {
-            "mean": mean(scores),
-            "min": min(scores),
-            "max": max(scores),
-        }
-
-        if len(scores) > 1:
-            stats["std"] = stdev(scores)
-        else:
-            stats["std"] = 0.0
-
-        return stats
 
     def get_recommendation_distribution(self) -> dict[str, int]:
         """Get distribution of recommendations.
@@ -84,12 +61,6 @@ class ReviewComparison:
         lines.append(f"\nTotal Reviews: {len(self.reviews)}")
         lines.append(f"Reviewers: {', '.join([r.reviewer_model for r in self.reviews])}")
 
-        stats = self.get_score_statistics()
-        lines.append("\nScore Statistics:")
-        lines.append(f"  Mean: {stats['mean']:.2f}")
-        lines.append(f"  Std Dev: {stats['std']:.2f}")
-        lines.append(f"  Range: {stats['min']} - {stats['max']}")
-
         lines.append("\nRecommendation Distribution:")
         for rec, count in self.get_recommendation_distribution().items():
             lines.append(f"  {rec}: {count}")
@@ -125,7 +96,6 @@ class ReviewComparison:
         return {
             "total_reviews": len(self.reviews),
             "reviewers": [r.reviewer_model for r in self.reviews],
-            "score_statistics": self.get_score_statistics(),
             "recommendation_distribution": self.get_recommendation_distribution(),
             "consensus": self.get_consensus_recommendation(),
             "individual_scores": [r.criteria.score for r in self.reviews],
