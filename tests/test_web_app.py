@@ -210,6 +210,84 @@ def test_get_model_tags_response_shape(client):
     assert "v1-preview" not in data["tags"]
 
 
+def test_available_models_installed_variants(client):
+    """Test that list_available_models returns installed_variants and does not mark a base
+    model as installed when only a specific variant (e.g. :7b) is installed."""
+    from unittest.mock import AsyncMock, MagicMock, patch
+
+    fake_library_html = '<a href="/library/llama3">llama3</a>'
+    # Simulate Ollama reporting llama3:7b as installed (not the bare :latest tag)
+    installed_model = {"name": "llama3:7b"}
+
+    library_response = MagicMock()
+    library_response.text = fake_library_html
+    library_response.raise_for_status = MagicMock()
+
+    tags_response = MagicMock()
+    tags_response.json = MagicMock(return_value={"models": [installed_model]})
+    tags_response.raise_for_status = MagicMock()
+
+    async def mock_get(url, *args, **kwargs):
+        if "ollama.com/library" in url:
+            return library_response
+        return tags_response
+
+    mock_client = AsyncMock()
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=None)
+    mock_client.get = mock_get
+
+    with patch("sibyl.routers.web_reviews.httpx.AsyncClient", return_value=mock_client):
+        response = client.get("/api/models/available")
+
+    assert response.status_code == 200
+    data = response.json()
+    models = {m["name"]: m for m in data["models"]}
+
+    # llama3:7b is installed but llama3 (bare/latest) is NOT — so installed must be False
+    assert "llama3" in models
+    assert models["llama3"]["installed"] is False
+    # The variant "7b" should be reported
+    assert "7b" in models["llama3"]["installed_variants"]
+
+
+def test_available_models_installed_latest_is_marked(client):
+    """Test that a base model is marked installed when :latest variant is present."""
+    from unittest.mock import AsyncMock, MagicMock, patch
+
+    fake_library_html = '<a href="/library/mistral">mistral</a>'
+    installed_model = {"name": "mistral:latest"}
+
+    library_response = MagicMock()
+    library_response.text = fake_library_html
+    library_response.raise_for_status = MagicMock()
+
+    tags_response = MagicMock()
+    tags_response.json = MagicMock(return_value={"models": [installed_model]})
+    tags_response.raise_for_status = MagicMock()
+
+    async def mock_get(url, *args, **kwargs):
+        if "ollama.com/library" in url:
+            return library_response
+        return tags_response
+
+    mock_client = AsyncMock()
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=None)
+    mock_client.get = mock_get
+
+    with patch("sibyl.routers.web_reviews.httpx.AsyncClient", return_value=mock_client):
+        response = client.get("/api/models/available")
+
+    assert response.status_code == 200
+    data = response.json()
+    models = {m["name"]: m for m in data["models"]}
+
+    # mistral:latest is installed → base model should be marked installed
+    assert "mistral" in models
+    assert models["mistral"]["installed"] is True
+
+
 def test_concurrent_requests():
     """Test that the backend can handle concurrent requests (doesn't hang)."""
     test_client = TestClient(app)

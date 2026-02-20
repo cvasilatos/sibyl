@@ -20,6 +20,7 @@ interface AvailableModel {
   description: string
   size: string
   installed: boolean
+  installed_variants?: string[]
 }
 
 interface ModelsResponse {
@@ -228,6 +229,8 @@ export default function ModelManager() {
               const isInstallingModel = installing.some(
                 (n) => n === model.name || n.startsWith(`${model.name}:`)
               )
+              const hasInstalledVariants = model.installed_variants && model.installed_variants.length > 0
+              const isSelectedVariantInstalled = hasInstalledVariants && !!selectedTag && model.installed_variants!.includes(selectedTag)
               return (
                 <div
                   key={model.name}
@@ -238,6 +241,11 @@ export default function ModelManager() {
                       <p className="text-sm font-medium">{model.name}</p>
                       <p className="text-xs text-muted-foreground">{model.description}</p>
                       <p className="text-xs text-muted-foreground mt-1">{model.size}</p>
+                      {hasInstalledVariants && (
+                        <p className="text-xs text-green-600 mt-1">
+                          Installed: {model.installed_variants!.join(", ")}
+                        </p>
+                      )}
                     </div>
                     <Button
                       onClick={() => handleInstallClick(model.name)}
@@ -252,7 +260,7 @@ export default function ModelManager() {
                       ) : (
                         <>
                           <Download className="h-4 w-4 mr-1" />
-                          Install
+                          {hasInstalledVariants ? "More Variants" : "Install"}
                         </>
                       )}
                     </Button>
@@ -273,13 +281,15 @@ export default function ModelManager() {
                             className="text-xs border border-input rounded px-2 py-1 bg-background"
                           >
                             {tags.map((tag) => (
-                              <option key={tag} value={tag}>{tag}</option>
+                              <option key={tag} value={tag}>
+                                {tag}{model.installed_variants?.includes(tag) ? " (installed)" : ""}
+                              </option>
                             ))}
                           </select>
                           <Button
                             size="sm"
                             onClick={() => doInstall(`${model.name}:${selectedTag}`)}
-                            disabled={isInstallingModel}
+                            disabled={isInstallingModel || isSelectedVariantInstalled}
                           >
                             <Download className="h-3 w-3 mr-1" />
                             Confirm

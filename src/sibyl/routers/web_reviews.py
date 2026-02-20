@@ -129,13 +129,17 @@ async def list_available_models() -> dict:
     model_names = re.findall(r'href="/library/([^\"]+)', html_content)
     model_names = sorted(set(model_names))
 
-    installed_models = set()
+    installed_model_names: set[str] = set()
+    installed_variants_map: dict[str, list[str]] = {}
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.get(f"{OLLAMA_BASE_URL}/api/tags")
             response.raise_for_status()
             models_data = response.json()
-            installed_models = {m["name"].split(":")[0] for m in models_data.get("models", [])}
+            installed_model_names = {m["name"] for m in models_data.get("models", [])}
+            for full_name in installed_model_names:
+                base, _, tag = full_name.partition(":")
+                installed_variants_map.setdefault(base, []).append(tag or "latest")
     except httpx.HTTPError:
         pass
 
@@ -145,7 +149,8 @@ async def list_available_models() -> dict:
             "name": model_name,
             "description": "Available from Ollama library",
             "size": "Unknown",
-            "installed": model_name in installed_models,
+            "installed": model_name in installed_model_names or f"{model_name}:latest" in installed_model_names,
+            "installed_variants": installed_variants_map.get(model_name, []),
         }
         available_models.append(model_info)
 
