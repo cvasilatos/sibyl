@@ -66,7 +66,7 @@ class Engine:
             List of embedding values
 
         """
-        self.logger.debug(f"Generating embedding for text ({len(text)} chars), model: {model_name} - {model_name.split(':', maxsplit=1)[0]}")
+        self.logger.debug(f"Generating embedding for text ({len(text)} chars), model: {model_name}")
         try:
             response: requests.Response = requests.post(f"{OLLAMA_BASE_URL}/api/embeddings", json={"model": "nomic-embed-text", "prompt": text[:5000]}, timeout=60)
             response.raise_for_status()

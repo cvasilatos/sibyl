@@ -27,7 +27,7 @@ class SibylConfig(BaseModel):
         """Create configuration from environment variables."""
         config_dict = {}
 
-        ollama_model = os.getenv("OLLAMA_MODEL")
+        ollama_model: str | None = os.getenv("OLLAMA_MODEL")
         if ollama_model:
             config_dict["ollama"] = LLMConfig(
                 name="Ollama",

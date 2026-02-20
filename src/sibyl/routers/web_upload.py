@@ -3,6 +3,7 @@
 import tempfile
 import uuid
 from pathlib import Path
+from typing import Any
 
 import aiofiles
 from fastapi import APIRouter, UploadFile
@@ -13,7 +14,7 @@ router = APIRouter()
 
 
 @router.post("/upload")
-async def upload_paper(file: UploadFile) -> dict[str, str]:
+async def upload_paper(file: UploadFile) -> dict[str, Any]:
     """Upload a PDF paper for review."""
     content = await file.read()
 

@@ -24,7 +24,7 @@ services:
   ollama:
     image: ollama/ollama:latest
     ports:
-      - "21434:21434"
+      - "21434:11434"
     volumes:
       - ollama_data:/root/.ollama
     restart: unless-stopped
@@ -61,7 +61,7 @@ services:
       - .env
     environment:
       # Override localhost URLs so the backend talks to sibling containers
-      - OLLAMA_BASE_URL=http://ollama:21434
+      - OLLAMA_BASE_URL=http://ollama:11434
       - GROBID_URL=http://grobid:8070
       - GROBID_ENABLED=true
     depends_on:
