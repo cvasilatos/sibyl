@@ -1,5 +1,9 @@
 """Tests for the configuration module."""
 
+import os
+
+import pytest
+
 from sibyl.config import LLMConfig, SibylConfig
 
 
@@ -27,7 +31,7 @@ def test_llm_config_defaults():
     config = LLMConfig(name="TestLLM", model="test-model")
 
     assert config.temperature == 0.7
-    assert config.max_tokens == 4000
+    assert config.max_tokens == 8000
 
 
 def test_sibyl_config_from_env(monkeypatch):
@@ -37,38 +41,41 @@ def test_sibyl_config_from_env(monkeypatch):
 
     config = SibylConfig.from_env()
 
-    assert config.ollama is not None
-    assert config.ollama.model == "llama3.2"
-    assert config.ollama.api_url == "http://localhost:11434"
+    assert isinstance(config, LLMConfig)
+    assert config.model == "llama3.2"
+    assert config.api_url == "http://localhost:11434"
 
 
 def test_ollama_config_defaults(monkeypatch):
     """Test Ollama configuration with default values."""
     monkeypatch.setenv("OLLAMA_MODEL", "mistral")
+    monkeypatch.delenv("OLLAMA_BASE_URL", raising=False)
 
     config = SibylConfig.from_env()
 
-    assert config.ollama is not None
-    assert config.ollama.model == "mistral"
-    assert config.ollama.api_url == "http://localhost:11434"  # Default
-    assert config.ollama.temperature == 0.7  # Default
-    assert config.ollama.max_tokens == 4000  # Default
+    assert isinstance(config, LLMConfig)
+    assert config.model == "mistral"
+    assert config.api_url == "http://localhost:11434"
+    assert config.temperature == 0.7
+    assert config.max_tokens == 8000
 
 
-def test_get_active_providers(monkeypatch):
-    """Test getting list of active providers."""
+def test_from_env_returns_llm_config(monkeypatch):
+    """Test that from_env returns an LLMConfig instance."""
     monkeypatch.setenv("OLLAMA_MODEL", "llama3.2")
 
     config = SibylConfig.from_env()
-    providers = config.get_active_providers()
 
-    assert "ollama" in providers
-    assert len(providers) == 1
+    assert isinstance(config, LLMConfig)
+    assert config.name == "Ollama"
 
 
 def test_no_providers_configured():
-    """Test when no providers are configured."""
-    config = SibylConfig()
-    providers = config.get_active_providers()
-
-    assert len(providers) == 0
+    """Test that from_env raises KeyError when OLLAMA_MODEL is not set."""
+    env_backup = os.environ.pop("OLLAMA_MODEL", None)
+    try:
+        with pytest.raises(KeyError):
+            SibylConfig.from_env()
+    finally:
+        if env_backup is not None:
+            os.environ["OLLAMA_MODEL"] = env_backup
