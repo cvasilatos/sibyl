@@ -59,14 +59,20 @@ interface Statistics {
   recommendations: Record<string, number>
 }
 
-export default function ReviewLibrary() {
+export default function ReviewLibrary({
+  initialExpandedReview = null,
+  onReviewExpand,
+}: {
+  initialExpandedReview?: string | null
+  onReviewExpand?: (reviewId: string | null) => void
+}) {
   const [reviews, setReviews] = useState<StoredReview[]>([])
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [downloading, setDownloading] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [stats, setStats] = useState<Statistics | null>(null)
-  const [expandedReview, setExpandedReview] = useState<string | null>(null)
+  const [expandedReview, setExpandedReview] = useState<string | null>(initialExpandedReview)
   const [fullReviewData, setFullReviewData] = useState<Record<string, FullReview>>({})
   const [loadingFull, setLoadingFull] = useState<string | null>(null)
 
@@ -98,6 +104,30 @@ export default function ReviewLibrary() {
   useEffect(() => {
     loadReviews()
   }, [])
+
+  // Auto-fetch full review data when linked directly to an expanded review
+  useEffect(() => {
+    if (!initialExpandedReview) return
+    const controller = new AbortController()
+    setLoadingFull(initialExpandedReview)
+    fetch(`${API_URL}/api/reviews/${initialExpandedReview}`, { signal: controller.signal })
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch review details")
+        return res.json()
+      })
+      .then((data: FullReview) => {
+        setFullReviewData((prev) => ({ ...prev, [initialExpandedReview]: data }))
+      })
+      .catch((err) => {
+        if (err.name === "AbortError") return
+        setError(err instanceof Error ? err.message : "Failed to load review details")
+        setExpandedReview(null)
+      })
+      .finally(() => {
+        setLoadingFull(null)
+      })
+    return () => controller.abort()
+  }, [initialExpandedReview])
 
   const deleteReview = async (reviewId: string) => {
     if (!confirm("Are you sure you want to delete this review?")) {
@@ -154,10 +184,12 @@ export default function ReviewLibrary() {
   const toggleExpand = async (reviewId: string) => {
     if (expandedReview === reviewId) {
       setExpandedReview(null)
+      onReviewExpand?.(null)
       return
     }
 
     setExpandedReview(reviewId)
+    onReviewExpand?.(reviewId)
 
     if (!fullReviewData[reviewId]) {
       setLoadingFull(reviewId)
