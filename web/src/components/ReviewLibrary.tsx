@@ -4,8 +4,9 @@ import { useState, useEffect } from "react"
 import { Trash2, Download, Loader2, RefreshCw, ChevronDown, ChevronUp, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { API_URL } from "@/lib/config"
+import { API_URL, fetchMaxScore } from "@/lib/config"
 import ReviewSection from "@/components/ReviewSection"
+import { toast } from "@/components/ui/use-toast"
 
 interface StoredReview {
   id: string
@@ -76,6 +77,7 @@ export default function ReviewLibrary({
   const [expandedReview, setExpandedReview] = useState<string | null>(initialExpandedReview)
   const [fullReviewData, setFullReviewData] = useState<Record<string, FullReview>>({})
   const [loadingFull, setLoadingFull] = useState<string | null>(null)
+  const [maxScore, setMaxScore] = useState<number>(10)
   const [selectedPaperTitle, setSelectedPaperTitle] = useState<string | null>(null)
 
   const loadReviews = async () => {
@@ -105,6 +107,12 @@ export default function ReviewLibrary({
 
   useEffect(() => {
     loadReviews()
+    fetchMaxScore()
+      .then(setMaxScore)
+      .catch((err) => {
+        console.error("Failed to load max score:", err)
+        toast({ title: "Warning", description: "Could not load score scale from server, using default.", variant: "destructive" })
+      })
   }, [])
 
   // Auto-fetch full review data when linked directly to an expanded review
@@ -328,7 +336,7 @@ export default function ReviewLibrary({
                     </p>
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-sm font-semibold text-primary">
-                        {review.score}/10
+                        {review.score}/{maxScore}
                       </span>
                       <span
                         className={`px-2 py-0.5 rounded-full text-xs font-semibold ${getRecommendationColor(

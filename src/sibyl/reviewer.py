@@ -8,6 +8,7 @@ if TYPE_CHECKING:
     from decimalog.logger import CustomLogger
 from pydantic import BaseModel, Field
 
+from sibyl.config import MAX_SCORE
 from sibyl.llm.client.ollama import OllamaClient
 from sibyl.web.model.llm_reply import LLMReply
 
@@ -22,7 +23,7 @@ class ReviewCriteria(BaseModel):
     impact: str = Field(description="Potential impact and contribution to the field")
     limitations: str = Field(description="Identified limitations and weaknesses")
     strengths: str = Field(description="Key strengths of the paper")
-    score: int = Field(description="Overall score from 1-10", ge=1, le=10)
+    score: int = Field(description=f"Overall score from 1-{MAX_SCORE}", ge=1, le=MAX_SCORE)
     recommendation: str = Field(description="Final recommendation (Accept/Revise/Reject)")
     detailed_feedback: str = Field(description="Detailed feedback and suggestions")
 

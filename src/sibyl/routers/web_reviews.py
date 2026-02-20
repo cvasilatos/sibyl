@@ -9,7 +9,7 @@ import httpx
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 
-from sibyl.config import OLLAMA_BASE_URL
+from sibyl.config import MAX_SCORE, OLLAMA_BASE_URL
 from sibyl.routers.web_state import review_sessions, storage
 from sibyl.web.model.search_request import SearchRequest
 from sibyl.web.model.session_status import SessionStatus
@@ -39,6 +39,11 @@ async def health_check() -> dict:
         }
     except Exception as e:
         return {"status": "unhealthy", "error": str(e)}
+
+
+@router.get("/config")
+async def get_config() -> dict:
+    return {"max_score": MAX_SCORE}
 
 
 @router.post("/search")

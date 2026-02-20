@@ -10,7 +10,7 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
 from sibyl.comparison import ReviewComparison
-from sibyl.config import SibylConfig
+from sibyl.config import MAX_SCORE, SibylConfig
 from sibyl.llm.client.ollama import OllamaClient
 from sibyl.pdf_parser import PDFParser
 from sibyl.reviewer import ReviewSystem
@@ -113,7 +113,7 @@ def review(pdf_path: str, providers: tuple, output: str, max_pages: int) -> None
                 reviews.append(review)
 
                 progress.update(task, completed=True)
-                console.print(f"  ✓ {provider}: Score {review.criteria.score}/5, Recommendation: {review.criteria.recommendation}")
+                console.print(f"  ✓ {provider}: Score {review.criteria.score}/{MAX_SCORE}, Recommendation: {review.criteria.recommendation}")
             except Exception as e:
                 console.print(f"  ✗ {provider}: [red]Error - {e!s}[/red]")
 
@@ -154,7 +154,7 @@ def _display_results(reviews, comparison):
     for review in reviews:
         table.add_row(
             review.reviewer_model,
-            f"{review.criteria.score}/5",
+            f"{review.criteria.score}/{MAX_SCORE}",
             review.criteria.recommendation,
         )
 

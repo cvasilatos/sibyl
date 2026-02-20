@@ -8,7 +8,7 @@ import ReviewLibrary from "@/components/ReviewLibrary"
 import Tabs from "@/components/Tabs"
 import UploadArea from "@/components/UploadArea"
 import ResultsPanel from "@/components/ResultsPanel"
-import { API_URL, getWebSocketUrl } from "@/lib/config"
+import { API_URL, getWebSocketUrl, fetchMaxScore } from "@/lib/config"
 import { toast } from "@/components/ui/use-toast"
 
 interface ReviewCriteria {
@@ -59,6 +59,7 @@ function HomeContent() {
   const [availableModels, setAvailableModels] = useState<string[]>([])
   const [isDragging, setIsDragging] = useState(false)
   const [results, setResults] = useState<ReviewResults | null>(null)
+  const [maxScore, setMaxScore] = useState<number>(10)
   const fileInputRef = useRef<HTMLInputElement>(null!)
 
   // Load available models on mount
@@ -78,7 +79,17 @@ function HomeContent() {
         console.error("Failed to load models:", err)
       }
     }
+    const loadMaxScore = async () => {
+      try {
+        const score = await fetchMaxScore()
+        setMaxScore(score)
+      } catch (err) {
+        console.error("Failed to load max score:", err)
+        toast({ title: "Warning", description: "Could not load score scale from server, using default.", variant: "destructive" })
+      }
+    }
     loadModels()
+    loadMaxScore()
   }, [])
 
   const handleFileSelect = (file: File) => {
@@ -253,7 +264,7 @@ function HomeContent() {
 
         {/* Results */}
         {results && (
-          <ResultsPanel results={results} getRecommendationColor={getRecommendationColor} />
+          <ResultsPanel results={results} getRecommendationColor={getRecommendationColor} maxScore={maxScore} />
         )}
       </main>
 

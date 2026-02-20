@@ -2,6 +2,8 @@ from enum import Enum
 
 from pydantic import BaseModel, Field
 
+from sibyl.config import MAX_SCORE
+
 
 class Recommendation(str, Enum):
     ACCEPT = "Accept"
@@ -18,6 +20,6 @@ class LLMReply(BaseModel):
     impact: str = Field(..., description="Evaluation of potential impact and contribution to the field")
     limitations: str = Field(..., description="Identified limitations and weaknesses")
     strengths: str = Field(..., description="Key strengths")
-    score: int = Field(..., ge=1, le=5, description="Overall score from 1-5")
+    score: int = Field(..., ge=1, le=MAX_SCORE, description=f"Overall score from 1-{MAX_SCORE}")
     recommendation: Recommendation = Field(..., description="Accept/Minor Revision/Major Revision/Reject")
     detailed_feedback: str = Field(..., description="Detailed feedback and suggestions for improvement")
