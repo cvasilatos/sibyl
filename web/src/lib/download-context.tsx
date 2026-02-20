@@ -1,16 +1,7 @@
 "use client"
 
-import React, { createContext, useContext, useState, ReactNode } from 'react'
-import { API_URL, getWebSocketUrl } from '@/lib/config'
-
-interface DownloadProgress {
-  model_name: string
-  status: string
-  progress: number
-  message: string
-  total: number
-  completed: number
-}
+import React, { createContext, useContext, useState, useRef, useEffect, ReactNode } from 'react'
+import { API_URL } from '@/lib/config'
 
 interface DownloadContextType {
   installing: string | null
@@ -26,8 +17,18 @@ export function DownloadProvider({ children }: { children: ReactNode }) {
   const [installing, setInstalling] = useState<string | null>(null)
   const [downloadProgress, setDownloadProgress] = useState<number>(0)
   const [error, setError] = useState<string | null>(null)
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const clearError = () => setError(null)
+
+  // Clean up polling interval on unmount
+  useEffect(() => {
+    return () => {
+      if (pollIntervalRef.current !== null) {
+        clearInterval(pollIntervalRef.current)
+      }
+    }
+  }, [])
 
   const startDownload = (
     modelName: string,
@@ -39,77 +40,57 @@ export function DownloadProvider({ children }: { children: ReactNode }) {
     setDownloadProgress(0)
     setError(null)
 
-    try {
-      const wsBaseUrl = getWebSocketUrl()
-      // Connect to the new pull endpoint with model_name as a query parameter
-      const ws = new WebSocket(`${wsBaseUrl}/ws/pull?model_name=${encodeURIComponent(modelName)}`)
-      let isFinished = false
+    // Start the pull job via REST
+    fetch(`${API_URL}/api/models/pull?model_name=${encodeURIComponent(modelName)}`, { method: "POST" })
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to start model pull")
+        return res.json()
+      })
+      .then(({ pull_id }: { pull_id: string }) => {
+        // Poll for status
+        pollIntervalRef.current = setInterval(async () => {
+          try {
+            const statusRes = await fetch(`${API_URL}/api/models/pull/${pull_id}`)
+            if (!statusRes.ok) throw new Error("Failed to get pull status")
+            const data = await statusRes.json()
 
-      ws.onopen = () => {
-        console.log(`Connected to pull stream for ${modelName}`)
-      }
-
-      ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data)
-
-          if (data.status === "error") {
-             isFinished = true
-             ws.close()
-             setError(data.message)
-             setInstalling(null)
-             setDownloadProgress(0)
-             onError(data.message)
-             return
-          }
-
-          let progress = 0
-          if (data.total && data.completed) {
-            progress = Math.round((data.completed / data.total) * 100)
+            const progress = data.progress ?? 0
             setDownloadProgress(progress)
             if (onProgress) onProgress(progress, data.status)
-          } else {
-             if (onProgress) onProgress(downloadProgress, data.status)
-          }
 
-          if (data.status === "success") {
-            isFinished = true
-            ws.close()
+            if (data.status === "success") {
+              clearInterval(pollIntervalRef.current!)
+              pollIntervalRef.current = null
+              setInstalling(null)
+              setDownloadProgress(0)
+              onComplete()
+            } else if (data.status === "error") {
+              clearInterval(pollIntervalRef.current!)
+              pollIntervalRef.current = null
+              const msg = data.message || "Model pull failed"
+              setError(msg)
+              setInstalling(null)
+              setDownloadProgress(0)
+              onError(msg)
+            }
+          } catch (e) {
+            clearInterval(pollIntervalRef.current!)
+            pollIntervalRef.current = null
+            const msg = e instanceof Error ? e.message : "Failed to poll pull status"
+            setError(msg)
             setInstalling(null)
             setDownloadProgress(0)
-            onComplete()
+            onError(msg)
           }
-        } catch (e) {
-          console.error("Error parsing websocket message:", e)
-        }
-      }
-
-      ws.onerror = (e) => {
-        console.error("WebSocket error:", e)
-        if (!isFinished) {
-          setError("WebSocket connection failed")
-          setInstalling(null)
-          setDownloadProgress(0)
-          onError("Failed to connect to download stream")
-        }
-      }
-
-      ws.onclose = (e) => {
-        if (!isFinished) {
-           console.log("WebSocket closed unexpectedly")
-           setError("Connection lost during download")
-           setInstalling(null)
-           setDownloadProgress(0)
-           onError("Connection lost during model download")
-        }
-      }
-
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to install model")
-      setInstalling(null)
-      setDownloadProgress(0)
-      onError(err instanceof Error ? err.message : "Failed to start model installation")
-    }
+        }, 1000)
+      })
+      .catch((err) => {
+        const msg = err instanceof Error ? err.message : "Failed to install model"
+        setError(msg)
+        setInstalling(null)
+        setDownloadProgress(0)
+        onError(msg)
+      })
   }
 
   return (

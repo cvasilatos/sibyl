@@ -7,3 +7,4 @@ class SessionStatus(BaseModel):
     progress: int
     message: str
     paper_title: str | None = None
+    results: dict | None = None

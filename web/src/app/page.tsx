@@ -1,14 +1,14 @@
 "use client"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { useCallback, useRef, useState, useEffect, type RefObject } from "react"
+import { useCallback, useRef, useState, useEffect } from "react"
 
 import ModelManager from "@/components/ModelManager"
 import ReviewLibrary from "@/components/ReviewLibrary"
 import Tabs from "@/components/Tabs"
 import UploadArea from "@/components/UploadArea"
 import ResultsPanel from "@/components/ResultsPanel"
-import { API_URL, getWebSocketUrl } from "@/lib/config"
+import { API_URL } from "@/lib/config"
 
 interface ReviewCriteria {
   novelty: string
@@ -60,7 +60,16 @@ export default function Home() {
   const [results, setResults] = useState<ReviewResults | null>(null)
   const [error, setError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null!)
-  const wsRef = useRef<WebSocket | null>(null)
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // Clean up polling interval when the component unmounts
+  useEffect(() => {
+    return () => {
+      if (pollIntervalRef.current !== null) {
+        clearInterval(pollIntervalRef.current)
+      }
+    }
+  }, [])
 
   // Load available models on mount
   useEffect(() => {
@@ -131,52 +140,59 @@ export default function Home() {
       const formData = new FormData()
       formData.append("file", selectedFile)
 
-      const response = await fetch(`${API_URL}/api/upload`, {
+      const uploadResponse = await fetch(`${API_URL}/api/upload`, {
         method: "POST",
         body: formData,
       })
 
-      if (!response.ok) {
+      if (!uploadResponse.ok) {
         throw new Error("Failed to upload file")
       }
 
-      const data = await response.json()
-      const sessionId = data.session_id
+      const uploadData = await uploadResponse.json()
+      const sessionId = uploadData.session_id
 
-      // Connect WebSocket with optional model parameter
-      const wsBaseUrl = getWebSocketUrl()
-      const wsUrl = `${wsBaseUrl}/ws/session/${sessionId}${selectedModel ? `?model=${encodeURIComponent(selectedModel)}` : ''}`
-      const ws = new WebSocket(wsUrl)
-      wsRef.current = ws
+      // Start the review via REST
+      const reviewResponse = await fetch(`${API_URL}/api/session/${sessionId}/review`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model_name: selectedModel || undefined }),
+      })
 
-      ws.onmessage = (event) => {
-        const message = JSON.parse(event.data)
+      if (!reviewResponse.ok) {
+        throw new Error("Failed to start review")
+      }
 
-        if (message.status === "progress") {
-          setProgress(message.progress)
-          setProgressMessage(message.message)
-        } else if (message.status === "completed") {
-          setProgress(100)
-          setResults(message.results)
+      setProgressMessage("Review started...")
+
+      // Poll for status
+      pollIntervalRef.current = setInterval(async () => {
+        try {
+          const statusResponse = await fetch(`${API_URL}/api/session/${sessionId}`)
+          if (!statusResponse.ok) throw new Error("Failed to get session status")
+          const statusData = await statusResponse.json()
+
+          setProgress(statusData.progress ?? 0)
+          setProgressMessage(statusData.message ?? "")
+
+          if (statusData.status === "completed") {
+            clearInterval(pollIntervalRef.current!)
+            pollIntervalRef.current = null
+            setResults(statusData.results)
+            setIsReviewing(false)
+          } else if (statusData.status === "error") {
+            clearInterval(pollIntervalRef.current!)
+            pollIntervalRef.current = null
+            setError(statusData.message || "An error occurred during review")
+            setIsReviewing(false)
+          }
+        } catch (err) {
+          clearInterval(pollIntervalRef.current!)
+          pollIntervalRef.current = null
+          setError(err instanceof Error ? err.message : "An error occurred")
           setIsReviewing(false)
-          ws.close()
-        } else if (message.status === "error") {
-          setError(message.message)
-          setIsReviewing(false)
-          ws.close()
         }
-      }
-
-      ws.onerror = () => {
-        setError("Connection error. Please try again.")
-        setIsReviewing(false)
-      }
-
-      ws.onclose = () => {
-        if (isReviewing) {
-          setIsReviewing(false)
-        }
-      }
+      }, 1000)
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred")
       setIsReviewing(false)
