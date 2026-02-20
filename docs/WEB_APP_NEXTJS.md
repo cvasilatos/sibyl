@@ -27,7 +27,7 @@ The Sibyl Web Application has been refactored to use modern web technologies:
 
 ### Prerequisites
 
-- **Python 3.9+** (Python 3.12+ recommended) with Sibyl installed
+- **Python 3.12+** (Python 3.12+ recommended) with Sibyl installed
 - **[uv](https://github.com/astral-sh/uv)** - Fast Python package installer
 - **Node.js 18+** and npm
 - **Ollama** installed and running with a model pulled
@@ -39,10 +39,10 @@ The Sibyl Web Application has been refactored to use modern web technologies:
    # Install uv if not already installed
    # macOS and Linux
    curl -LsSf https://astral.sh/uv/install.sh | sh
-   
+
    # Windows
    powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
-   
+
    # Install Sibyl with web dependencies
    uv pip install -e ".[web]"
    ```
@@ -191,7 +191,7 @@ const ws = new WebSocket(`ws://localhost:8000/ws/${sessionId}`)
 
 ws.onmessage = (event) => {
   const message = JSON.parse(event.data)
-  
+
   if (message.status === "progress") {
     // Update progress bar
     setProgress(message.progress)

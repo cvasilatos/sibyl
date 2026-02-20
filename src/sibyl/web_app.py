@@ -471,6 +471,7 @@ async def list_models():
             detail=f"Failed to connect to Ollama. Make sure Ollama is running. Error: {e!s}",
         )
     except Exception as e:
+        print(f"Error fetching models from Ollama: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

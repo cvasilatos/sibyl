@@ -22,7 +22,7 @@ The backend is built with FastAPI and provides:
 
 ### Prerequisites
 
-- Python 3.9 or higher (3.12+ recommended)
+- Python 3.12 or higher (3.12+ recommended)
 - **[uv](https://github.com/astral-sh/uv)** - Fast Python package installer
 - [Ollama](https://ollama.ai) installed and running
 - A local LLM model (e.g., `llama3.2`)

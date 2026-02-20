@@ -37,7 +37,7 @@ Each review includes assessment of:
 
 ### Prerequisites
 
-- **Python 3.9 or higher** (Python 3.12+ recommended)
+- **Python 3.12 or higher** (Python 3.12+ recommended)
 - **[uv](https://github.com/astral-sh/uv)** - Fast Python package installer and resolver
 - **[Ollama](https://ollama.ai)** installed and running locally
 

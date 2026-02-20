@@ -25,17 +25,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - REST API endpoints for programmatic access
   - Health check and session management
   - Mobile-friendly responsive design
-  
+
 - **CLI Command**: New `sibyl web` command to start the web server
   - Configurable host and port options
   - Integrated with existing configuration system
-  
+
 - **Security Enhancements**:
   - Multi-layer file validation (extension, content type, magic bytes)
   - XSS prevention with proper HTML escaping
   - Automatic cleanup of temporary files
   - Improved error handling and validation
-  
+
 - **Documentation**:
   - Migrated all documentation to use uv as primary build tool
   - Added uv installation instructions to all setup guides
@@ -43,9 +43,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Example usage guide (WEB_APP_EXAMPLE.md)
   - Troubleshooting and performance tips
   - API endpoint documentation
-  - Clarified Python 3.9+ requirement (3.12+ recommended)
+  - Clarified Python 3.12+ requirement (3.12+ recommended)
   - Documented Node.js 18+ requirement for web interface
-  
+
 - **Testing**:
   - 9 new tests for web application functionality
   - Security validation tests

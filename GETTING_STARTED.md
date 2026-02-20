@@ -5,7 +5,7 @@
 ### 1. Prerequisites
 
 Ensure you have:
-- **Python 3.9 or higher** (Python 3.12+ recommended for best compatibility)
+- **Python 3.12 or higher** (Python 3.12+ recommended for best compatibility)
 - **[uv](https://github.com/astral-sh/uv)** - Fast Python package installer and resolver
 - **[Ollama](https://ollama.ai)** installed and running locally
 - **Node.js 18+** and npm (only if you want to use the web interface)
