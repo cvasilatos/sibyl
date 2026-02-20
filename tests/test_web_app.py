@@ -156,6 +156,16 @@ def test_response_models():
     assert status.progress == 50
 
 
+def test_delete_all_reviews(client):
+    """Test the delete all reviews endpoint."""
+    response = client.delete("/api/reviews")
+    assert response.status_code == 200
+    data = response.json()
+    assert "count" in data
+    assert "message" in data
+
+
+
 def test_concurrent_requests():
     """Test that the backend can handle concurrent requests (doesn't hang)."""
     test_client = TestClient(app)
