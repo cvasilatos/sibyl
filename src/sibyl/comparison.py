@@ -25,7 +25,7 @@ class ReviewComparison:
             Dictionary containing mean, std, min, and max scores
 
         """
-        scores = [review.criteria.overall_score for review in self.reviews]
+        scores = [review.criteria.score for review in self.reviews]
 
         stats = {
             "mean": mean(scores),
@@ -102,7 +102,7 @@ class ReviewComparison:
 
         for i, review in enumerate(self.reviews, 1):
             lines.append(f"\n--- Review {i}: {review.reviewer_model} ---")
-            lines.append(f"Score: {review.criteria.overall_score}/10")
+            lines.append(f"Score: {review.criteria.score}/5")
             lines.append(f"Recommendation: {review.criteria.recommendation}")
             lines.append(f"\nNovelty:\n{review.criteria.novelty}")
             lines.append(f"\nMethodology:\n{review.criteria.methodology}")
@@ -128,6 +128,6 @@ class ReviewComparison:
             "score_statistics": self.get_score_statistics(),
             "recommendation_distribution": self.get_recommendation_distribution(),
             "consensus": self.get_consensus_recommendation(),
-            "individual_scores": [r.criteria.overall_score for r in self.reviews],
+            "individual_scores": [r.criteria.score for r in self.reviews],
             "individual_recommendations": [r.criteria.recommendation for r in self.reviews],
         }

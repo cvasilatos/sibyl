@@ -9,7 +9,7 @@ class Review(BaseModel):
     pdf_filename: str
     pdf_path: str | None = None
     reviewer_model: str
-    overall_score: int
+    score: int
     recommendation: str
     review_summary: str
     created_at: str

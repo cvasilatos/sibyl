@@ -91,7 +91,7 @@ class Engine:
         """
         review_id = f"review_{datetime.now().timestamp()}_{pdf_filename}"
 
-        self.logger.info(f"Saving review for paper '{review.paper_title}' (model={review.reviewer_model}, score={review.criteria.overall_score})")
+        self.logger.info(f"Saving review for paper '{review.paper_title}' (model={review.reviewer_model}, score={review.criteria.score})")
 
         stored_pdf_path = None
         if pdf_path and Path(pdf_path).exists():
@@ -102,7 +102,7 @@ class Engine:
         searchable_content = f"""
         Title: {review.paper_title}
         Reviewer: {review.reviewer_model}
-        Score: {review.criteria.overall_score}/10
+        Score: {review.criteria.score}/5
         Recommendation: {review.criteria.recommendation}
 
         Novelty: {review.criteria.novelty}
@@ -125,7 +125,7 @@ class Engine:
             "pdf_filename": pdf_filename,
             "pdf_path": stored_pdf_path or "",
             "reviewer_model": review.reviewer_model,
-            "overall_score": review.criteria.overall_score,
+            "score": review.criteria.score,
             "recommendation": review.criteria.recommendation,
             "created_at": datetime.now().isoformat(),
             "review_json": json.dumps(
@@ -186,7 +186,7 @@ class Engine:
                         pdf_filename=metadata["pdf_filename"],
                         pdf_path=metadata.get("pdf_path"),
                         reviewer_model=metadata["reviewer_model"],
-                        overall_score=metadata["overall_score"],
+                        score=metadata["score"],
                         recommendation=metadata["recommendation"],
                         review_summary=review_summary,
                         created_at=metadata["created_at"],
@@ -230,7 +230,7 @@ class Engine:
                         pdf_filename=metadata["pdf_filename"],
                         pdf_path=metadata.get("pdf_path"),
                         reviewer_model=metadata["reviewer_model"],
-                        overall_score=metadata["overall_score"],
+                        score=metadata["score"],
                         recommendation=metadata["recommendation"],
                         review_summary=review_summary,
                         created_at=metadata["created_at"],
@@ -267,7 +267,7 @@ class Engine:
                 "pdf_filename": metadata["pdf_filename"],
                 "pdf_path": metadata.get("pdf_path"),
                 "reviewer_model": metadata["reviewer_model"],
-                "overall_score": metadata["overall_score"],
+                "score": metadata["score"],
                 "recommendation": metadata["recommendation"],
                 "created_at": metadata["created_at"],
                 "criteria": review_data["criteria"],
@@ -326,7 +326,7 @@ class Engine:
                 "recommendations": {},
             }
 
-        scores = [m["overall_score"] for m in all_results["metadatas"]]
+        scores = [m["score"] for m in all_results["metadatas"]]
         papers = set(m["paper_title"] for m in all_results["metadatas"])
         models = set(m["reviewer_model"] for m in all_results["metadatas"])
 

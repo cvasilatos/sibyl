@@ -18,13 +18,12 @@ class Base(ABC):
         self.config = config
 
     @abstractmethod
-    def generate(self, prompt: str, model_name: str, system_prompt: str | None = None) -> str:
+    def generate(self, prompt: str, model_name: str) -> str:
         """Generate a response from the LLM.
 
         Args:
             prompt: The prompt to send to the LLM
             model_name: Name of the model to use
-            system_prompt: Optional system prompt for context
 
         Returns:
             Generated response text
@@ -33,13 +32,13 @@ class Base(ABC):
         ...
 
     @abstractmethod
-    async def agenerate(self, prompt: str, model_name: str, system_prompt: str | None = None) -> str:
+    async def agenerate(self, prompt: str, model_name: str) -> str:
         """Generate a response from the LLM asynchronously.
 
         Args:
             prompt: The prompt to send to the LLM
+            paper_text: The full text of the research paper
             model_name: Name of the model to use
-            system_prompt: Optional system prompt for context
 
         Returns:
             Generated response text

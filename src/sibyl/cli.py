@@ -113,7 +113,7 @@ def review(pdf_path: str, providers: tuple, output: str, max_pages: int) -> None
                 reviews.append(review)
 
                 progress.update(task, completed=True)
-                console.print(f"  ✓ {provider}: Score {review.criteria.overall_score}/10, Recommendation: {review.criteria.recommendation}")
+                console.print(f"  ✓ {provider}: Score {review.criteria.score}/5, Recommendation: {review.criteria.recommendation}")
             except Exception as e:
                 console.print(f"  ✗ {provider}: [red]Error - {e!s}[/red]")
 
@@ -154,7 +154,7 @@ def _display_results(reviews, comparison):
     for review in reviews:
         table.add_row(
             review.reviewer_model,
-            f"{review.criteria.overall_score}/10",
+            f"{review.criteria.score}/5",
             review.criteria.recommendation,
         )
 
@@ -181,7 +181,7 @@ def _save_results(output_path: str, reviews, comparison, metadata):
             "reviews": [
                 {
                     "reviewer": r.reviewer_model,
-                    "score": r.criteria.overall_score,
+                    "score": r.criteria.score,
                     "recommendation": r.criteria.recommendation,
                     "criteria": r.criteria.model_dump(),
                 }
