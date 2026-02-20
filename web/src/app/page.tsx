@@ -200,7 +200,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-linear-to-t from-black-900 via-black-600 to-gray-100 p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
-        <Card className="mb-8">
+        <Card className="mb-8 bg-black/90 border-gray-700">
           <CardHeader className="text-center">
             <div className="flex items-center justify-center mb-4">
               <span className="text-6xl">🔮</span>
@@ -215,7 +215,7 @@ export default function Home() {
           </CardHeader>
 
           {/* Tabs */}
-          <div className="border-b px-6">
+          <div className="px-6">
             <Tabs activeTab={activeTab} setActiveTab={handleTabChange} />
           </div>
 

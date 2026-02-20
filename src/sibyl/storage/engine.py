@@ -5,6 +5,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
+from chromadb.api import ClientAPI
 from chromadb.api.models.Collection import Collection
 
 if TYPE_CHECKING:
@@ -38,12 +39,12 @@ class Engine:
         self.storage_path = Path(storage_path)
         self.storage_path.mkdir(parents=True, exist_ok=True)
 
-        self.pdf_storage = self.storage_path / "pdfs"
+        self.pdf_storage: Path = self.storage_path / "pdfs"
         self.pdf_storage.mkdir(exist_ok=True)
 
         self.logger.debug(f"Initializing at {storage_path}, ollama_url={OLLAMA_BASE_URL}")
 
-        self.client = chromadb.PersistentClient(
+        self.client: ClientAPI = chromadb.PersistentClient(
             path=str(self.storage_path / "chromadb"),
             settings=Settings(anonymized_telemetry=False),
         )

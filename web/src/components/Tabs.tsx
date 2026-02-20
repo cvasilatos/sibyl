@@ -7,10 +7,10 @@ type Props = {
 
 export default function Tabs({ activeTab, setActiveTab }: Props) {
   return (
-    <div className="flex gap-4">
+    <div className="flex gap-20">
       <button
         onClick={() => setActiveTab("review")}
-        className={`pb-3 px-2 text-sm font-medium transition-colors relative ${
+        className={`pb-6 px-2 text-sm font-medium transition-colors relative ${
           activeTab === "review" ? "text-primary" : "text-muted-foreground hover:text-foreground"
         }`}
       >
@@ -23,7 +23,7 @@ export default function Tabs({ activeTab, setActiveTab }: Props) {
 
       <button
         onClick={() => setActiveTab("library")}
-        className={`pb-3 px-2 text-sm font-medium transition-colors relative ${
+        className={`pb-6 px-2 text-sm font-medium transition-colors relative ${
           activeTab === "library" ? "text-primary" : "text-muted-foreground hover:text-foreground"
         }`}
       >
@@ -36,7 +36,7 @@ export default function Tabs({ activeTab, setActiveTab }: Props) {
 
       <button
         onClick={() => setActiveTab("models")}
-        className={`pb-3 px-2 text-sm font-medium transition-colors relative ${
+        className={`pb-6 px-2 text-sm font-medium transition-colors relative ${
           activeTab === "models" ? "text-primary" : "text-muted-foreground hover:text-foreground"
         }`}
       >
