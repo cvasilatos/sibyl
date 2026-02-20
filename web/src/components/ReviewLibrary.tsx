@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Trash2, Download, Loader2, RefreshCw, ChevronDown, ChevronUp } from "lucide-react"
+import { Trash2, Download, Loader2, RefreshCw, ChevronDown, ChevronUp, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { API_URL, fetchMaxScore } from "@/lib/config"
@@ -60,17 +60,25 @@ interface Statistics {
   recommendations: Record<string, number>
 }
 
-export default function ReviewLibrary() {
+export default function ReviewLibrary({
+  initialExpandedReview = null,
+  onReviewExpand,
+}: {
+  initialExpandedReview?: string | null
+  onReviewExpand?: (reviewId: string | null) => void
+}) {
   const [reviews, setReviews] = useState<StoredReview[]>([])
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [deletingAll, setDeletingAll] = useState(false)
   const [downloading, setDownloading] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [stats, setStats] = useState<Statistics | null>(null)
-  const [expandedReview, setExpandedReview] = useState<string | null>(null)
+  const [expandedReview, setExpandedReview] = useState<string | null>(initialExpandedReview)
   const [fullReviewData, setFullReviewData] = useState<Record<string, FullReview>>({})
   const [loadingFull, setLoadingFull] = useState<string | null>(null)
   const [maxScore, setMaxScore] = useState<number>(10)
+  const [selectedPaperTitle, setSelectedPaperTitle] = useState<string | null>(null)
 
   const loadReviews = async () => {
     setLoading(true)
@@ -107,6 +115,30 @@ export default function ReviewLibrary() {
       })
   }, [])
 
+  // Auto-fetch full review data when linked directly to an expanded review
+  useEffect(() => {
+    if (!initialExpandedReview) return
+    const controller = new AbortController()
+    setLoadingFull(initialExpandedReview)
+    fetch(`${API_URL}/api/reviews/${initialExpandedReview}`, { signal: controller.signal })
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch review details")
+        return res.json()
+      })
+      .then((data: FullReview) => {
+        setFullReviewData((prev) => ({ ...prev, [initialExpandedReview]: data }))
+      })
+      .catch((err) => {
+        if (err.name === "AbortError") return
+        setError(err instanceof Error ? err.message : "Failed to load review details")
+        setExpandedReview(null)
+      })
+      .finally(() => {
+        setLoadingFull(null)
+      })
+    return () => controller.abort()
+  }, [initialExpandedReview])
+
   const deleteReview = async (reviewId: string) => {
     if (!confirm("Are you sure you want to delete this review?")) {
       return
@@ -129,6 +161,30 @@ export default function ReviewLibrary() {
       setError(err instanceof Error ? err.message : "Failed to delete review")
     } finally {
       setDeleting(null)
+    }
+  }
+
+  const deleteAllReviews = async () => {
+    if (!confirm("Are you sure you want to delete ALL reviews? This cannot be undone.")) {
+      return
+    }
+
+    setDeletingAll(true)
+    setError(null)
+    try {
+      const response = await fetch(`${API_URL}/api/reviews`, {
+        method: "DELETE",
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to delete all reviews")
+      }
+
+      await loadReviews()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete all reviews")
+    } finally {
+      setDeletingAll(false)
     }
   }
 
@@ -162,10 +218,12 @@ export default function ReviewLibrary() {
   const toggleExpand = async (reviewId: string) => {
     if (expandedReview === reviewId) {
       setExpandedReview(null)
+      onReviewExpand?.(null)
       return
     }
 
     setExpandedReview(reviewId)
+    onReviewExpand?.(reviewId)
 
     if (!fullReviewData[reviewId]) {
       setLoadingFull(reviewId)
@@ -202,9 +260,24 @@ export default function ReviewLibrary() {
             <CardTitle>📚 Review Library</CardTitle>
             <CardDescription>Browse and manage your saved reviews</CardDescription>
           </div>
-          <Button onClick={loadReviews} disabled={loading} size="sm" variant="outline">
-            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={deleteAllReviews}
+              disabled={deletingAll || loading || reviews.length === 0}
+              size="sm"
+              variant="destructive"
+            >
+              {deletingAll ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4" />
+              )}
+              Delete All
+            </Button>
+            <Button onClick={loadReviews} disabled={loading} size="sm" variant="outline">
+              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -249,7 +322,15 @@ export default function ReviewLibrary() {
                   onClick={() => toggleExpand(review.id)}
                 >
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-sm truncate">{review.paper_title}</h3>
+                    <h3
+                      className="font-semibold text-sm truncate cursor-pointer hover:text-primary hover:underline"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setSelectedPaperTitle(review.paper_title)
+                      }}
+                    >
+                      {review.paper_title}
+                    </h3>
                     <p className="text-xs text-muted-foreground mb-2">
                       {review.pdf_filename} • {review.reviewer_model} • {formatDate(review.created_at)}
                     </p>
@@ -331,6 +412,41 @@ export default function ReviewLibrary() {
           )}
         </div>
       </CardContent>
+
+      {/* Paper reviews panel */}
+      {selectedPaperTitle && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setSelectedPaperTitle(null)}>
+          <div className="bg-background rounded-lg shadow-xl max-w-lg w-full mx-4 p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between mb-4 gap-4">
+              <div>
+                <h2 className="font-semibold text-lg">Reviews for Paper</h2>
+                <p className="text-sm text-muted-foreground mt-1">{selectedPaperTitle}</p>
+              </div>
+              <Button size="sm" variant="outline" onClick={() => setSelectedPaperTitle(null)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+              {reviews
+                .filter((r) => r.paper_title === selectedPaperTitle)
+                .map((r) => (
+                  <div key={r.id} className="p-3 bg-muted rounded-md space-y-2">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <span className="text-sm font-medium">🤖 {r.reviewer_model}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-primary">{r.score}/10</span>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${getRecommendationColor(r.recommendation)}`}>
+                          {r.recommendation}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground font-mono break-all">ID: {r.id}</p>
+                  </div>
+                ))}
+            </div>
+          </div>
+        </div>
+      )}
     </Card>
   )
 }

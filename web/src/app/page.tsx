@@ -1,6 +1,7 @@
 "use client"
 
-import { useCallback, useRef, useState, useEffect } from "react"
+import { useCallback, useRef, useState, useEffect, Suspense } from "react"
+import { useSearchParams, useRouter } from "next/navigation"
 
 import ModelManager from "@/components/ModelManager"
 import ReviewLibrary from "@/components/ReviewLibrary"
@@ -36,7 +37,23 @@ interface ReviewResults {
 }
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<"review" | "library" | "models">("review")
+  return (
+    <Suspense fallback={null}>
+      <HomeContent />
+    </Suspense>
+  )
+}
+
+function HomeContent() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+
+  const tabParam = searchParams.get("tab")
+  const reviewParam = searchParams.get("review")
+
+  const activeTab: "review" | "library" | "models" =
+    tabParam === "review" || tabParam === "library" || tabParam === "models" ? tabParam : "review"
+
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [selectedModel, setSelectedModel] = useState<string>("")
   const [availableModels, setAvailableModels] = useState<string[]>([])
@@ -196,10 +213,11 @@ export default function Home() {
     return "text-yellow-600 bg-yellow-50 dark:text-yellow-400 dark:bg-yellow-950"
   }
 
-  const handleTabChange = (tab: "review" | "library" | "models") => {
-    setActiveTab(tab)
-    if (tab !== "review") {
-      setResults(null)
+  const handleReviewExpand = (reviewId: string | null) => {
+    if (reviewId) {
+      router.push(`/?tab=library&review=${encodeURIComponent(reviewId)}`)
+    } else {
+      router.push(`/?tab=library`)
     }
   }
 
@@ -214,7 +232,7 @@ export default function Home() {
             <p className="text-sm text-muted-foreground">AI-Powered Research Paper Review</p>
           </div>
         </div>
-        <Tabs activeTab={activeTab} setActiveTab={handleTabChange} />
+        <Tabs activeTab={activeTab} />
       </header>
 
       {/* Main content */}
@@ -235,7 +253,12 @@ export default function Home() {
           />
         )}
 
-        {activeTab === "library" && <ReviewLibrary />}
+        {activeTab === "library" && (
+          <ReviewLibrary
+            initialExpandedReview={reviewParam}
+            onReviewExpand={handleReviewExpand}
+          />
+        )}
 
         {activeTab === "models" && <ModelManager />}
 

@@ -7,7 +7,7 @@ if TYPE_CHECKING:
     from decimalog.logger import CustomLogger
 
 
-from ollama import ChatResponse, chat
+from ollama import AsyncClient, ChatResponse
 
 from sibyl.config import OLLAMA_BASE_URL, LLMConfig
 from sibyl.llm.client.base import Base
@@ -46,7 +46,7 @@ class OllamaClient(Base):
     async def agenerate(self, prompt: str, model: str) -> str:
         """Generate a response using Ollama's API asynchronously."""
         self.logger.debug(f"Sending async request to Ollama API for model: {model} - {prompt[:300]}...")
-        response: ChatResponse = chat(
+        response: ChatResponse = await AsyncClient().chat(
             model=model,
             messages=[{"role": "user", "content": prompt}],
             stream=False,

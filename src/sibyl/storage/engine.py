@@ -297,6 +297,28 @@ class Engine:
         self.collection.delete(ids=[review_id])
         self.logger.info(f"Review deleted: {review_id}")
 
+    def delete_all_reviews(self) -> int:
+        """Delete all reviews from storage.
+
+        Returns:
+            Number of reviews deleted
+
+        """
+        all_results = self.collection.get(include=["metadatas"])
+
+        if not all_results["ids"]:
+            return 0
+
+        for metadata in all_results["metadatas"]:
+            pdf_path = metadata.get("pdf_path")
+            if pdf_path and Path(pdf_path).exists():
+                Path(pdf_path).unlink()
+
+        self.collection.delete(ids=all_results["ids"])
+        count = len(all_results["ids"])
+        self.logger.info(f"Deleted all {count} reviews")
+        return count
+
     def count_reviews(self) -> int:
         """Get the total number of reviews in storage.
 

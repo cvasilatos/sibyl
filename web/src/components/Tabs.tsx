@@ -1,15 +1,15 @@
+import Link from "next/link"
 import { BookOpen, FileText, Settings } from "lucide-react"
 
 type Props = {
   activeTab: "review" | "library" | "models"
-  setActiveTab: (t: "review" | "library" | "models") => void
 }
 
-export default function Tabs({ activeTab, setActiveTab }: Props) {
+export default function Tabs({ activeTab }: Props) {
   return (
     <div className="flex gap-6 sm:gap-12">
-      <button
-        onClick={() => setActiveTab("review")}
+      <Link
+        href="/?tab=review"
         className={`pb-6 px-2 text-sm font-medium transition-colors relative ${
           activeTab === "review" ? "text-primary" : "text-muted-foreground hover:text-foreground"
         }`}
@@ -19,10 +19,10 @@ export default function Tabs({ activeTab, setActiveTab }: Props) {
           <span>Review Paper</span>
         </div>
         {activeTab === "review" && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
-      </button>
+      </Link>
 
-      <button
-        onClick={() => setActiveTab("library")}
+      <Link
+        href="/?tab=library"
         className={`pb-6 px-2 text-sm font-medium transition-colors relative ${
           activeTab === "library" ? "text-primary" : "text-muted-foreground hover:text-foreground"
         }`}
@@ -32,10 +32,10 @@ export default function Tabs({ activeTab, setActiveTab }: Props) {
           <span>Library</span>
         </div>
         {activeTab === "library" && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
-      </button>
+      </Link>
 
-      <button
-        onClick={() => setActiveTab("models")}
+      <Link
+        href="/?tab=models"
         className={`pb-6 px-2 text-sm font-medium transition-colors relative ${
           activeTab === "models" ? "text-primary" : "text-muted-foreground hover:text-foreground"
         }`}
@@ -45,7 +45,7 @@ export default function Tabs({ activeTab, setActiveTab }: Props) {
           <span>Models</span>
         </div>
         {activeTab === "models" && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
-      </button>
+      </Link>
     </div>
   )
 }
