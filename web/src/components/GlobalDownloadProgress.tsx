@@ -4,18 +4,22 @@ import { useDownload } from "@/lib/download-context"
 import { Progress } from "@/components/ui/progress"
 
 export function GlobalDownloadProgress() {
-  const { installing, downloadProgress } = useDownload()
+  const { installing, downloadProgresses } = useDownload()
 
-  if (!installing) return null
+  if (installing.length === 0) return null
 
   return (
     <div className="fixed top-0 left-0 right-0 z-50 bg-background border-b p-4 shadow-md">
-      <div className="max-w-4xl mx-auto space-y-2">
-        <div className="flex items-center justify-between text-sm">
-          <span>Installing {installing}...</span>
-          <span>{downloadProgress}%</span>
-        </div>
-        <Progress value={downloadProgress} />
+      <div className="max-w-4xl mx-auto space-y-3">
+        {installing.map((modelName) => (
+          <div key={modelName} className="space-y-1">
+            <div className="flex items-center justify-between text-sm">
+              <span>Installing {modelName}...</span>
+              <span>{downloadProgresses[modelName] || 0}%</span>
+            </div>
+            <Progress value={downloadProgresses[modelName] || 0} />
+          </div>
+        ))}
       </div>
     </div>
   )

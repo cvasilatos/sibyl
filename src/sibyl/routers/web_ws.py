@@ -75,7 +75,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, model: str =
 
         await websocket.send_json({"status": "progress", "progress": 95, "message": "Saving to storage..."})
 
-        storage.save_review(
+        review_id = storage.save_review(
             review=review,
             pdf_filename=session["filename"],
             pdf_path=session["pdf_path"],
@@ -97,6 +97,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, model: str =
                 "status": "completed",
                 "progress": 100,
                 "message": "Review complete!",
+                "review_id": review_id,
                 "results": {
                     "paper_title": paper_title,
                     "reviews": reviews_dict,
