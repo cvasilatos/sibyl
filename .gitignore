@@ -64,6 +64,9 @@ sibyl_storage/
 *.db
 *.db-journal
 
+# Logs
+logs/
+
 # Next.js / Node.js
 web/node_modules/
 web/.next/

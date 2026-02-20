@@ -1,5 +1,9 @@
 """Research paper review framework."""
 
+import logging
+from typing import cast
+
+from decimalog.logger import CustomLogger
 from pydantic import BaseModel, Field
 
 from .llm_client import LLMClient
@@ -99,6 +103,7 @@ DETAILED FEEDBACK:
 
         """
         self.llm_client = llm_client
+        self.logger: CustomLogger = cast("CustomLogger", logging.getLogger(f"{self.__class__.__module__}.{self.__class__.__name__}"))
 
     def review_paper(self, paper_text: str, paper_title: str = "Unknown") -> PaperReview:
         """Generate a review for a research paper.
@@ -111,12 +116,16 @@ DETAILED FEEDBACK:
             Structured review of the paper
 
         """
+        self.logger.info(f"Starting synchronous review for paper: '{paper_title}'")
         # Generate the review using the LLM
         prompt = self.REVIEW_PROMPT_TEMPLATE.format(paper_text=paper_text)
+        self.logger.debug(f"Sending review prompt to LLM client: {self.llm_client.get_name()}")
         response = self.llm_client.generate(prompt, system_prompt=self.SYSTEM_PROMPT)
+        self.logger.debug(f"Received response from LLM ({len(response)} chars), parsing...")
 
         # Parse the response
         criteria = self._parse_review_response(response)
+        self.logger.info(f"Review complete for '{paper_title}': score={criteria.overall_score}, recommendation={criteria.recommendation}")
 
         return PaperReview(
             paper_title=paper_title,
@@ -136,12 +145,16 @@ DETAILED FEEDBACK:
             Structured review of the paper
 
         """
+        self.logger.info(f"Starting async review for paper: '{paper_title}'")
         # Generate the review using the LLM
         prompt = self.REVIEW_PROMPT_TEMPLATE.format(paper_text=paper_text)
+        self.logger.debug(f"Sending async review prompt to LLM client: {self.llm_client.get_name()}")
         response = await self.llm_client.agenerate(prompt, system_prompt=self.SYSTEM_PROMPT)
+        self.logger.debug(f"Received async response from LLM ({len(response)} chars), parsing...")
 
         # Parse the response
         criteria = self._parse_review_response(response)
+        self.logger.info(f"Async review complete for '{paper_title}': score={criteria.overall_score}, recommendation={criteria.recommendation}")
 
         return PaperReview(
             paper_title=paper_title,
@@ -160,6 +173,7 @@ DETAILED FEEDBACK:
             Structured review criteria
 
         """
+        self.logger.debug(f"Parsing LLM review response ({len(response)} chars)")
         sections = {
             "novelty": "",
             "methodology": "",
