@@ -1,6 +1,5 @@
 "use client"
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useCallback, useRef, useState, useEffect, type RefObject } from "react"
 
 import ModelManager from "@/components/ModelManager"
@@ -198,66 +197,57 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-t from-black-900 via-black-600 to-gray-100 p-4 md:p-8">
-      <div className="max-w-6xl mx-auto">
-        <Card className="mb-8 bg-black/90 border-gray-700">
-          <CardHeader className="text-center">
-            <div className="flex items-center justify-center mb-4">
-              <span className="text-6xl">🔮</span>
-            </div>
-            <CardTitle className="text-4xl font-bold">Sibyl</CardTitle>
-            <CardDescription className="text-lg">
-              AI-Powered Research Paper Review System
-            </CardDescription>
-            <p className="text-sm text-muted-foreground mt-2">
-              Upload a research paper and get comprehensive AI-powered reviews using local LLM models
-            </p>
-          </CardHeader>
-
-          {/* Tabs */}
-          <div className="px-6">
-            <Tabs activeTab={activeTab} setActiveTab={handleTabChange} />
+    <div className="min-h-screen flex flex-col bg-background">
+      {/* Header */}
+      <header className="border-b bg-card px-4 md:px-8 py-4">
+        <div className="flex items-center gap-3 mb-4">
+          <span className="text-3xl">🔮</span>
+          <div>
+            <h1 className="text-xl font-bold leading-tight">Sibyl</h1>
+            <p className="text-sm text-muted-foreground">AI-Powered Research Paper Review</p>
           </div>
+        </div>
+        <Tabs activeTab={activeTab} setActiveTab={handleTabChange} />
+      </header>
 
-          <CardContent className="space-y-6">
-            {activeTab === "review" && (
-              <UploadArea
-                selectedFile={selectedFile}
-                selectedModel={selectedModel}
-                availableModels={availableModels}
-                onModelChange={setSelectedModel}
-                fileInputRef={fileInputRef}
-                isDragging={isDragging}
-                handleDragOver={handleDragOver}
-                handleDragLeave={handleDragLeave}
-                handleDrop={handleDrop}
-                handleFileInputChange={handleFileInputChange}
-                startReview={startReview}
-                isReviewing={isReviewing}
-                progress={progress}
-                progressMessage={progressMessage}
-                error={error}
-              />
-            )}
+      {/* Main content */}
+      <main className="flex-1 px-4 md:px-8 py-6 space-y-6">
+        {activeTab === "review" && (
+          <UploadArea
+            selectedFile={selectedFile}
+            selectedModel={selectedModel}
+            availableModels={availableModels}
+            onModelChange={setSelectedModel}
+            fileInputRef={fileInputRef}
+            isDragging={isDragging}
+            handleDragOver={handleDragOver}
+            handleDragLeave={handleDragLeave}
+            handleDrop={handleDrop}
+            handleFileInputChange={handleFileInputChange}
+            startReview={startReview}
+            isReviewing={isReviewing}
+            progress={progress}
+            progressMessage={progressMessage}
+            error={error}
+          />
+        )}
 
-            {activeTab === "library" && <ReviewLibrary />}
+        {activeTab === "library" && <ReviewLibrary />}
 
-            {activeTab === "models" && <ModelManager />}
-          </CardContent>
-        </Card>
+        {activeTab === "models" && <ModelManager />}
 
         {/* Results */}
         {results && (
           <ResultsPanel results={results} getRecommendationColor={getRecommendationColor} />
         )}
+      </main>
 
-        {/* Footer */}
-        <footer className="text-center text-white mt-8 py-4">
-          <p className="text-sm">
-            Powered by local LLMs via Ollama • Privacy-first • Zero-cost
-          </p>
-        </footer>
-      </div>
+      {/* Footer */}
+      <footer className="border-t px-4 py-3 text-center">
+        <p className="text-xs text-muted-foreground">
+          Powered by local LLMs via Ollama • Privacy-first • Zero-cost
+        </p>
+      </footer>
     </div>
   )
 }

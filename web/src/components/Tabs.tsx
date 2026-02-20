@@ -7,7 +7,7 @@ type Props = {
 
 export default function Tabs({ activeTab, setActiveTab }: Props) {
   return (
-    <div className="flex gap-20">
+    <div className="flex gap-6 sm:gap-12">
       <button
         onClick={() => setActiveTab("review")}
         className={`pb-6 px-2 text-sm font-medium transition-colors relative ${
