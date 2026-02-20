@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useRef, useState, useEffect, type RefObject } from "react"
+import { useCallback, useRef, useState, useEffect } from "react"
 
 import ModelManager from "@/components/ModelManager"
 import ReviewLibrary from "@/components/ReviewLibrary"
@@ -8,6 +8,7 @@ import Tabs from "@/components/Tabs"
 import UploadArea from "@/components/UploadArea"
 import ResultsPanel from "@/components/ResultsPanel"
 import { API_URL, getWebSocketUrl } from "@/lib/config"
+import { toast } from "@/components/ui/use-toast"
 
 interface ReviewCriteria {
   novelty: string
@@ -53,13 +54,8 @@ export default function Home() {
   const [selectedModel, setSelectedModel] = useState<string>("")
   const [availableModels, setAvailableModels] = useState<string[]>([])
   const [isDragging, setIsDragging] = useState(false)
-  const [isReviewing, setIsReviewing] = useState(false)
-  const [progress, setProgress] = useState(0)
-  const [progressMessage, setProgressMessage] = useState("")
   const [results, setResults] = useState<ReviewResults | null>(null)
-  const [error, setError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null!)
-  const wsRef = useRef<WebSocket | null>(null)
 
   // Load available models on mount
   useEffect(() => {
@@ -84,10 +80,9 @@ export default function Home() {
   const handleFileSelect = (file: File) => {
     if (file.type === "application/pdf") {
       setSelectedFile(file)
-      setError(null)
       setResults(null)
     } else {
-      setError("Please select a PDF file")
+      toast({ title: "Invalid File", description: "Please select a PDF file", variant: "destructive" })
     }
   }
 
@@ -119,12 +114,6 @@ export default function Home() {
   const startReview = async () => {
     if (!selectedFile) return
 
-    setIsReviewing(true)
-    setError(null)
-    setResults(null)
-    setProgress(0)
-    setProgressMessage("Uploading file...")
-
     try {
       // Upload file
       const formData = new FormData()
@@ -141,44 +130,64 @@ export default function Home() {
 
       const data = await response.json()
       const sessionId = data.session_id
+      const filename = selectedFile.name
+
+      // Show progress toast for this background review task
+      const { id: toastId, update: updateToast, dismiss: dismissToast } = toast({
+        title: "Review in Progress",
+        description: `Starting review of ${filename}...`,
+        duration: Infinity,
+      })
 
       // Connect WebSocket with optional model parameter
       const wsBaseUrl = getWebSocketUrl()
       const wsUrl = `${wsBaseUrl}/ws/session/${sessionId}${selectedModel ? `?model=${encodeURIComponent(selectedModel)}` : ''}`
       const ws = new WebSocket(wsUrl)
-      wsRef.current = ws
 
       ws.onmessage = (event) => {
         const message = JSON.parse(event.data)
 
         if (message.status === "progress") {
-          setProgress(message.progress)
-          setProgressMessage(message.message)
+          updateToast({
+            id: toastId,
+            title: "Review in Progress",
+            description: `${filename}: ${message.progress}% — ${message.message}`,
+            duration: Infinity,
+          })
         } else if (message.status === "completed") {
-          setProgress(100)
           setResults(message.results)
-          setIsReviewing(false)
+          dismissToast()
+          toast({
+            title: "✅ Review Complete",
+            description: `"${message.results.paper_title}" — ID: ${message.review_id ?? "N/A"}`,
+          })
           ws.close()
         } else if (message.status === "error") {
-          setError(message.message)
-          setIsReviewing(false)
+          dismissToast()
+          toast({
+            title: "Review Failed",
+            description: message.message,
+            variant: "destructive",
+          })
           ws.close()
         }
       }
 
       ws.onerror = () => {
-        setError("Connection error. Please try again.")
-        setIsReviewing(false)
+        dismissToast()
+        toast({
+          title: "Connection Error",
+          description: "Failed to connect to review service. Please try again.",
+          variant: "destructive",
+        })
       }
 
-      ws.onclose = () => {
-        if (isReviewing) {
-          setIsReviewing(false)
-        }
-      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred")
-      setIsReviewing(false)
+      toast({
+        title: "Upload Failed",
+        description: err instanceof Error ? err.message : "An error occurred",
+        variant: "destructive",
+      })
     }
   }
 
@@ -225,10 +234,6 @@ export default function Home() {
             handleDrop={handleDrop}
             handleFileInputChange={handleFileInputChange}
             startReview={startReview}
-            isReviewing={isReviewing}
-            progress={progress}
-            progressMessage={progressMessage}
-            error={error}
           />
         )}
 

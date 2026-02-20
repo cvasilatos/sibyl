@@ -178,7 +178,6 @@ export default function ModelManager() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-3 py-2 text-sm border border-input rounded-md bg-background"
-              disabled={installing !== null}
             />
           </div>
 
@@ -199,11 +198,11 @@ export default function ModelManager() {
                 </div>
                 <Button
                   onClick={() => installModel(model.name)}
-                  disabled={installing !== null || model.installed}
+                  disabled={installing.includes(model.name) || model.installed}
                   size="sm"
                   variant={model.installed ? "outline" : "default"}
                 >
-                  {installing === model.name ? (
+                  {installing.includes(model.name) ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : model.installed ? (
                     "Installed"
