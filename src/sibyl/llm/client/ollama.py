@@ -23,13 +23,13 @@ class OllamaClient(Base):
         self._config: LLMConfig = config
         self._api_url = f"{OLLAMA_BASE_URL}/api/generate"
 
-    def generate(self, prompt: str, model_name: str, system_prompt: str | None = None) -> str:
+    def generate(self, prompt: str, model: str, system_prompt: str | None = None) -> str:
         """Generate a response using Ollama's API."""
         if system_prompt:
             prompt = f"{system_prompt}\n\n{prompt}"
 
         payload = {
-            "model": model_name,
+            "model": model,
             "prompt": prompt,
             "stream": False,
             "options": {
@@ -38,22 +38,22 @@ class OllamaClient(Base):
             },
         }
 
-        self.logger.info(f"Generating response with Ollama model: {model_name}")
+        self.logger.info(f"Generating response with Ollama model: {model}")
         response: requests.Response = requests.post(self._api_url, json=payload, timeout=300)
         response.raise_for_status()
         raw_response: str = response.json().get("response", "")
-        self.logger.debug(f"Raw response from Ollama ({model_name}) ({len(raw_response)} chars)")
+        self.logger.debug(f"Raw response from Ollama ({model}) ({len(raw_response)} chars)")
         return raw_response
 
-    async def agenerate(self, prompt: str, model_name: str, system_prompt: str | None = None) -> str:
+    async def agenerate(self, prompt: str, model: str, system_prompt: str | None = None) -> str:
         """Generate a response using Ollama's API asynchronously."""
         if system_prompt:
             prompt = f"{system_prompt}\n\n{prompt}"
 
-        self.logger.info(f"Generating async response with Ollama model: {model_name}")
+        self.logger.info(f"Generating async response with Ollama model: {model}")
 
         payload = {
-            "model": model_name,
+            "model": model,
             "prompt": prompt,
             "stream": False,
             "options": {
@@ -63,15 +63,11 @@ class OllamaClient(Base):
         }
 
         async with httpx.AsyncClient(timeout=300.0) as client:
-            self.logger.debug(f"Sending async request to Ollama API for model: {model_name}")
+            self.logger.debug(f"Sending async request to Ollama API for model: {model}")
             response: Response = await client.post(self._api_url, json=payload)
             response.raise_for_status()
             result = response.json()
             raw_response = result.get("response", "")
-            self.logger.debug(f"Raw async response from Ollama ({model_name}) ({len(raw_response)} chars)")
+            self.logger.debug(f"Raw async response from Ollama ({model}) ({len(raw_response)} chars)")
 
         return raw_response
-
-    def get_name(self) -> str:
-        """Get the name of the LLM model being used."""
-        return self._model_name

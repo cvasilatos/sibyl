@@ -8,7 +8,7 @@ from decimalog.logger import CustomLogger
 from fastapi import APIRouter, Query, WebSocket
 
 from sibyl.comparison import ReviewComparison
-from sibyl.config import OLLAMA_BASE_URL, SibylConfig
+from sibyl.config import OLLAMA_BASE_URL, LLMConfig, SibylConfig
 from sibyl.llm.client.ollama import OllamaClient
 from sibyl.pdf_parser import PDFParser
 from sibyl.reviewer import PaperReview, ReviewSystem
@@ -44,7 +44,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, model: str =
         session = review_sessions[session_id]
         await websocket.send_json({"status": "progress", "progress": 10, "message": "Extracting text from PDF..."})
 
-        config = SibylConfig.from_env()
+        config: LLMConfig = SibylConfig.from_env()
 
         parser = PDFParser(session["pdf_path"])
         metadata = parser.get_metadata()
@@ -61,7 +61,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, model: str =
 
             await websocket.send_json({"status": "progress", "progress": 50, "message": f"Reviewing with {model}..."})
 
-            review: PaperReview = await reviewer.areview_paper(paper_text, paper_title, model_name=model)
+            review: PaperReview = await reviewer.areview_paper(paper_text, paper_title, model)
             logger.info(f"Generated review for paper '{paper_title}' with model {model}:\n{review.raw_response}")
         except Exception as e:
             logger.exception(f"Error during review with model {model}")
