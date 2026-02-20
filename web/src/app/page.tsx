@@ -49,7 +49,7 @@ interface ReviewResults {
 }
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<"review" | "library" | "models">("models")
+  const [activeTab, setActiveTab] = useState<"review" | "library" | "models">("review")
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [selectedModel, setSelectedModel] = useState<string>("")
   const [availableModels, setAvailableModels] = useState<string[]>([])
@@ -145,7 +145,7 @@ export default function Home() {
 
       // Connect WebSocket with optional model parameter
       const wsBaseUrl = getWebSocketUrl()
-      const wsUrl = `${wsBaseUrl}/ws/${sessionId}${selectedModel ? `?model=${encodeURIComponent(selectedModel)}` : ''}`
+      const wsUrl = `${wsBaseUrl}/ws/session/${sessionId}${selectedModel ? `?model=${encodeURIComponent(selectedModel)}` : ''}`
       const ws = new WebSocket(wsUrl)
       wsRef.current = ws
 

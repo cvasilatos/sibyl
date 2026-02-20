@@ -1,21 +1,21 @@
 """Research paper review framework."""
 
 import logging
-from typing import cast
+import re
+from typing import TYPE_CHECKING, cast
 
-from decimalog.logger import CustomLogger
+if TYPE_CHECKING:
+    from decimalog.logger import CustomLogger
 from pydantic import BaseModel, Field
 
-from .llm_client import LLMClient
+from sibyl.llm.client.ollama import OllamaClient
 
 
 class ReviewCriteria(BaseModel):
     """Criteria for reviewing research papers."""
 
     novelty: str = Field(description="Assessment of the novelty and originality of the research")
-    methodology: str = Field(
-        description="Evaluation of the research methodology and experimental design"
-    )
+    methodology: str = Field(description="Evaluation of the research methodology and experimental design")
     results: str = Field(description="Analysis of the results and their significance")
     clarity: str = Field(description="Assessment of writing quality and presentation clarity")
     impact: str = Field(description="Potential impact and contribution to the field")
@@ -95,46 +95,44 @@ DETAILED FEEDBACK:
 
     SYSTEM_PROMPT = """You are a senior researcher and expert peer reviewer with extensive experience in evaluating academic papers. You provide thorough, constructive, and balanced reviews that help authors improve their work."""
 
-    def __init__(self, llm_client: LLMClient):
+    def __init__(self, llm_client: OllamaClient) -> None:
         """Initialize the review system.
 
         Args:
             llm_client: LLM client to use for generating reviews
 
         """
-        self.llm_client = llm_client
+        self._llm_client: OllamaClient = llm_client
         self.logger: CustomLogger = cast("CustomLogger", logging.getLogger(f"{self.__class__.__module__}.{self.__class__.__name__}"))
 
-    def review_paper(self, paper_text: str, paper_title: str = "Unknown") -> PaperReview:
+    def review_paper(self, paper_text: str, paper_title: str, model_name: str) -> PaperReview:
         """Generate a review for a research paper.
 
         Args:
             paper_text: The full text of the research paper
             paper_title: Title of the paper
+            model_name: Name of the LLM model to use
 
         Returns:
             Structured review of the paper
 
         """
         self.logger.info(f"Starting synchronous review for paper: '{paper_title}'")
-        # Generate the review using the LLM
         prompt = self.REVIEW_PROMPT_TEMPLATE.format(paper_text=paper_text)
-        self.logger.debug(f"Sending review prompt to LLM client: {self.llm_client.get_name()}")
-        response = self.llm_client.generate(prompt, system_prompt=self.SYSTEM_PROMPT)
+        self.logger.debug(f"Sending review prompt to LLM client: {self._llm_client.get_name()}")
+        response: str = self._llm_client.generate(prompt, self.SYSTEM_PROMPT, model_name)
         self.logger.debug(f"Received response from LLM ({len(response)} chars), parsing...")
-
-        # Parse the response
-        criteria = self._parse_review_response(response)
+        criteria: ReviewCriteria = self._parse_review_response(response)
         self.logger.info(f"Review complete for '{paper_title}': score={criteria.overall_score}, recommendation={criteria.recommendation}")
 
         return PaperReview(
             paper_title=paper_title,
-            reviewer_model=self.llm_client.get_name(),
+            reviewer_model=model_name,
             criteria=criteria,
             raw_response=response,
         )
 
-    async def areview_paper(self, paper_text: str, paper_title: str = "Unknown") -> PaperReview:
+    async def areview_paper(self, paper_text: str, paper_title: str, model_name: str) -> PaperReview:
         """Generate a review for a research paper asynchronously.
 
         Args:
@@ -146,19 +144,16 @@ DETAILED FEEDBACK:
 
         """
         self.logger.info(f"Starting async review for paper: '{paper_title}'")
-        # Generate the review using the LLM
         prompt = self.REVIEW_PROMPT_TEMPLATE.format(paper_text=paper_text)
-        self.logger.debug(f"Sending async review prompt to LLM client: {self.llm_client.get_name()}")
-        response = await self.llm_client.agenerate(prompt, system_prompt=self.SYSTEM_PROMPT)
+        self.logger.debug(f"Sending async review prompt to LLM client: {model_name}")
+        response = await self._llm_client.agenerate(prompt, system_prompt=self.SYSTEM_PROMPT, model_name=model_name)
         self.logger.debug(f"Received async response from LLM ({len(response)} chars), parsing...")
-
-        # Parse the response
         criteria = self._parse_review_response(response)
         self.logger.info(f"Async review complete for '{paper_title}': score={criteria.overall_score}, recommendation={criteria.recommendation}")
 
         return PaperReview(
             paper_title=paper_title,
-            reviewer_model=self.llm_client.get_name(),
+            reviewer_model=model_name,
             criteria=criteria,
             raw_response=response,
         )
@@ -183,11 +178,10 @@ DETAILED FEEDBACK:
             "limitations": "",
             "strengths": "",
             "overall_score": 5,
-            "recommendation": "Revise",  # Default to Revise for defensive programming
+            "recommendation": "Revise",
             "detailed_feedback": "",
         }
 
-        # Define section headers
         section_headers = [
             ("novelty", ["**NOVELTY:**", "NOVELTY:"]),
             ("methodology", ["**METHODOLOGY:**", "METHODOLOGY:"]),
@@ -201,17 +195,15 @@ DETAILED FEEDBACK:
             ("detailed_feedback", ["**DETAILED FEEDBACK:**", "DETAILED FEEDBACK:"]),
         ]
 
-        # Parse sections from the response
         lines: list[str] = response.split("\n")
         current_section = None
-        score_parsed_from_header = False  # Track if score was already parsed
-        recommendation_parsed_from_header = False  # Track if recommendation was already parsed
+        score_parsed_from_header = False
+        recommendation_parsed_from_header = False
 
         for line in lines:
             line_upper = line.strip().upper()
             header_found = False
 
-            # Check for section headers
             for section_key, headers in section_headers:
                 for header in headers:
                     if line_upper.startswith(header.upper()):
@@ -219,22 +211,17 @@ DETAILED FEEDBACK:
                         content = line.replace(header, "").strip()
 
                         if section_key == "recommendation":
-                            content = content.strip("**").strip()
+                            content = content.removeprefix("**").removesuffix("**").strip()
 
                         if content:
                             sections[current_section] = content
 
                         if section_key == "overall_score":
-                            # Extract number from score text, handling formats like 7.5/10 or **7.5/10**
-                            import re
-
                             match = re.search(r"(\d+(?:\.\d+)?)", content)
                             if match:
                                 try:
                                     score = float(match.group(1))
-                                    sections[current_section] = int(
-                                        score
-                                    )  # Convert to int, so 7.5 becomes 7
+                                    sections[current_section] = int(score)
                                     score_parsed_from_header = True
                                 except (ValueError, IndexError):
                                     sections[current_section] = 5
@@ -248,40 +235,31 @@ DETAILED FEEDBACK:
                     break
 
             if not header_found and current_section and line.strip():
-                # Continue appending to current section
-                # Handle score on next line (only if not already parsed from header)
                 if current_section == "overall_score":
                     if not score_parsed_from_header:
                         try:
-                            sections[current_section] = int(
-                                "".join(c for c in line.strip() if c.isdigit())[:2]
-                            )
+                            sections[current_section] = int("".join(c for c in line.strip() if c.isdigit())[:2])
                             score_parsed_from_header = True
                         except (ValueError, IndexError):
                             pass
                     continue
 
-                # Don't append multiple recommendations (single value field)
-                # Only set from next line if not already parsed from header
                 if current_section == "recommendation":
                     if not recommendation_parsed_from_header:
                         sections[current_section] = line.strip()
                         recommendation_parsed_from_header = True
                     continue
 
-                # Append content to other sections (multi-line text fields)
                 if sections[current_section]:
                     sections[current_section] += "\n" + line.strip()
                 else:
                     sections[current_section] = line.strip()
 
-        # Ensure score is within valid range
         if sections["overall_score"] < 1:
             sections["overall_score"] = 1
         elif sections["overall_score"] > 10:
             sections["overall_score"] = 10
 
-        # Set default recommendation if not found
         if not sections["recommendation"]:
             sections["recommendation"] = "Revise"
 

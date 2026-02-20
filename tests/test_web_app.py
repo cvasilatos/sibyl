@@ -1,6 +1,3 @@
-"""Tests for the web application."""
-
-import json
 import tempfile
 from pathlib import Path
 
@@ -56,11 +53,11 @@ endstream
 endobj
 xref
 0 5
-0000000000 65535 f 
-0000000009 00000 n 
-0000000058 00000 n 
-0000000115 00000 n 
-0000000214 00000 n 
+0000000000 65535 f
+0000000009 00000 n
+0000000058 00000 n
+0000000115 00000 n
+0000000214 00000 n
 trailer
 <<
 /Size 5
@@ -100,9 +97,7 @@ def test_upload_pdf(client, sample_pdf):
 
 def test_upload_non_pdf(client):
     """Test uploading a non-PDF file should fail."""
-    response = client.post(
-        "/api/upload", files={"file": ("test.txt", b"Not a PDF", "text/plain")}
-    )
+    response = client.post("/api/upload", files={"file": ("test.txt", b"Not a PDF", "text/plain")})
 
     assert response.status_code == 400
     assert "Only PDF files are supported" in response.text
@@ -160,25 +155,25 @@ def test_response_models():
 
 def test_concurrent_requests():
     """Test that the backend can handle concurrent requests (doesn't hang).
-    
+
     This test verifies that the fix for blocking I/O in model downloads works.
     Previously, a blocking requests.post() call would hang the entire event loop,
     preventing other endpoints from responding during model downloads.
-    
+
     Note: This is a basic sanity test. A more comprehensive test would involve
     actually triggering a model download and verifying other endpoints respond,
     but that requires Ollama to be running and would be a slow integration test.
     """
     # Create a new client for this test
     test_client = TestClient(app)
-    
+
     # Make multiple health check requests concurrently
     # If the async implementation is correct, these should all succeed quickly
     responses = []
     for _ in range(5):
         response = test_client.get("/api/health")
         responses.append(response)
-    
+
     # All requests should succeed
     for response in responses:
         assert response.status_code == 200

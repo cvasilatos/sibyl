@@ -1,15 +1,15 @@
 """Comparison and evaluation of multiple LLM reviews."""
 
 from statistics import mean, stdev
-from typing import Any, Dict, List
+from typing import Any
 
-from .reviewer import PaperReview
+from sibyl.reviewer import PaperReview
 
 
 class ReviewComparison:
     """Compare and analyze reviews from multiple LLMs."""
 
-    def __init__(self, reviews: List[PaperReview]):
+    def __init__(self, reviews: list[PaperReview]) -> None:
         """Initialize the comparison system.
 
         Args:
@@ -18,7 +18,7 @@ class ReviewComparison:
         """
         self.reviews = reviews
 
-    def get_score_statistics(self) -> Dict[str, float]:
+    def get_score_statistics(self) -> dict[str, float]:
         """Calculate statistics for review scores.
 
         Returns:
@@ -40,7 +40,7 @@ class ReviewComparison:
 
         return stats
 
-    def get_recommendation_distribution(self) -> Dict[str, int]:
+    def get_recommendation_distribution(self) -> dict[str, int]:
         """Get distribution of recommendations.
 
         Returns:
@@ -64,7 +64,6 @@ class ReviewComparison:
         if not distribution:
             return "No consensus"
 
-        # Find most common recommendation
         max_count = max(distribution.values())
         consensus = [rec for rec, count in distribution.items() if count == max_count]
 
@@ -85,21 +84,18 @@ class ReviewComparison:
         lines.append(f"\nTotal Reviews: {len(self.reviews)}")
         lines.append(f"Reviewers: {', '.join([r.reviewer_model for r in self.reviews])}")
 
-        # Score statistics
         stats = self.get_score_statistics()
         lines.append("\nScore Statistics:")
         lines.append(f"  Mean: {stats['mean']:.2f}")
         lines.append(f"  Std Dev: {stats['std']:.2f}")
         lines.append(f"  Range: {stats['min']} - {stats['max']}")
 
-        # Recommendations
         lines.append("\nRecommendation Distribution:")
         for rec, count in self.get_recommendation_distribution().items():
             lines.append(f"  {rec}: {count}")
 
         lines.append(f"\nConsensus: {self.get_consensus_recommendation()}")
 
-        # Individual reviews
         lines.append("\n" + "=" * 80)
         lines.append("INDIVIDUAL REVIEWS")
         lines.append("=" * 80)
@@ -119,7 +115,7 @@ class ReviewComparison:
 
         return "\n".join(lines)
 
-    def get_comparative_analysis(self) -> Dict[str, Any]:
+    def get_comparative_analysis(self) -> dict[str, Any]:
         """Get a structured comparative analysis.
 
         Returns:

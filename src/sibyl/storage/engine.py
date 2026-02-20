@@ -1,46 +1,29 @@
-"""Storage module for persisting and searching reviews and PDFs using vector database."""
-
 import json
 import logging
-import os
 import shutil
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional, cast
+from typing import TYPE_CHECKING, cast
+
+from chromadb.api.models.Collection import Collection
+
+if TYPE_CHECKING:
+    from decimalog.logger import CustomLogger
+
 
 import chromadb
 import requests
 from chromadb.config import Settings
-from decimalog.logger import CustomLogger
-from pydantic import BaseModel
 
-from .config import SibylConfig
-from .reviewer import PaperReview
-
-
-class StoredReview(BaseModel):
-    """Model for a stored review with metadata."""
-
-    id: str
-    paper_title: str
-    pdf_filename: str
-    pdf_path: Optional[str] = None
-    reviewer_model: str
-    overall_score: int
-    recommendation: str
-    review_summary: str
-    created_at: str
-    similarity_score: Optional[float] = None  # For search results
+from sibyl.config import OLLAMA_BASE_URL
+from sibyl.reviewer import PaperReview
+from sibyl.storage.review import Review
 
 
-class ReviewStorage:
+class Engine:
     """Vector database storage for reviews with semantic search using ChromaDB."""
 
-    def __init__(
-        self,
-        storage_path: str = "./sibyl_storage",
-        ollama_url: Optional[str] = None,
-    ):
+    def __init__(self, storage_path: str = "./sibyl_storage") -> None:
         """Initialize the storage system.
 
         Args:
@@ -50,67 +33,49 @@ class ReviewStorage:
                         falling back to http://localhost:11434.
 
         """
+        self.logger: CustomLogger = cast("CustomLogger", logging.getLogger(f"{self.__class__.__module__}.{self.__class__.__name__}"))
+
         self.storage_path = Path(storage_path)
         self.storage_path.mkdir(parents=True, exist_ok=True)
-        
-        # Create subdirectories
+
         self.pdf_storage = self.storage_path / "pdfs"
         self.pdf_storage.mkdir(exist_ok=True)
-        
-        self.ollama_url = ollama_url or os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-        self.logger: CustomLogger = cast("CustomLogger", logging.getLogger(f"{self.__class__.__module__}.{self.__class__.__name__}"))
-        self.logger.debug(f"Initializing ReviewStorage at {storage_path}, ollama_url={self.ollama_url}")
-        
-        # Initialize ChromaDB
+
+        self.logger.debug(f"Initializing at {storage_path}, ollama_url={OLLAMA_BASE_URL}")
+
         self.client = chromadb.PersistentClient(
             path=str(self.storage_path / "chromadb"),
             settings=Settings(anonymized_telemetry=False),
         )
-        
-        # Create or get collection
-        self.collection = self.client.get_or_create_collection(
+
+        self.collection: Collection = self.client.get_or_create_collection(
             name="paper_reviews",
             metadata={"hnsw:space": "cosine"},
         )
-        self.logger.info(f"ReviewStorage initialized with {self.collection.count()} existing reviews")
+        self.logger.info(f"Initialized with {self.collection.count()} existing reviews")
 
-    def _generate_embedding(self, text: str) -> List[float]:
+    def _generate_embedding(self, text: str, model_name: str) -> list[float]:
         """Generate embedding for text using Ollama.
 
         Args:
             text: Text to generate embedding for
+            model_name: Name of the Ollama model to use for embedding generation
 
         Returns:
             List of embedding values
 
         """
-        self.logger.debug(f"Generating embedding for text ({len(text)} chars)")
+        self.logger.debug(f"Generating embedding for text ({len(text)} chars), model: {model_name} - {model_name.split(':', maxsplit=1)[0]}")
         try:
-            response = requests.post(
-                f"{self.ollama_url}/api/embeddings",
-                json={"model": "nomic-embed-text", "prompt": text},
-                timeout=60,
-            )
+            response: requests.Response = requests.post(f"{OLLAMA_BASE_URL}/api/embeddings", json={"model": "nomic-embed-text", "prompt": text[:5000]}, timeout=60)
             response.raise_for_status()
-            return response.json()["embedding"]
-        except Exception:
-            self.logger.error("Failed to generate embedding via Ollama, using fallback hash-based embedding")
-            # Fallback for testing only - should not be used in production
-            # TODO: In production, raise an exception instead of using fallback
-            import hashlib
-            # Using SHA-256 instead of MD5 for better security practices
-            hash_val = int(hashlib.sha256(text.encode()).hexdigest()[:16], 16)
-            # Generate a simple 384-dimensional embedding for testing
-            embedding = [(hash_val >> i) % 100 / 100.0 for i in range(384)]
-            return embedding
+        except requests.exceptions.HTTPError as e:
+            error_details = e.response.json().get("error", e.response.text)
+            self.logger.error(f"Failed to generate embedding for text with Ollama: {error_details}")
+            return []
+        return response.json()["embedding"]
 
-    def save_review(
-        self,
-        review: PaperReview,
-        pdf_filename: str,
-        pdf_path: Optional[str] = None,
-        paper_text: Optional[str] = None,
-    ) -> str:
+    def save_review(self, review: PaperReview, pdf_filename: str, pdf_path: str | None = None, paper_text: str | None = None) -> str:
         """Save a review to the vector database.
 
         Args:
@@ -123,25 +88,22 @@ class ReviewStorage:
             ID of the saved review
 
         """
-        # Generate unique ID
         review_id = f"review_{datetime.now().timestamp()}_{pdf_filename}"
-        
+
         self.logger.info(f"Saving review for paper '{review.paper_title}' (model={review.reviewer_model}, score={review.criteria.overall_score})")
-        
-        # Store PDF file if provided
+
         stored_pdf_path = None
         if pdf_path and Path(pdf_path).exists():
             stored_pdf_path = self.pdf_storage / f"{review_id}.pdf"
             shutil.copy2(pdf_path, stored_pdf_path)
             stored_pdf_path = str(stored_pdf_path)
-        
-        # Create searchable content
+
         searchable_content = f"""
         Title: {review.paper_title}
         Reviewer: {review.reviewer_model}
         Score: {review.criteria.overall_score}/10
         Recommendation: {review.criteria.recommendation}
-        
+
         Novelty: {review.criteria.novelty}
         Methodology: {review.criteria.methodology}
         Results: {review.criteria.results}
@@ -149,21 +111,14 @@ class ReviewStorage:
         Impact: {review.criteria.impact}
         Strengths: {review.criteria.strengths}
         Limitations: {review.criteria.limitations}
-        
+
         Detailed Feedback: {review.criteria.detailed_feedback}
         """
-        
-        # Add paper text for better search
-        if paper_text:
-            # Limit paper text to first 5000 chars to avoid model token limits
-            # Most embedding models have a max token limit (e.g., 512-8192 tokens)
-            # 5000 chars ≈ 1000-1500 tokens, safe for most models
-            searchable_content += f"\n\nPaper Content: {paper_text[:5000]}"
-        
-        # Generate embedding
-        embedding = self._generate_embedding(searchable_content)
-        
-        # Prepare metadata
+
+        searchable_content += f"\n\nPaper Content: {paper_text}"
+
+        embedding = self._generate_embedding(searchable_content, review.reviewer_model)
+
         metadata = {
             "paper_title": review.paper_title,
             "pdf_filename": pdf_filename,
@@ -172,28 +127,27 @@ class ReviewStorage:
             "overall_score": review.criteria.overall_score,
             "recommendation": review.criteria.recommendation,
             "created_at": datetime.now().isoformat(),
-            "review_json": json.dumps({
-                "paper_title": review.paper_title,
-                "reviewer_model": review.reviewer_model,
-                "criteria": review.criteria.model_dump(),
-                "raw_response": review.raw_response,
-            }),
+            "review_json": json.dumps(
+                {
+                    "paper_title": review.paper_title,
+                    "reviewer_model": review.reviewer_model,
+                    "criteria": review.criteria.model_dump(),
+                    "raw_response": review.raw_response,
+                }
+            ),
         }
-        
-        # Add to ChromaDB
+
         self.collection.add(
             ids=[review_id],
             embeddings=[embedding],
             documents=[searchable_content],
             metadatas=[metadata],
         )
-        
+
         self.logger.debug(f"Review saved with id={review_id}")
         return review_id
 
-    def search_reviews(
-        self, query: str, limit: int = 10
-    ) -> List[StoredReview]:
+    def search_reviews(self, query: str, limit: int = 10) -> list[Review]:
         """Search reviews using semantic similarity.
 
         Args:
@@ -205,31 +159,27 @@ class ReviewStorage:
 
         """
         self.logger.info(f"Searching reviews with query='{query}', limit={limit}")
-        # Generate embedding for query
         query_embedding = self._generate_embedding(query)
-        
-        # Search in ChromaDB
+
         results = self.collection.query(
             query_embeddings=[query_embedding],
             n_results=limit,
         )
-        
-        # Convert to StoredReview objects
+
         reviews = []
         if results["ids"] and results["ids"][0]:
             for i, review_id in enumerate(results["ids"][0]):
                 metadata = results["metadatas"][0][i]
                 distance = results["distances"][0][i] if "distances" in results else 0
-                similarity = 1 - distance  # Convert distance to similarity
-                
+                similarity = 1 - distance
+
                 review_data = json.loads(metadata["review_json"])
-                
-                # Create summary with proper ellipsis handling
+
                 feedback = review_data["criteria"]["detailed_feedback"]
                 review_summary = feedback[:200] + ("..." if len(feedback) > 200 else "")
-                
+
                 reviews.append(
-                    StoredReview(
+                    Review(
                         id=review_id,
                         paper_title=metadata["paper_title"],
                         pdf_filename=metadata["pdf_filename"],
@@ -242,15 +192,11 @@ class ReviewStorage:
                         similarity_score=similarity,
                     )
                 )
-        
+
         self.logger.debug(f"Search returned {len(reviews)} results")
         return reviews
 
-    def list_reviews(
-        self,
-        limit: int = 50,
-        offset: int = 0,
-    ) -> List[StoredReview]:
+    def list_reviews(self, limit: int = 50, offset: int = 0) -> list[Review]:
         """List all reviews with pagination.
 
         Args:
@@ -258,28 +204,26 @@ class ReviewStorage:
             offset: Number of results to skip
 
         Returns:
-            List of StoredReview objects
+            List of Review objects
 
         """
-        # Get all documents
         all_results = self.collection.get(
             limit=limit,
             offset=offset,
             include=["metadatas"],
         )
-        
+
         reviews = []
         if all_results["ids"]:
             for i, review_id in enumerate(all_results["ids"]):
                 metadata = all_results["metadatas"][i]
                 review_data = json.loads(metadata["review_json"])
-                
-                # Create summary with proper ellipsis handling
+
                 feedback = review_data["criteria"]["detailed_feedback"]
                 review_summary = feedback[:200] + ("..." if len(feedback) > 200 else "")
-                
+
                 reviews.append(
-                    StoredReview(
+                    Review(
                         id=review_id,
                         paper_title=metadata["paper_title"],
                         pdf_filename=metadata["pdf_filename"],
@@ -291,10 +235,10 @@ class ReviewStorage:
                         created_at=metadata["created_at"],
                     )
                 )
-        
+
         return reviews
 
-    def get_review(self, review_id: str) -> Optional[dict]:
+    def get_review(self, review_id: str) -> dict | None:
         """Get a specific review by ID with full details.
 
         Args:
@@ -309,13 +253,13 @@ class ReviewStorage:
                 ids=[review_id],
                 include=["metadatas", "documents"],
             )
-            
+
             if not results["ids"]:
                 return None
-            
+
             metadata = results["metadatas"][0]
             review_data = json.loads(metadata["review_json"])
-            
+
             return {
                 "id": review_id,
                 "paper_title": metadata["paper_title"],
@@ -331,7 +275,7 @@ class ReviewStorage:
         except Exception:
             return None
 
-    def delete_review(self, review_id: str) -> bool:
+    def delete_review(self, review_id: str) -> None:
         """Delete a review by ID.
 
         Args:
@@ -341,27 +285,16 @@ class ReviewStorage:
             True if deleted, False if not found
 
         """
-        try:
-            # Check if review exists first
-            results = self.collection.get(ids=[review_id], include=["metadatas"])
-            if not results["ids"]:
-                self.logger.error(f"Review not found for deletion: {review_id}")
-                return False
-            
-            metadata = results["metadatas"][0]
-            pdf_path = metadata.get("pdf_path")
-            
-            # Delete PDF file if it exists
-            if pdf_path and Path(pdf_path).exists():
-                Path(pdf_path).unlink()
-            
-            # Delete from ChromaDB
-            self.collection.delete(ids=[review_id])
-            self.logger.info(f"Review deleted: {review_id}")
-            return True
-        except Exception as e:
-            self.logger.error(f"Error deleting review {review_id}: {e!s}")
-            return False
+        results = self.collection.get(ids=[review_id], include=["metadatas"])
+
+        metadata = results["metadatas"][0]
+        pdf_path = metadata.get("pdf_path")
+
+        if pdf_path and Path(pdf_path).exists():
+            Path(pdf_path).unlink()
+
+        self.collection.delete(ids=[review_id])
+        self.logger.info(f"Review deleted: {review_id}")
 
     def count_reviews(self) -> int:
         """Get the total number of reviews in storage.
@@ -380,7 +313,7 @@ class ReviewStorage:
 
         """
         all_results = self.collection.get(include=["metadatas"])
-        
+
         if not all_results["ids"]:
             return {
                 "total_reviews": 0,
@@ -391,16 +324,16 @@ class ReviewStorage:
                 "unique_models": 0,
                 "recommendations": {},
             }
-        
+
         scores = [m["overall_score"] for m in all_results["metadatas"]]
         papers = set(m["paper_title"] for m in all_results["metadatas"])
         models = set(m["reviewer_model"] for m in all_results["metadatas"])
-        
+
         recommendations = {}
         for m in all_results["metadatas"]:
             rec = m["recommendation"]
             recommendations[rec] = recommendations.get(rec, 0) + 1
-        
+
         return {
             "total_reviews": len(all_results["ids"]),
             "avg_score": sum(scores) / len(scores) if scores else 0,
@@ -410,4 +343,3 @@ class ReviewStorage:
             "unique_models": len(models),
             "recommendations": recommendations,
         }
-

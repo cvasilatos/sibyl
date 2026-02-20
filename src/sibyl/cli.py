@@ -9,19 +9,19 @@ from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
-from .comparison import ReviewComparison
-from .config import SibylConfig
-from .llm_client import create_client
-from .pdf_parser import PDFParser
-from .reviewer import ReviewSystem
-from .storage import ReviewStorage
+from sibyl.comparison import ReviewComparison
+from sibyl.config import SibylConfig
+from sibyl.llm.client.ollama import OllamaClient
+from sibyl.pdf_parser import PDFParser
+from sibyl.reviewer import ReviewSystem
+from sibyl.storage.engine import Engine
 
 console = Console()
 
 
 @click.group()
 @click.version_option(version="0.1.0")
-def main():
+def main() -> None:
     """Sibyl - An LLM-powered research paper review system."""
 
 
@@ -46,33 +46,26 @@ def main():
     default=None,
     help="Maximum number of pages to extract from PDF",
 )
-def review(pdf_path: str, providers: tuple, output: str, max_pages: int):
+def review(pdf_path: str, providers: tuple, output: str, max_pages: int) -> None:
     """Review a research paper PDF using LLMs.
 
     PDF_PATH: Path to the research paper PDF file
     """
     console.print("\n[bold blue]Sibyl Research Paper Review System[/bold blue]\n")
 
-    # Load configuration
     config = SibylConfig.from_env()
     active_providers = config.get_active_providers()
 
     if not active_providers:
-        console.print(
-            "[bold red]Error:[/bold red] No local LLM configured. "
-            "Please set OLLAMA_MODEL in your .env file and ensure Ollama is running."
-        )
+        console.print("[bold red]Error:[/bold red] No local LLM configured. Please set OLLAMA_MODEL in your .env file and ensure Ollama is running.")
         return
 
-    # Determine which providers to use
     if providers:
         providers_to_use = [p.lower() for p in providers]
-        # Validate that requested providers are configured
+
         for provider in providers_to_use:
             if provider not in active_providers:
-                console.print(
-                    f"[bold yellow]Warning:[/bold yellow] {provider} requested but not configured. Skipping."
-                )
+                console.print(f"[bold yellow]Warning:[/bold yellow] {provider} requested but not configured. Skipping.")
         providers_to_use = [p for p in providers_to_use if p in active_providers]
     else:
         providers_to_use = active_providers
@@ -84,7 +77,6 @@ def review(pdf_path: str, providers: tuple, output: str, max_pages: int):
     console.print(f"[bold]Paper:[/bold] {pdf_path}")
     console.print(f"[bold]Providers:[/bold] {', '.join(providers_to_use)}\n")
 
-    # Extract text from PDF
     console.print("[bold]Step 1:[/bold] Extracting text from PDF...")
     try:
         parser = PDFParser(pdf_path)
@@ -99,7 +91,6 @@ def review(pdf_path: str, providers: tuple, output: str, max_pages: int):
         console.print(f"[bold red]Error extracting PDF:[/bold red] {e}")
         return
 
-    # Generate reviews
     console.print("[bold]Step 2:[/bold] Generating reviews...\n")
     reviews = []
 
@@ -112,24 +103,17 @@ def review(pdf_path: str, providers: tuple, output: str, max_pages: int):
             task = progress.add_task(f"Reviewing with {provider}...", total=None)
 
             try:
-                # Get provider config
                 provider_config = getattr(config, provider)
                 if not provider_config:
                     continue
 
-                # Create client and review
-                client = create_client(provider, provider_config)
+                client = OllamaClient(provider_config)
                 reviewer = ReviewSystem(client)
-                review = reviewer.review_paper(
-                    paper_text, paper_title=metadata.get("title", "Unknown")
-                )
+                review = reviewer.review_paper(paper_text, paper_title=metadata.get("title", "Unknown"))
                 reviews.append(review)
 
                 progress.update(task, completed=True)
-                console.print(
-                    f"  ✓ {provider}: Score {review.criteria.overall_score}/10, "
-                    f"Recommendation: {review.criteria.recommendation}"
-                )
+                console.print(f"  ✓ {provider}: Score {review.criteria.overall_score}/10, Recommendation: {review.criteria.recommendation}")
             except Exception as e:
                 console.print(f"  ✗ {provider}: [red]Error - {e!s}[/red]")
 
@@ -137,9 +121,8 @@ def review(pdf_path: str, providers: tuple, output: str, max_pages: int):
         console.print("\n[bold red]Error:[/bold red] No reviews were generated.")
         return
 
-    # Save reviews to storage
     console.print("\n[bold]Step 3:[/bold] Saving reviews to storage...\n")
-    storage = ReviewStorage()
+    storage = Engine()
     for review in reviews:
         try:
             storage.save_review(
@@ -151,14 +134,11 @@ def review(pdf_path: str, providers: tuple, output: str, max_pages: int):
         except Exception as e:
             console.print(f"  [yellow]Warning: Could not save review for {review.reviewer_model} to storage: {e}[/yellow]")
 
-    # Generate comparison
     console.print("[bold]Step 4:[/bold] Comparing reviews...\n")
     comparison = ReviewComparison(reviews)
 
-    # Display results
     _display_results(reviews, comparison)
 
-    # Save to file if requested
     if output:
         _save_results(output, reviews, comparison, metadata)
         console.print(f"\n[bold green]Results saved to:[/bold green] {output}")
@@ -166,7 +146,6 @@ def review(pdf_path: str, providers: tuple, output: str, max_pages: int):
 
 def _display_results(reviews, comparison):
     """Display review results in a formatted table."""
-    # Summary table
     table = Table(title="Review Summary", show_header=True, header_style="bold magenta")
     table.add_column("Reviewer", style="cyan")
     table.add_column("Score", justify="center")
@@ -181,7 +160,6 @@ def _display_results(reviews, comparison):
 
     console.print(table)
 
-    # Statistics
     stats = comparison.get_score_statistics()
     console.print("\n[bold]Score Statistics:[/bold]")
     console.print(f"  Mean: {stats['mean']:.2f}")
@@ -196,7 +174,6 @@ def _save_results(output_path: str, reviews, comparison, metadata):
     output_path = Path(output_path)
 
     if output_path.suffix == ".json":
-        # Save as JSON
         data = {
             "metadata": metadata,
             "timestamp": datetime.now().isoformat(),
@@ -214,7 +191,6 @@ def _save_results(output_path: str, reviews, comparison, metadata):
         with open(output_path, "w") as f:
             json.dump(data, f, indent=2)
     else:
-        # Save as text
         summary = comparison.generate_summary()
         with open(output_path, "w") as f:
             f.write("Research Paper Review\n")
@@ -249,9 +225,7 @@ def check_config():
     for provider in ["ollama"]:
         provider_config = getattr(config, provider)
         if provider_config:
-            table.add_row(
-                provider_config.name, provider_config.model, "[green]✓ Configured[/green]"
-            )
+            table.add_row(provider_config.name, provider_config.model, "[green]✓ Configured[/green]")
         else:
             table.add_row(provider.title(), "N/A", "[red]✗ Not configured[/red]")
 
@@ -279,7 +253,6 @@ def web(host: str, port: int, ssl: bool):
         import tempfile
         from pathlib import Path
 
-        # Generate self-signed certificate
         cert_dir = Path(tempfile.gettempdir()) / "sibyl_certs"
         cert_dir.mkdir(exist_ok=True)
         cert_file = cert_dir / "cert.pem"
@@ -313,9 +286,7 @@ def web(host: str, port: int, ssl: bool):
                 console.print(f"[bold red]Error generating SSL certificate:[/bold red] {e}")
                 return
             except FileNotFoundError:
-                console.print(
-                    "[bold red]Error: openssl not found. Please install openssl to use SSL.[/bold red]"
-                )
+                console.print("[bold red]Error: openssl not found. Please install openssl to use SSL.[/bold red]")
                 return
 
         ssl_certfile = str(cert_file)
@@ -328,14 +299,11 @@ def web(host: str, port: int, ssl: bool):
     console.print("[bold]Press Ctrl+C to stop[/bold]\n")
 
     try:
-        from .web_app import run_server
+        from sibyl.web_app import run_server
 
         run_server(host=host, port=port, ssl_certfile=ssl_certfile, ssl_keyfile=ssl_keyfile)
     except ImportError:
-        console.print(
-            "[bold red]Error:[/bold red] FastAPI and uvicorn are required for the web interface.\n"
-            "Install them with: pip install 'sibyl[web]'"
-        )
+        console.print("[bold red]Error:[/bold red] FastAPI and uvicorn are required for the web interface.\nInstall them with: pip install 'sibyl[web]'")
     except KeyboardInterrupt:
         console.print("\n[bold yellow]Server stopped.[/bold yellow]")
 

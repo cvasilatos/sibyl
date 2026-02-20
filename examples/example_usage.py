@@ -4,7 +4,7 @@ Example script demonstrating how to use Sibyl programmatically with local LLMs.
 
 from sibyl.config import SibylConfig, LLMConfig
 from sibyl.pdf_parser import PDFParser
-from sibyl.llm_client import create_client
+from sibyl.llm_client import OllamaClient
 from sibyl.reviewer import ReviewSystem
 from sibyl.comparison import ReviewComparison
 
@@ -42,7 +42,7 @@ def main():
         provider_config = getattr(config, provider)
 
         # Create client and reviewer
-        client = create_client(provider, provider_config)
+        client = OllamaClient(provider_config)
         reviewer = ReviewSystem(client)
 
         # Generate review
@@ -118,7 +118,7 @@ def compare_multiple_models():
             continue
 
         # Create client and review
-        client = create_client("ollama", config.ollama)
+        client = OllamaClient(config.ollama)
         reviewer = ReviewSystem(client)
         review = reviewer.review_paper(paper_text, metadata["title"])
         all_reviews.append(review)
