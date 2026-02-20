@@ -251,8 +251,9 @@ def test_available_models_installed_variants(client):
     assert "7b" in models["llama3"]["installed_variants"]
 
 
-def test_available_models_installed_latest_is_marked(client):
-    """Test that a base model is marked installed when :latest variant is present."""
+def test_available_models_installed_latest_is_not_marked(client):
+    """Test that a base model is NOT marked installed when only :latest variant is present.
+    The user should always be able to install variants regardless of whether :latest is installed."""
     from unittest.mock import AsyncMock, MagicMock, patch
 
     fake_library_html = '<a href="/library/mistral">mistral</a>'
@@ -283,9 +284,12 @@ def test_available_models_installed_latest_is_marked(client):
     data = response.json()
     models = {m["name"]: m for m in data["models"]}
 
-    # mistral:latest is installed → base model should be marked installed
+    # mistral:latest is installed → base model should NOT be marked installed
+    # so users can still install other variants
     assert "mistral" in models
-    assert models["mistral"]["installed"] is True
+    assert models["mistral"]["installed"] is False
+    # The variant "latest" should still be reported in installed_variants
+    assert "latest" in models["mistral"]["installed_variants"]
 
 
 def test_concurrent_requests():

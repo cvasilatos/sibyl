@@ -249,14 +249,12 @@ export default function ModelManager() {
                     </div>
                     <Button
                       onClick={() => handleInstallClick(model.name)}
-                      disabled={isInstallingModel || model.installed}
+                      disabled={isInstallingModel}
                       size="sm"
-                      variant={model.installed ? "outline" : "default"}
+                      variant="default"
                     >
                       {isInstallingModel ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : model.installed ? (
-                        "Installed"
                       ) : (
                         <>
                           <Download className="h-4 w-4 mr-1" />
@@ -265,7 +263,7 @@ export default function ModelManager() {
                       )}
                     </Button>
                   </div>
-                  {isExpanded && !model.installed && (
+                  {isExpanded && (
                     <div className="mt-2 pt-2 border-t border-border">
                       {isFetchingTags ? (
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
