@@ -16,7 +16,7 @@ class LLMConfig(BaseModel):
     api_url: str | None = None
     model: str
     temperature: float = 0.7
-    max_tokens: int = 8000
+    max_tokens: int = 300000
 
 
 class SibylConfig(BaseModel):

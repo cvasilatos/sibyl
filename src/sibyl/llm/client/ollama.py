@@ -56,6 +56,6 @@ class OllamaClient(Base):
             },
             format=LLMReply.model_json_schema(),
         )
-        self.logger.debug(f"Raw async response from Ollama ({model}) ({len(response.message.content)}\n\n{response}\n\n\n\n)")
+        self.logger.debug(f"Raw async response from Ollama ({model})-{response}\n\n\n\n)")
 
         return response.message.content
