@@ -16,13 +16,13 @@ def test_review_criteria_creation():
         impact="High impact",
         limitations="Minor limitations",
         strengths="Multiple strengths",
-        overall_score=8,
+        score=8,
         recommendation="Accept",
         detailed_feedback="Well done",
     )
 
     assert criteria.novelty == "High novelty"
-    assert criteria.overall_score == 8
+    assert criteria.score == 8
     assert criteria.recommendation == "Accept"
 
 
@@ -37,7 +37,7 @@ def test_review_criteria_score_validation():
             impact="Test",
             limitations="Test",
             strengths="Test",
-            overall_score=11,  # Invalid: > 10
+            score=11,  # Invalid: > 10
             recommendation="Accept",
             detailed_feedback="Test",
         )
@@ -53,7 +53,7 @@ def test_paper_review_creation():
         impact="High",
         limitations="Minor",
         strengths="Many",
-        overall_score=8,
+        score=8,
         recommendation="Accept",
         detailed_feedback="Good work",
     )
@@ -67,7 +67,7 @@ def test_paper_review_creation():
 
     assert review.paper_title == "Test Paper"
     assert review.reviewer_model == "TestModel"
-    assert review.criteria.overall_score == 8
+    assert review.criteria.score == 8
 
 
 def test_parse_review_response_with_content_on_same_line():
@@ -95,7 +95,7 @@ DETAILED FEEDBACK: Well-written paper with solid contributions"""
     assert criteria.impact == "High impact potential"
     assert criteria.limitations == "Minor limitations noted"
     assert criteria.strengths == "Multiple key strengths"
-    assert criteria.overall_score == 8
+    assert criteria.score == 8
     assert criteria.recommendation == "Accept"
     assert criteria.detailed_feedback == "Well-written paper with solid contributions"
 
@@ -169,7 +169,7 @@ Overall, this work deserves publication."""
     assert "novel approach" in criteria.strengths.lower()
     assert "rigorous" in criteria.strengths.lower()
     
-    assert criteria.overall_score == 8
+    assert criteria.score == 8
     assert criteria.recommendation == "Revise"
 
     assert "excellent paper" in criteria.detailed_feedback.lower()
@@ -232,7 +232,7 @@ Address the limitations and expand evaluation."""
     
     assert "innovative" in criteria.strengths.lower()
     
-    assert criteria.overall_score == 7
+    assert criteria.score == 7
     assert criteria.recommendation == "Revise"
     
     assert "minor revisions" in criteria.detailed_feedback.lower()
@@ -276,7 +276,7 @@ The paper needs significant revisions before acceptance."""
     criteria = reviewer._parse_review_response(response)
     
     # Ensure score of 5 on next line is parsed correctly
-    assert criteria.overall_score == 5
+    assert criteria.score == 5
     assert criteria.recommendation == "Revise"
     assert "significant revisions" in criteria.detailed_feedback.lower()
 
@@ -320,7 +320,7 @@ The paper shows promise but requires substantial revisions to address the identi
     
     # Ensure "Revise" recommendation on next line is parsed correctly
     assert criteria.recommendation == "Revise"
-    assert criteria.overall_score == 6
+    assert criteria.score == 6
     assert "substantial revisions" in criteria.detailed_feedback.lower()
 
 
@@ -358,6 +358,6 @@ def test_parse_review_response_with_bold_headers():
     assert "meaningful contribution" in criteria.impact
     assert "Methodological Limitations" in criteria.limitations
     assert "Novel Integration" in criteria.strengths
-    assert criteria.overall_score == 7  # Should extract 7 from 7.5/10
+    assert criteria.score == 7  # Should extract 7 from 7.5/10
     assert criteria.recommendation == "Revise"
     assert "Methodology:" in criteria.detailed_feedback

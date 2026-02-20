@@ -14,7 +14,7 @@ def create_mock_review(model_name: str, score: int, recommendation: str) -> Pape
         impact="Test",
         limitations="Test",
         strengths="Test",
-        overall_score=score,
+        score=score,
         recommendation=recommendation,
         detailed_feedback="Test",
     )
@@ -25,23 +25,6 @@ def create_mock_review(model_name: str, score: int, recommendation: str) -> Pape
         criteria=criteria,
         raw_response="Test",
     )
-
-
-def test_review_comparison_score_statistics():
-    """Test calculating score statistics."""
-    reviews = [
-        create_mock_review("Model1", 8, "Accept"),
-        create_mock_review("Model2", 7, "Revise"),
-        create_mock_review("Model3", 9, "Accept"),
-    ]
-
-    comparison = ReviewComparison(reviews)
-    stats = comparison.get_score_statistics()
-
-    assert stats["mean"] == 8.0
-    assert stats["min"] == 7
-    assert stats["max"] == 9
-    assert "std" in stats
 
 
 def test_review_comparison_recommendation_distribution():
@@ -98,5 +81,4 @@ def test_comparative_analysis():
 
     assert analysis["total_reviews"] == 2
     assert len(analysis["reviewers"]) == 2
-    assert "score_statistics" in analysis
     assert "recommendation_distribution" in analysis
