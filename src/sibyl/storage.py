@@ -1,15 +1,17 @@
 """Storage module for persisting and searching reviews and PDFs using vector database."""
 
 import json
+import logging
 import os
 import shutil
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, cast
 
 import chromadb
 import requests
 from chromadb.config import Settings
+from decimalog.logger import CustomLogger
 from pydantic import BaseModel
 
 from .config import SibylConfig
@@ -56,6 +58,8 @@ class ReviewStorage:
         self.pdf_storage.mkdir(exist_ok=True)
         
         self.ollama_url = ollama_url or os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+        self.logger: CustomLogger = cast("CustomLogger", logging.getLogger(f"{self.__class__.__module__}.{self.__class__.__name__}"))
+        self.logger.debug(f"Initializing ReviewStorage at {storage_path}, ollama_url={self.ollama_url}")
         
         # Initialize ChromaDB
         self.client = chromadb.PersistentClient(
@@ -68,6 +72,7 @@ class ReviewStorage:
             name="paper_reviews",
             metadata={"hnsw:space": "cosine"},
         )
+        self.logger.info(f"ReviewStorage initialized with {self.collection.count()} existing reviews")
 
     def _generate_embedding(self, text: str) -> List[float]:
         """Generate embedding for text using Ollama.
@@ -79,6 +84,7 @@ class ReviewStorage:
             List of embedding values
 
         """
+        self.logger.debug(f"Generating embedding for text ({len(text)} chars)")
         try:
             response = requests.post(
                 f"{self.ollama_url}/api/embeddings",
@@ -88,6 +94,7 @@ class ReviewStorage:
             response.raise_for_status()
             return response.json()["embedding"]
         except Exception:
+            self.logger.error("Failed to generate embedding via Ollama, using fallback hash-based embedding")
             # Fallback for testing only - should not be used in production
             # TODO: In production, raise an exception instead of using fallback
             import hashlib
@@ -118,6 +125,8 @@ class ReviewStorage:
         """
         # Generate unique ID
         review_id = f"review_{datetime.now().timestamp()}_{pdf_filename}"
+        
+        self.logger.info(f"Saving review for paper '{review.paper_title}' (model={review.reviewer_model}, score={review.criteria.overall_score})")
         
         # Store PDF file if provided
         stored_pdf_path = None
@@ -179,6 +188,7 @@ class ReviewStorage:
             metadatas=[metadata],
         )
         
+        self.logger.debug(f"Review saved with id={review_id}")
         return review_id
 
     def search_reviews(
@@ -194,6 +204,7 @@ class ReviewStorage:
             List of matching StoredReview objects with similarity scores
 
         """
+        self.logger.info(f"Searching reviews with query='{query}', limit={limit}")
         # Generate embedding for query
         query_embedding = self._generate_embedding(query)
         
@@ -232,6 +243,7 @@ class ReviewStorage:
                     )
                 )
         
+        self.logger.debug(f"Search returned {len(reviews)} results")
         return reviews
 
     def list_reviews(
@@ -333,6 +345,7 @@ class ReviewStorage:
             # Check if review exists first
             results = self.collection.get(ids=[review_id], include=["metadatas"])
             if not results["ids"]:
+                self.logger.error(f"Review not found for deletion: {review_id}")
                 return False
             
             metadata = results["metadatas"][0]
@@ -344,8 +357,10 @@ class ReviewStorage:
             
             # Delete from ChromaDB
             self.collection.delete(ids=[review_id])
+            self.logger.info(f"Review deleted: {review_id}")
             return True
-        except Exception:
+        except Exception as e:
+            self.logger.error(f"Error deleting review {review_id}: {e!s}")
             return False
 
     def count_reviews(self) -> int:

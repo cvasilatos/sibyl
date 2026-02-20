@@ -1,10 +1,12 @@
 """LLM client implementations for local open-source models."""
 
+import logging
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Optional, cast
 
 import httpx
 import requests
+from decimalog.logger import CustomLogger
 
 from .config import LLMConfig
 
@@ -62,6 +64,7 @@ class OllamaClient(LLMClient):
         super().__init__(config)
         self.base_url = config.api_url or "http://localhost:11434"
         self.api_url = f"{self.base_url}/api/generate"
+        self.logger: CustomLogger = cast("CustomLogger", logging.getLogger(f"{self.__class__.__module__}.{self.__class__.__name__}"))
 
     def generate(self, prompt: str, system_prompt: Optional[str] = None) -> str:
         """Generate a response using Ollama's API."""
@@ -80,6 +83,8 @@ class OllamaClient(LLMClient):
             },
         }
 
+        self.logger.info(f"Generating response with Ollama model: {self.config.model}")
+        self.logger.debug(f"Prompt length: {len(full_prompt)} chars")
         try:
             response = requests.post(
                 self.api_url,
@@ -88,9 +93,11 @@ class OllamaClient(LLMClient):
             )
             response.raise_for_status()
             result = response.json()
-            print(f"Raw response from {self.get_name()}:\n{result.get('response')}\n")
-            return result.get("response", "")
+            raw_response = result.get("response", "")
+            self.logger.debug(f"Raw response from {self.get_name()} ({len(raw_response)} chars)")
+            return raw_response
         except requests.exceptions.RequestException as e:
+            self.logger.error(f"Failed to connect to Ollama at {self.base_url}: {e!s}")
             raise RuntimeError(
                 f"Failed to connect to Ollama at {self.base_url}. "
                 f"Make sure Ollama is running. Error: {e}"
@@ -103,7 +110,8 @@ class OllamaClient(LLMClient):
         if system_prompt:
             full_prompt = f"{system_prompt}\n\n{prompt}"
 
-        print(f"Prompt for {self.get_name()}:\n{full_prompt}\n")
+        self.logger.info(f"Generating async response with Ollama model: {self.config.model}")
+        self.logger.debug(f"Async prompt length: {len(full_prompt)} chars")
 
         payload = {
             "model": self.config.model,
@@ -123,9 +131,11 @@ class OllamaClient(LLMClient):
                 )
                 response.raise_for_status()
                 result = response.json()
-                print(f"Raw response from {self.get_name()}:\n{result.get('response')}\n")
-                return result.get("response", "")
+                raw_response = result.get("response", "")
+                self.logger.debug(f"Raw async response from {self.get_name()} ({len(raw_response)} chars)")
+                return raw_response
         except httpx.RequestError as e:
+            self.logger.error(f"Failed to connect to Ollama (async) at {self.base_url}: {e!s}")
             raise RuntimeError(
                 f"Failed to connect to Ollama at {self.base_url}. "
                 f"Make sure Ollama is running. Error: {e}"

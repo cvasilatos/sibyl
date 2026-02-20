@@ -1,14 +1,16 @@
 """Web application for the Sibyl research paper review system."""
 
 import json
+import logging
 import os
 import re
 import tempfile
 import uuid
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, cast
 
 import httpx
+from decimalog.logger import CustomLogger
 from fastapi import FastAPI, File, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
@@ -21,6 +23,12 @@ from .llm_client import create_client
 from .pdf_parser import PDFParser
 from .reviewer import PaperReview, ReviewSystem
 from .storage import ReviewStorage
+
+# Bootstrap logging
+log_level = os.getenv("LOG_LEVEL", "INFO")
+CustomLogger.setup_logging("logs", "app", level=log_level)
+
+logger: CustomLogger = cast("CustomLogger", logging.getLogger(__name__))
 
 # Create FastAPI app
 app = FastAPI(
@@ -74,17 +82,22 @@ class SessionStatus(BaseModel):
 @app.post("/api/upload")
 async def upload_paper(file: UploadFile = File(...)):
     """Upload a PDF paper for review."""
+    logger.debug(f"Upload request received for file: {file.filename}")
+
     # Validate file extension
     if not file.filename.lower().endswith(".pdf"):
+        logger.error(f"Invalid file extension for upload: {file.filename}")
         raise HTTPException(status_code=400, detail="Only PDF files are supported")
 
     # Validate content type
     if file.content_type != "application/pdf":
+        logger.error(f"Invalid content type for upload: {file.content_type}")
         raise HTTPException(status_code=400, detail="Invalid file type. Only PDF files are supported")
 
     # Read and validate PDF magic bytes
     content = await file.read()
     if not content.startswith(b"%PDF-"):
+        logger.error(f"File does not have valid PDF magic bytes: {file.filename}")
         raise HTTPException(status_code=400, detail="Invalid PDF file. File does not appear to be a valid PDF")
 
     # Create a session ID
@@ -96,6 +109,8 @@ async def upload_paper(file: UploadFile = File(...)):
 
     with open(temp_path, "wb") as f:
         f.write(content)
+
+    logger.info(f"File uploaded successfully: {file.filename} (session_id={session_id})")
 
     # Store session info
     review_sessions[session_id] = {
@@ -143,8 +158,10 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
         model: Optional model name to use for review (overrides env config)
     """
     await websocket.accept()
+    logger.info(f"WebSocket connection accepted for session_id={session_id}")
 
     if session_id not in review_sessions:
+        logger.error(f"Session not found: {session_id}")
         await websocket.send_json({"status": "error", "message": "Session not found"})
         await websocket.close()
         return
@@ -153,6 +170,8 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
 
     # Get optional model from query parameters
     selected_model = websocket.query_params.get("model")
+    if selected_model:
+        logger.debug(f"Using user-selected model: {selected_model}")
 
     try:
         # Start the review process
@@ -166,6 +185,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
         metadata = parser.get_metadata()
         paper_text = parser.extract_text()
         paper_title = (metadata or {}).get("title", "Unknown Paper")
+        logger.info(f"PDF parsed successfully: title='{paper_title}', chars={len(paper_text)}")
 
         await websocket.send_json(
             {
@@ -181,6 +201,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
         # Get the active provider (defaulting to ollama)
         providers = config.get_active_providers()
         if not providers:
+            logger.error("No LLM providers configured")
             await websocket.send_json({"status": "error", "message": "No LLM providers configured"})
             await websocket.close()
             return
@@ -190,6 +211,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
             try:
                 provider_config = getattr(config, provider, None)
                 if not provider_config:
+                    logger.error(f"Configuration for provider '{provider}' not found")
                     await websocket.send_json(
                         {
                             "status": "error",
@@ -211,6 +233,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
                 reviewer = ReviewSystem(client)
 
                 model_display = selected_model or provider_config.model
+                logger.info(f"Starting review with provider={provider}, model={model_display}")
                 progress = 40 + (50 * (i + 1) // len(providers))
                 await websocket.send_json(
                     {
@@ -222,7 +245,9 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
 
                 review = await reviewer.areview_paper(paper_text, paper_title)
                 reviews.append(review)
+                logger.info(f"Review completed: provider={provider}, score={review.criteria.overall_score}, recommendation={review.criteria.recommendation}")
             except AttributeError as e:
+                logger.error(f"Configuration error for provider '{provider}': {e!s}")
                 await websocket.send_json(
                     {
                         "status": "error",
@@ -232,6 +257,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
                 await websocket.close()
                 return
             except Exception as e:
+                logger.error(f"Error reviewing with {provider}: {e!s}")
                 await websocket.send_json(
                     {
                         "status": "error",
@@ -246,6 +272,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
 
         comparison = ReviewComparison(reviews)
         comparison_data = comparison.get_comparative_analysis()
+        logger.debug(f"Comparison generated: consensus={comparison_data.get('consensus')}")
 
         # Save reviews to storage
         await websocket.send_json({"status": "progress", "progress": 95, "message": "Saving to storage..."})
@@ -259,8 +286,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
                     paper_text=paper_text,
                 )
             except Exception as e:
-                # Log error but don't fail the whole operation
-                print(f"Error saving review to storage: {e}")
+                logger.error(f"Error saving review to storage: {e}")
 
         # Convert reviews to dict
         reviews_dict = [
@@ -291,8 +317,10 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
         session["status"] = "completed"
         session["reviews"] = reviews_dict
         session["comparison"] = comparison_data
+        logger.info(f"Review session completed: session_id={session_id}")
 
     except Exception as e:
+        logger.error(f"Unexpected error in review session {session_id}: {e!s}")
         await websocket.send_json({"status": "error", "message": str(e)})
     finally:
         # Note: PDFs are now stored in the storage system
@@ -360,13 +388,16 @@ async def search_reviews(request: SearchRequest):
 
     """
     try:
+        logger.debug(f"Searching reviews with query='{request.query}', limit={request.limit}")
         results = storage.search_reviews(request.query, limit=request.limit)
+        logger.info(f"Search returned {len(results)} results for query='{request.query}'")
         return {
             "query": request.query,
             "results": [r.model_dump() for r in results],
             "count": len(results),
         }
     except Exception as e:
+        logger.error(f"Error searching reviews: {e!s}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -423,9 +454,12 @@ async def delete_review(review_id: str):
         Success message
 
     """
+    logger.info(f"Deleting review: {review_id}")
     deleted = storage.delete_review(review_id)
     if not deleted:
+        logger.error(f"Review not found for deletion: {review_id}")
         raise HTTPException(status_code=404, detail="Review not found")
+    logger.debug(f"Review deleted successfully: {review_id}")
     return {"message": "Review deleted successfully", "id": review_id}
 
 
@@ -455,23 +489,26 @@ async def list_models():
     try:
         config = SibylConfig.from_env()
         ollama_url = config.ollama.api_url
+        logger.debug(f"Fetching available models from Ollama at {ollama_url}")
 
         async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.get(f"{ollama_url}/api/tags")
             response.raise_for_status()
 
             models_data = response.json()
+            logger.info(f"Retrieved {len(models_data.get('models', []))} models from Ollama")
             return {
                 "models": models_data.get("models", []),
                 "count": len(models_data.get("models", [])),
             }
     except httpx.HTTPStatusError as e:
+        logger.error(f"Failed to connect to Ollama: {e!s}")
         raise HTTPException(
             status_code=503,
             detail=f"Failed to connect to Ollama. Make sure Ollama is running. Error: {e!s}",
         )
     except Exception as e:
-        print(f"Error fetching models from Ollama: {e}")
+        logger.error(f"Error fetching models from Ollama: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
