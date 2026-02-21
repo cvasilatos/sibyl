@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Trash2, Download, Loader2, RefreshCw, ChevronDown, ChevronUp, X } from "lucide-react"
+import { useState, useEffect, useMemo } from "react"
+import { Trash2, Download, Loader2, RefreshCw, ChevronDown, ChevronUp, X, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { API_URL, fetchMaxScore } from "@/lib/config"
@@ -68,6 +68,7 @@ export default function ReviewLibrary({
   onReviewExpand?: (reviewId: string | null) => void
 }) {
   const [reviews, setReviews] = useState<StoredReview[]>([])
+  const [searchQuery, setSearchQuery] = useState("")
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [deletingAll, setDeletingAll] = useState(false)
@@ -79,6 +80,19 @@ export default function ReviewLibrary({
   const [loadingFull, setLoadingFull] = useState<string | null>(null)
   const [maxScore, setMaxScore] = useState<number>(10)
   const [selectedPaperTitle, setSelectedPaperTitle] = useState<string | null>(null)
+
+  const filteredReviews = useMemo(() => {
+    if (!searchQuery.trim()) return reviews
+    const q = searchQuery.toLowerCase()
+    return reviews.filter(
+      (r) =>
+        r.paper_title.toLowerCase().includes(q) ||
+        r.pdf_filename.toLowerCase().includes(q) ||
+        r.reviewer_model.toLowerCase().includes(q) ||
+        r.recommendation.toLowerCase().includes(q) ||
+        r.review_summary.toLowerCase().includes(q)
+    )
+  }, [reviews, searchQuery])
 
   const loadReviews = async () => {
     setLoading(true)
@@ -301,18 +315,30 @@ export default function ReviewLibrary({
           </div>
         )}
 
+        {/* Search input */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Search reviews by title, model, recommendation…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 text-sm rounded-md border border-input bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
+
         {/* Reviews list */}
         <div className="space-y-2">
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
-          ) : reviews.length === 0 ? (
+          ) : filteredReviews.length === 0 ? (
             <p className="text-sm text-muted-foreground py-8 text-center">
-              No reviews yet. Upload a paper to get started!
+              {searchQuery.trim() ? "No reviews match your search." : "No reviews yet. Upload a paper to get started!"}
             </p>
           ) : (
-            reviews.map((review) => (
+            filteredReviews.map((review) => (
               <div
                 key={review.id}
                 className="bg-muted rounded-md transition-colors"

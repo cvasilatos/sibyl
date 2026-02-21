@@ -175,6 +175,15 @@ def test_delete_all_reviews(client):
     assert "message" in data
 
 
+def test_list_reviews_with_search_query(client):
+    """Test that the /api/reviews endpoint accepts a q query parameter."""
+    response = client.get("/api/reviews?q=machine+learning")
+    assert response.status_code == 200
+    data = response.json()
+    assert "reviews" in data
+    assert isinstance(data["reviews"], list)
+
+
 def test_get_model_tags_response_shape(client):
     """Test that the model tags endpoint returns model and tags fields."""
     from unittest.mock import AsyncMock, MagicMock, patch

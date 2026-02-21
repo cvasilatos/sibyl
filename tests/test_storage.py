@@ -264,3 +264,56 @@ def test_get_statistics(storage, sample_review):
     assert "Accept" in stats["recommendations"]
     assert "Revise" in stats["recommendations"]
 
+
+def test_list_reviews_with_text_search(storage, sample_review):
+    """Test listing reviews with text-based search filtering."""
+    from sibyl.reviewer import PaperReview, ReviewCriteria
+
+    storage.save_review(
+        review=sample_review,
+        pdf_filename="ml_paper.pdf",
+    )
+
+    quantum_criteria = ReviewCriteria(
+        novelty="Good",
+        methodology="Solid",
+        results="Promising",
+        clarity="Clear",
+        impact="High",
+        limitations="None",
+        strengths="Many",
+        score=7,
+        recommendation="Revise",
+        detailed_feedback="Good quantum work",
+    )
+    quantum_review = PaperReview(
+        paper_title="Paper on Quantum Computing",
+        reviewer_model="QuantumModel v1.0",
+        criteria=quantum_criteria,
+        raw_response="Test",
+    )
+    storage.save_review(review=quantum_review, pdf_filename="quantum_paper.pdf")
+
+    # Search by title keyword (case-insensitive)
+    results = storage.list_reviews(search="machine learning")
+    assert len(results) == 1
+    assert results[0].paper_title == "Test Paper on Machine Learning"
+
+    # Search by model name
+    results = storage.list_reviews(search="QuantumModel")
+    assert len(results) == 1
+    assert results[0].reviewer_model == "QuantumModel v1.0"
+
+    # Search by recommendation
+    results = storage.list_reviews(search="Accept")
+    assert len(results) == 1
+    assert results[0].recommendation == "Accept"
+
+    # Empty search returns all
+    results = storage.list_reviews(search="")
+    assert len(results) == 2
+
+    # No-match search returns empty list
+    results = storage.list_reviews(search="zzz_no_match_zzz")
+    assert len(results) == 0
+

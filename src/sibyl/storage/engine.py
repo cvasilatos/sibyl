@@ -197,27 +197,37 @@ class Engine:
         self.logger.debug(f"Search returned {len(reviews)} results")
         return reviews
 
-    def list_reviews(self, limit: int = 50, offset: int = 0) -> list[Review]:
-        """List all reviews with pagination.
+    def list_reviews(self, limit: int = 50, offset: int = 0, search: str | None = None) -> list[Review]:
+        """List all reviews with pagination and optional text filtering.
 
         Args:
             limit: Maximum number of results to return
             offset: Number of results to skip
+            search: Optional text query to filter reviews by title, model, or recommendation
 
         Returns:
             List of Review objects
 
         """
         all_results = self.collection.get(
-            limit=limit,
-            offset=offset,
+            limit=limit if not search else None,
+            offset=offset if not search else None,
             include=["metadatas"],
         )
+
+        search_lower = search.lower() if search else None
 
         reviews = []
         if all_results["ids"]:
             for i, review_id in enumerate(all_results["ids"]):
                 metadata = all_results["metadatas"][i]
+
+                if search_lower and not any(
+                    search_lower in (metadata.get(field) or "").lower()
+                    for field in ("paper_title", "pdf_filename", "reviewer_model", "recommendation")
+                ):
+                    continue
+
                 review_data = json.loads(metadata["review_json"])
 
                 feedback = review_data["criteria"]["detailed_feedback"]
@@ -237,7 +247,7 @@ class Engine:
                     )
                 )
 
-        return reviews
+        return reviews[offset : offset + limit] if search else reviews
 
     def get_review(self, review_id: str) -> dict | None:
         """Get a specific review by ID with full details.
