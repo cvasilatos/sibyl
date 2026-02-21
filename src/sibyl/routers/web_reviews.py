@@ -57,8 +57,8 @@ async def search_reviews(request: SearchRequest) -> dict:
 
 
 @router.get("/reviews")
-async def list_reviews(limit: int = 50, offset: int = 0) -> dict:
-    reviews: list[Review] = storage.list_reviews(limit=limit, offset=offset)
+async def list_reviews(limit: int = 50, offset: int = 0, q: str | None = None) -> dict:
+    reviews: list[Review] = storage.list_reviews(limit=limit, offset=offset, search=q)
     total = storage.count_reviews()
     return {
         "reviews": [r.model_dump() for r in reviews],
