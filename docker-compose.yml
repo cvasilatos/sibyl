@@ -1,26 +1,4 @@
-# Sibyl – Docker Compose
-#
-# Services:
-#   ollama   – local LLM inference (GPU pass-through supported, see comment below)
-#   grobid   – PDF metadata extraction
-#   backend  – Python/FastAPI API server
-#   web      – Next.js frontend
-#
-# Quick start:
-#   1. cp backend/.env.example backend/.env   # set OLLAMA_MODEL (e.g. llama3.2)
-#   2. docker compose up -d
-#   3. docker compose exec ollama ollama pull llama3.2
-#   4. Open http://localhost:4000
-#
-# The backend communicates with ollama and grobid using their service names
-# over the internal Docker network.  The Next.js frontend always calls the
-# backend via the host-exposed port (http://localhost:8000) from the browser,
-# so NEXT_PUBLIC_API_URL defaults to http://localhost:8000.
-
 services:
-  # ---------------------------------------------------------------------------
-  # Ollama – local LLM server
-  # ---------------------------------------------------------------------------
   ollama:
     image: ollama/ollama:latest
     ports:
@@ -36,21 +14,15 @@ services:
         reservations:
           devices:
             - driver: nvidia
-              capabilities: [gpu]
-              device_ids: ['1']
+              capabilities: [ gpu ]
+              device_ids: [ '1' ]
 
-  # ---------------------------------------------------------------------------
-  # GROBID – academic PDF metadata extraction
-  # ---------------------------------------------------------------------------
   grobid:
     image: lfoppiano/grobid:0.8.0
     ports:
       - "8070:8070"
     restart: unless-stopped
 
-  # ---------------------------------------------------------------------------
-  # Backend – Python FastAPI service
-  # ---------------------------------------------------------------------------
   backend:
     build:
       context: ./backend
@@ -71,16 +43,12 @@ services:
       - sibyl_storage:/app/sibyl_storage
     restart: unless-stopped
 
-  # ---------------------------------------------------------------------------
-  # Web – Next.js frontend
-  # ---------------------------------------------------------------------------
   web:
     build:
       context: ./web
       dockerfile: Dockerfile
       args:
         # The browser calls the API directly, so use the host-exposed port.
-        # Change this if the backend is served behind a reverse proxy.
         - NEXT_PUBLIC_API_URL=http://hydra.abudhabi.nyu.edu:8000
     ports:
       - "4000:3000"
@@ -88,9 +56,11 @@ services:
       - backend
     restart: unless-stopped
 
-# ---------------------------------------------------------------------------
-# Volumes
-# ---------------------------------------------------------------------------
 volumes:
   ollama_data:
   sibyl_storage:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /data/cv43/sibyl/sibyl_storage
