@@ -17,6 +17,15 @@ class Base(ABC):
         """
         self.config = config
 
+    def get_name(self) -> str:
+        """Get the name of this LLM client.
+
+        Returns:
+            The configured name of the LLM provider
+
+        """
+        return self.config.name
+
     @abstractmethod
     def generate(self, prompt: str, model_name: str) -> str:
         """Generate a response from the LLM.
@@ -37,7 +46,6 @@ class Base(ABC):
 
         Args:
             prompt: The prompt to send to the LLM
-            paper_text: The full text of the research paper
             model_name: Name of the model to use
 
         Returns:

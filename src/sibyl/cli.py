@@ -1,7 +1,9 @@
 """Command-line interface for Sibyl."""
 
 import json
-from datetime import datetime
+import subprocess
+import tempfile
+from datetime import UTC, datetime
 from pathlib import Path
 
 import click
@@ -13,7 +15,7 @@ from sibyl.comparison import ReviewComparison
 from sibyl.config import MAX_SCORE, SibylConfig
 from sibyl.llm.client.ollama import OllamaClient
 from sibyl.pdf_parser import PDFParser
-from sibyl.reviewer import ReviewSystem
+from sibyl.reviewer import PaperReview, ReviewSystem
 from sibyl.storage.engine import Engine
 
 console = Console()
@@ -92,7 +94,7 @@ def review(pdf_path: str, providers: tuple, output: str, max_pages: int) -> None
         return
 
     console.print("[bold]Step 2:[/bold] Generating reviews...\n")
-    reviews = []
+    reviews: list[PaperReview] = []
 
     with Progress(
         SpinnerColumn(),
@@ -109,11 +111,11 @@ def review(pdf_path: str, providers: tuple, output: str, max_pages: int) -> None
 
                 client = OllamaClient(provider_config)
                 reviewer = ReviewSystem(client)
-                review = reviewer.review_paper(paper_text, paper_title=metadata.get("title", "Unknown"))
-                reviews.append(review)
+                paper_review = reviewer.review_paper(paper_text, paper_title=metadata.get("title", "Unknown"), model=provider_config.model)
+                reviews.append(paper_review)
 
                 progress.update(task, completed=True)
-                console.print(f"  ✓ {provider}: Score {review.criteria.score}/{MAX_SCORE}, Recommendation: {review.criteria.recommendation}")
+                console.print(f"  ✓ {provider}: Score {paper_review.criteria.score}/{MAX_SCORE}, Recommendation: {paper_review.criteria.recommendation}")
             except Exception as e:
                 console.print(f"  ✗ {provider}: [red]Error - {e!s}[/red]")
 
@@ -123,16 +125,16 @@ def review(pdf_path: str, providers: tuple, output: str, max_pages: int) -> None
 
     console.print("\n[bold]Step 3:[/bold] Saving reviews to storage...\n")
     storage = Engine()
-    for review in reviews:
+    for paper_review in reviews:
         try:
             storage.save_review(
-                review=review,
+                review=paper_review,
                 pdf_filename=str(Path(pdf_path).name),
                 pdf_path=pdf_path,
                 paper_text=paper_text,
             )
         except Exception as e:
-            console.print(f"  [yellow]Warning: Could not save review for {review.reviewer_model} to storage: {e}[/yellow]")
+            console.print(f"  [yellow]Warning: Could not save review for {paper_review.reviewer_model} to storage: {e}[/yellow]")
 
     console.print("[bold]Step 4:[/bold] Comparing reviews...\n")
     comparison = ReviewComparison(reviews)
@@ -144,18 +146,18 @@ def review(pdf_path: str, providers: tuple, output: str, max_pages: int) -> None
         console.print(f"\n[bold green]Results saved to:[/bold green] {output}")
 
 
-def _display_results(reviews, comparison):
+def _display_results(reviews: list[PaperReview], comparison: ReviewComparison) -> None:
     """Display review results in a formatted table."""
     table = Table(title="Review Summary", show_header=True, header_style="bold magenta")
     table.add_column("Reviewer", style="cyan")
     table.add_column("Score", justify="center")
     table.add_column("Recommendation", justify="center")
 
-    for review in reviews:
+    for paper_review in reviews:
         table.add_row(
-            review.reviewer_model,
-            f"{review.criteria.score}/{MAX_SCORE}",
-            review.criteria.recommendation,
+            paper_review.reviewer_model,
+            f"{paper_review.criteria.score}/{MAX_SCORE}",
+            paper_review.criteria.recommendation,
         )
 
     console.print(table)
@@ -169,14 +171,14 @@ def _display_results(reviews, comparison):
     console.print(f"\n[bold]Consensus:[/bold] {comparison.get_consensus_recommendation()}")
 
 
-def _save_results(output_path: str, reviews, comparison, metadata):
+def _save_results(output_path: str, reviews: list[PaperReview], comparison: ReviewComparison, metadata: dict) -> None:
     """Save review results to a file."""
-    output_path = Path(output_path)
+    path = Path(output_path)
 
-    if output_path.suffix == ".json":
+    if path.suffix == ".json":
         data = {
             "metadata": metadata,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(tz=UTC).isoformat(),
             "comparison": comparison.get_comparative_analysis(),
             "reviews": [
                 {
@@ -188,20 +190,20 @@ def _save_results(output_path: str, reviews, comparison, metadata):
                 for r in reviews
             ],
         }
-        with open(output_path, "w") as f:
+        with path.open("w") as f:
             json.dump(data, f, indent=2)
     else:
         summary = comparison.generate_summary()
-        with open(output_path, "w") as f:
+        with path.open("w") as f:
             f.write("Research Paper Review\n")
-            f.write(f"Generated: {datetime.now().isoformat()}\n")
+            f.write(f"Generated: {datetime.now(tz=UTC).isoformat()}\n")
             f.write(f"Paper: {metadata.get('title', 'Unknown')}\n")
             f.write(f"Author: {metadata.get('author', 'Unknown')}\n")
             f.write("\n" + summary)
 
 
 @main.command()
-def check_config():
+def check_config() -> None:
     """Check configuration and available providers."""
     console.print("\n[bold blue]Sibyl Configuration Check[/bold blue]\n")
 
@@ -237,7 +239,7 @@ def check_config():
 @click.option("--host", default="0.0.0.0", help="Host to bind to (default: 0.0.0.0)")
 @click.option("--port", default=8000, type=int, help="Port to bind to (default: 8000)")
 @click.option("--ssl", is_flag=True, help="Enable SSL with self-signed certificate")
-def web(host: str, port: int, ssl: bool):
+def web(host: str, port: int, ssl: bool) -> None:
     """Start the web interface for Sibyl.
 
     This launches a web server that provides a user-friendly interface
@@ -249,10 +251,6 @@ def web(host: str, port: int, ssl: bool):
     ssl_keyfile = None
 
     if ssl:
-        import subprocess
-        import tempfile
-        from pathlib import Path
-
         cert_dir = Path(tempfile.gettempdir()) / "sibyl_certs"
         cert_dir.mkdir(exist_ok=True)
         cert_file = cert_dir / "cert.pem"

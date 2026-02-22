@@ -1,14 +1,13 @@
 import json
 import logging
 import shutil
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
-from chromadb.api import ClientAPI
-from chromadb.api.models.Collection import Collection
-
 if TYPE_CHECKING:
+    from chromadb.api import ClientAPI
+    from chromadb.api.models.Collection import Collection
     from decimalog.logger import CustomLogger
 
 
@@ -20,6 +19,9 @@ from sibyl.config import MAX_SCORE, OLLAMA_BASE_URL
 from sibyl.reviewer import PaperReview
 from sibyl.storage.review import Review
 
+# Maximum number of characters to include in a review summary preview
+_REVIEW_SUMMARY_MAX_LEN: int = 200
+
 
 class Engine:
     """Vector database storage for reviews with semantic search using ChromaDB."""
@@ -29,9 +31,6 @@ class Engine:
 
         Args:
             storage_path: Path to the storage directory for ChromaDB and PDFs
-            ollama_url: URL for Ollama API to generate embeddings.
-                        Defaults to the OLLAMA_BASE_URL environment variable,
-                        falling back to http://localhost:11434.
 
         """
         self.logger: CustomLogger = cast("CustomLogger", logging.getLogger(f"{self.__class__.__module__}.{self.__class__.__name__}"))
@@ -55,7 +54,7 @@ class Engine:
         )
         self.logger.info(f"Initialized with {self.collection.count()} existing reviews")
 
-    def _generate_embedding(self, text: str, model_name: str) -> list[float]:
+    def _generate_embedding(self, text: str, model_name: str = "nomic-embed-text") -> list[float]:
         """Generate embedding for text using Ollama.
 
         Args:
@@ -72,7 +71,7 @@ class Engine:
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
             error_details = e.response.json().get("error", e.response.text)
-            self.logger.error(f"Failed to generate embedding for text with Ollama: {error_details}")
+            self.logger.exception(f"Failed to generate embedding for text with Ollama: {error_details}")
             return []
         return response.json()["embedding"]
 
@@ -89,7 +88,7 @@ class Engine:
             ID of the saved review
 
         """
-        review_id = f"review_{datetime.now().timestamp()}_{pdf_filename}"
+        review_id = f"review_{datetime.now(tz=UTC).timestamp()}_{pdf_filename}"
 
         self.logger.info(f"Saving review for paper '{review.paper_title}' (model={review.reviewer_model}, score={review.criteria.score})")
 
@@ -127,7 +126,7 @@ class Engine:
             "reviewer_model": review.reviewer_model,
             "score": review.criteria.score,
             "recommendation": review.criteria.recommendation,
-            "created_at": datetime.now().isoformat(),
+            "created_at": datetime.now(tz=UTC).isoformat(),
             "review_json": json.dumps(
                 {
                     "paper_title": review.paper_title,
@@ -167,29 +166,32 @@ class Engine:
             n_results=limit,
         )
 
-        reviews = []
-        if results["ids"] and results["ids"][0]:
-            for i, review_id in enumerate(results["ids"][0]):
-                metadata = results["metadatas"][0][i]
-                distance = results["distances"][0][i] if "distances" in results else 0
+        reviews: list[Review] = []
+        result_ids = results["ids"]
+        result_metadatas = results["metadatas"]
+        result_distances = results["distances"]
+        if result_ids and result_ids[0] and result_metadatas is not None:
+            for i, review_id in enumerate(result_ids[0]):
+                metadata = cast("dict[str, str | int | float | bool | None]", result_metadatas[0][i])
+                distance = float(result_distances[0][i]) if result_distances is not None else 0.0
                 similarity = 1 - distance
 
-                review_data = json.loads(metadata["review_json"])
+                review_data = json.loads(str(metadata.get("review_json", "{}")))
 
-                feedback = review_data["criteria"]["detailed_feedback"]
-                review_summary = feedback[:200] + ("..." if len(feedback) > 200 else "")
+                feedback = str(review_data.get("criteria", {}).get("detailed_feedback", ""))
+                review_summary = feedback[:_REVIEW_SUMMARY_MAX_LEN] + ("..." if len(feedback) > _REVIEW_SUMMARY_MAX_LEN else "")
 
                 reviews.append(
                     Review(
                         id=review_id,
-                        paper_title=metadata["paper_title"],
-                        pdf_filename=metadata["pdf_filename"],
-                        pdf_path=metadata.get("pdf_path"),
-                        reviewer_model=metadata["reviewer_model"],
-                        score=metadata["score"],
-                        recommendation=metadata["recommendation"],
+                        paper_title=str(metadata.get("paper_title", "")),
+                        pdf_filename=str(metadata.get("pdf_filename", "")),
+                        pdf_path=str(metadata["pdf_path"]) if metadata.get("pdf_path") else None,
+                        reviewer_model=str(metadata.get("reviewer_model", "")),
+                        score=cast("int", metadata.get("score", 0)),
+                        recommendation=str(metadata.get("recommendation", "")),
                         review_summary=review_summary,
-                        created_at=metadata["created_at"],
+                        created_at=str(metadata.get("created_at", "")),
                         similarity_score=similarity,
                     )
                 )
@@ -217,33 +219,35 @@ class Engine:
 
         search_lower = search.lower() if search else None
 
-        reviews = []
-        if all_results["ids"]:
-            for i, review_id in enumerate(all_results["ids"]):
-                metadata = all_results["metadatas"][i]
+        reviews: list[Review] = []
+        result_ids = all_results["ids"]
+        result_metadatas = all_results["metadatas"]
+        if result_ids and result_metadatas is not None:
+            for i, review_id in enumerate(result_ids):
+                metadata = cast("dict[str, str | int | float | bool | None]", result_metadatas[i])
 
                 if search_lower and not any(
-                    search_lower in (metadata.get(field) or "").lower()
+                    search_lower in str(metadata.get(field) or "").lower()
                     for field in ("paper_title", "pdf_filename", "reviewer_model", "recommendation")
                 ):
                     continue
 
-                review_data = json.loads(metadata["review_json"])
+                review_data = json.loads(str(metadata.get("review_json", "{}")))
 
-                feedback = review_data["criteria"]["detailed_feedback"]
-                review_summary = feedback[:200] + ("..." if len(feedback) > 200 else "")
+                feedback = str(review_data.get("criteria", {}).get("detailed_feedback", ""))
+                review_summary = feedback[:_REVIEW_SUMMARY_MAX_LEN] + ("..." if len(feedback) > _REVIEW_SUMMARY_MAX_LEN else "")
 
                 reviews.append(
                     Review(
                         id=review_id,
-                        paper_title=metadata["paper_title"],
-                        pdf_filename=metadata["pdf_filename"],
-                        pdf_path=metadata.get("pdf_path"),
-                        reviewer_model=metadata["reviewer_model"],
-                        score=metadata["score"],
-                        recommendation=metadata["recommendation"],
+                        paper_title=str(metadata.get("paper_title", "")),
+                        pdf_filename=str(metadata.get("pdf_filename", "")),
+                        pdf_path=str(metadata["pdf_path"]) if metadata.get("pdf_path") else None,
+                        reviewer_model=str(metadata.get("reviewer_model", "")),
+                        score=cast("int", metadata.get("score", 0)),
+                        recommendation=str(metadata.get("recommendation", "")),
                         review_summary=review_summary,
-                        created_at=metadata["created_at"],
+                        created_at=str(metadata.get("created_at", "")),
                     )
                 )
 
@@ -268,19 +272,23 @@ class Engine:
             if not results["ids"]:
                 return None
 
-            metadata = results["metadatas"][0]
-            review_data = json.loads(metadata["review_json"])
+            result_metadatas = results["metadatas"]
+            if result_metadatas is None:
+                return None
+
+            metadata = cast("dict[str, str | int | float | bool | None]", result_metadatas[0])
+            review_data = json.loads(str(metadata.get("review_json", "{}")))
 
             return {
                 "id": review_id,
-                "paper_title": metadata["paper_title"],
-                "pdf_filename": metadata["pdf_filename"],
-                "pdf_path": metadata.get("pdf_path"),
-                "reviewer_model": metadata["reviewer_model"],
-                "score": metadata["score"],
-                "recommendation": metadata["recommendation"],
-                "created_at": metadata["created_at"],
-                "criteria": review_data["criteria"],
+                "paper_title": str(metadata.get("paper_title", "")),
+                "pdf_filename": str(metadata.get("pdf_filename", "")),
+                "pdf_path": str(metadata["pdf_path"]) if metadata.get("pdf_path") else None,
+                "reviewer_model": str(metadata.get("reviewer_model", "")),
+                "score": cast("int", metadata.get("score", 0)),
+                "recommendation": str(metadata.get("recommendation", "")),
+                "created_at": str(metadata.get("created_at", "")),
+                "criteria": review_data.get("criteria", {}),
                 "raw_response": review_data.get("raw_response", ""),
             }
         except Exception:
@@ -292,17 +300,15 @@ class Engine:
         Args:
             review_id: ID of the review to delete
 
-        Returns:
-            True if deleted, False if not found
-
         """
         results = self.collection.get(ids=[review_id], include=["metadatas"])
 
-        metadata = results["metadatas"][0]
-        pdf_path = metadata.get("pdf_path")
-
-        if pdf_path and Path(pdf_path).exists():
-            Path(pdf_path).unlink()
+        result_metadatas = results["metadatas"]
+        if result_metadatas is not None:
+            metadata = cast("dict[str, str | int | float | bool | None]", result_metadatas[0])
+            pdf_path = str(metadata["pdf_path"]) if metadata.get("pdf_path") else None
+            if pdf_path and Path(pdf_path).exists():
+                Path(pdf_path).unlink()
 
         self.collection.delete(ids=[review_id])
         self.logger.info(f"Review deleted: {review_id}")
@@ -319,10 +325,13 @@ class Engine:
         if not all_results["ids"]:
             return 0
 
-        for metadata in all_results["metadatas"]:
-            pdf_path = metadata.get("pdf_path")
-            if pdf_path and Path(pdf_path).exists():
-                Path(pdf_path).unlink()
+        result_metadatas = all_results["metadatas"]
+        if result_metadatas is not None:
+            for metadata in result_metadatas:
+                typed_meta = cast("dict[str, str | int | float | bool | None]", metadata)
+                pdf_path = str(typed_meta["pdf_path"]) if typed_meta.get("pdf_path") else None
+                if pdf_path and Path(pdf_path).exists():
+                    Path(pdf_path).unlink()
 
         self.collection.delete(ids=all_results["ids"])
         count = len(all_results["ids"])
@@ -355,12 +364,15 @@ class Engine:
                 "recommendations": {},
             }
 
-        papers = set(m["paper_title"] for m in all_results["metadatas"])
-        models = set(m["reviewer_model"] for m in all_results["metadatas"])
+        result_metadatas = all_results["metadatas"] or []
+        metas = [cast("dict[str, str | int | float | bool | None]", m) for m in result_metadatas]
 
-        recommendations = {}
-        for m in all_results["metadatas"]:
-            rec = m["recommendation"]
+        papers = {str(m.get("paper_title", "")) for m in metas}
+        models = {str(m.get("reviewer_model", "")) for m in metas}
+
+        recommendations: dict[str, int] = {}
+        for m in metas:
+            rec = str(m.get("recommendation", ""))
             recommendations[rec] = recommendations.get(rec, 0) + 1
 
         return {

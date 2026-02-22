@@ -25,9 +25,9 @@ class ReviewComparison:
             Dictionary mapping recommendation to count
 
         """
-        distribution = {}
+        distribution: dict[str, int] = {}
         for review in self.reviews:
-            rec = review.criteria.recommendation
+            rec = str(review.criteria.recommendation)
             distribution[rec] = distribution.get(rec, 0) + 1
         return distribution
 
@@ -48,6 +48,29 @@ class ReviewComparison:
         if len(consensus) == 1:
             return consensus[0]
         return "Mixed (" + "/".join(consensus) + ")"
+
+    def get_score_statistics(self) -> dict[str, float]:
+        """Get statistical summary of scores across all reviews.
+
+        Returns:
+            Dictionary containing mean, std, min, and max scores
+
+        """
+        if not self.reviews:
+            return {"mean": 0.0, "std": 0.0, "min": 0.0, "max": 0.0}
+
+        scores = [float(r.criteria.score) for r in self.reviews]
+        n = len(scores)
+        mean = sum(scores) / n
+        variance = sum((s - mean) ** 2 for s in scores) / n
+        std = variance**0.5
+
+        return {
+            "mean": mean,
+            "std": std,
+            "min": min(scores),
+            "max": max(scores),
+        }
 
     def generate_summary(self) -> str:
         """Generate a summary comparing all reviews.

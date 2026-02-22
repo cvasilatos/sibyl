@@ -1,11 +1,13 @@
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
 from sibyl.config import MAX_SCORE
 
 
-class Recommendation(str, Enum):
+class Recommendation(StrEnum):
+    """Enumeration of possible review recommendations."""
+
     ACCEPT = "Accept"
     MINOR_REVISION = "Minor Revision"
     MAJOR_REVISION = "Major Revision"
@@ -13,6 +15,8 @@ class Recommendation(str, Enum):
 
 
 class LLMReply(BaseModel):
+    """Structured reply from an LLM for a paper review."""
+
     novelty: str = Field(..., description="Assessment of novelty and originality")
     methodology: str = Field(..., description="Evaluation of methodology and experimental design")
     results: str = Field(..., description="Analysis of results and their significance")

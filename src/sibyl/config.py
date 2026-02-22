@@ -24,14 +24,27 @@ class LLMConfig(BaseModel):
 class SibylConfig(BaseModel):
     """Main configuration for Sibyl."""
 
-    @classmethod
-    def from_env(cls) -> LLMConfig:
-        """Create configuration from environment variables."""
-        config_dict = {}
+    ollama: LLMConfig | None = None
 
+    def get_active_providers(self) -> list[str]:
+        """Get list of active provider names.
+
+        Returns:
+            List of configured provider names
+
+        """
+        providers: list[str] = []
+        if self.ollama:
+            providers.append("ollama")
+        return providers
+
+    @classmethod
+    def from_env(cls) -> "SibylConfig":
+        """Create configuration from environment variables."""
         ollama_model: str | None = os.getenv("OLLAMA_MODEL")
+        ollama: LLMConfig | None = None
         if ollama_model:
-            config_dict["ollama"] = LLMConfig(
+            ollama = LLMConfig(
                 name="Ollama",
                 api_url=OLLAMA_BASE_URL,
                 model=ollama_model,
@@ -39,4 +52,4 @@ class SibylConfig(BaseModel):
                 max_tokens=int(os.getenv("OLLAMA_MAX_TOKENS", "8000")),
             )
 
-        return config_dict["ollama"]
+        return cls(ollama=ollama)

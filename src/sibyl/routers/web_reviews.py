@@ -19,7 +19,10 @@ router = APIRouter()
 
 @router.get("/session/{session_id}")
 async def get_session_status(session_id: str) -> SessionStatus:
+    """Get the status of a review session."""
     session = review_sessions.get(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found")
     return SessionStatus(
         session_id=session_id,
         status=session["status"],
@@ -31,6 +34,7 @@ async def get_session_status(session_id: str) -> SessionStatus:
 
 @router.get("/health")
 async def health_check() -> dict:
+    """Check the health of the service."""
     try:
         return {
             "status": "healthy",
@@ -43,11 +47,13 @@ async def health_check() -> dict:
 
 @router.get("/config")
 async def get_config() -> dict:
+    """Get service configuration values."""
     return {"max_score": MAX_SCORE}
 
 
 @router.post("/search")
 async def search_reviews(request: SearchRequest) -> dict:
+    """Search reviews using semantic similarity."""
     results: list[Review] = storage.search_reviews(request.query, limit=request.limit)
     return {
         "query": request.query,
@@ -58,6 +64,7 @@ async def search_reviews(request: SearchRequest) -> dict:
 
 @router.get("/reviews")
 async def list_reviews(limit: int = 50, offset: int = 0, q: str | None = None) -> dict:
+    """List all reviews with optional search filtering."""
     reviews: list[Review] = storage.list_reviews(limit=limit, offset=offset, search=q)
     total = storage.count_reviews()
     return {
@@ -69,7 +76,8 @@ async def list_reviews(limit: int = 50, offset: int = 0, q: str | None = None) -
 
 
 @router.get("/reviews/{review_id}")
-async def get_review_details(review_id: str):
+async def get_review_details(review_id: str) -> dict:
+    """Get the full details of a specific review."""
     review = storage.get_review(review_id)
     if not review:
         raise HTTPException(status_code=404, detail="Review not found")
@@ -77,24 +85,28 @@ async def get_review_details(review_id: str):
 
 
 @router.delete("/reviews")
-async def delete_all_reviews():
+async def delete_all_reviews() -> dict:
+    """Delete all reviews from storage."""
     count = storage.delete_all_reviews()
     return {"message": f"Deleted {count} reviews", "count": count}
 
 
 @router.delete("/reviews/{review_id}")
-async def delete_review(review_id: str):
+async def delete_review(review_id: str) -> dict:
+    """Delete a specific review by ID."""
     storage.delete_review(review_id)
     return {"message": "Review deleted successfully", "id": review_id}
 
 
 @router.get("/statistics")
 async def get_statistics() -> dict:
+    """Get statistics about stored reviews."""
     return storage.get_statistics()
 
 
 @router.get("/models")
-async def list_models():
+async def list_models() -> dict:
+    """List models currently available in Ollama."""
     async with httpx.AsyncClient(timeout=10.0) as client:
         response = await client.get(f"{OLLAMA_BASE_URL}/api/tags")
         response.raise_for_status()
@@ -108,6 +120,7 @@ async def list_models():
 
 @router.get("/models/available")
 async def list_available_models() -> dict:
+    """List models available from the Ollama library."""
     try:
         process = await asyncio.create_subprocess_exec(
             "curl",
@@ -116,7 +129,7 @@ async def list_available_models() -> dict:
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
-        stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=30)
+        stdout, _ = await asyncio.wait_for(process.communicate(), timeout=30)
         if process.returncode != 0:
             raise RuntimeError(f"curl failed with return code {process.returncode}")
         html_content = stdout.decode("utf-8")
@@ -176,8 +189,13 @@ async def get_model_tags(model_name: str) -> dict:
 
 @router.get("/reviews/{review_id}/pdf")
 async def download_review_pdf(review_id: str) -> FileResponse:
+    """Download the original PDF for a review."""
     review = storage.get_review(review_id)
     if not review:
         raise HTTPException(status_code=404, detail="Review not found")
 
-    return FileResponse(review.get("pdf_path"), media_type="application/pdf", filename=review.get("pdf_filename", "paper.pdf"))
+    pdf_path = review.get("pdf_path")
+    if not isinstance(pdf_path, str) or not pdf_path:
+        raise HTTPException(status_code=404, detail="PDF not available for this review")
+
+    return FileResponse(pdf_path, media_type="application/pdf", filename=review.get("pdf_filename", "paper.pdf"))

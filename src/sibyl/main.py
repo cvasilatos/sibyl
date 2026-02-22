@@ -1,3 +1,5 @@
+"""Sibyl: An LLM-powered research paper review system."""
+
 import logging
 from typing import cast
 
@@ -17,7 +19,7 @@ app = FastAPI(
     version="0.1.0",
 )
 app.add_middleware(
-    CORSMiddleware,
+    CORSMiddleware,  # type: ignore[invalid-argument-type]
     allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
