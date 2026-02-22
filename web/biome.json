@@ -7,18 +7,25 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "includes": ["**", "!.next", "!out", "!build", "!node_modules"]
+    "includes": [
+      "**",
+      "!.next",
+      "!out",
+      "!build",
+      "!node_modules"
+    ]
   },
   "formatter": {
     "enabled": true,
     "indentStyle": "space",
     "indentWidth": 2,
-    "lineWidth": 80
+    "lineWidth": 180
   },
   "assist": {
     "actions": {
       "source": {
         "organizeImports": {
+          "options": {},
           "level": "on"
         }
       }
