@@ -120,3 +120,8 @@ addopts = "-v --cov=sibyl --cov-report=term-missing"
 
 [tool.uv.sources]
 decimalog = { git = "https://github.com/cvasilatos/decimalog.git" }
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.5.1",
+]
