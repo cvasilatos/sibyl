@@ -57,7 +57,7 @@ Thumbs.db
 outputs/
 reviews/
 *.pdf
-!examples/*.pdf
+!backend/examples/*.pdf
 
 # Storage
 sibyl_storage/
