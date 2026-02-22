@@ -45,6 +45,7 @@ dev = [
     "pytest>=7.4.0",
     "pytest-cov>=4.1.0",
     "ruff>=0.1.0",
+    "ty>=0.0.18",
     "pre-commit>=3.0.0",
 ]
 web = [
@@ -86,6 +87,15 @@ ignore = [
     "BLE001",   # Do not use Exception as base class for custom exceptions
     "TRY002",   # try-except without specifying exception type
     "TRY003",   # try-except that catches BaseException
+    "TRY301",   # Abstract raise to an inner function (intentional fallback pattern)
+    "C901",     # Function is too complex
+    "PLR0912",  # Too many branches
+    "PLR0915",  # Too many statements
+    "S104",     # Possible binding to all interfaces (0.0.0.0 is intentional)
+    "S603",     # subprocess call: check for execution of untrusted input (openssl is trusted)
+    "S607",     # Starting a process with a partial executable path (openssl)
+    "FBT001",   # Boolean-typed positional argument in function definition (click flag)
+    "PLC0415",  # import should be at the top-level (conditional/optional imports)
 ]
 
 
@@ -96,6 +106,10 @@ combine-as-imports = true
 quote-style = "double"
 indent-style = "space"
 docstring-code-format = true
+
+[tool.ty]
+# ty type checker configuration
+# https://docs.astral.sh/ty/
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

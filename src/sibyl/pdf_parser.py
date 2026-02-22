@@ -26,7 +26,7 @@ class PDFParser:
             pdf_path: Path to the PDF file
 
         """
-        logger = cast("CustomLogger", logging.getLogger(f"{self.__class__.__module__}.{self.__class__.__name__}"))
+        self.logger: CustomLogger = cast("CustomLogger", logging.getLogger(f"{self.__class__.__module__}.{self.__class__.__name__}"))
         self._grobid_url: str = os.getenv("GROBID_URL", "http://localhost:8070")
         self._pdf_path: str = pdf_path
 
@@ -64,17 +64,11 @@ class PDFParser:
         """
         pypdf_metadata = self._extract_metadata_pypdf()
 
-        metadata_is_empty = pypdf_metadata.get("title") in (
-            "Unknown",
-            "",
-            None,
-        ) or pypdf_metadata.get("author") in ("Unknown", "", None)
-
-        logger.info("PDF metadata is empty, attempting GROBID extraction...")
+        self.logger.info("PDF metadata incomplete, attempting GROBID extraction...")
         grobid_metadata = self._extract_metadata_grobid()
         if grobid_metadata:
             pypdf_metadata.update(grobid_metadata)
-            logger.info("Successfully extracted metadata using GROBID")
+            self.logger.info("Successfully extracted metadata using GROBID")
 
         return pypdf_metadata
 
@@ -112,12 +106,10 @@ class PDFParser:
             headers = {"Accept": "application/x-bibtex"}
             response = requests.post(url, files=files, headers=headers, timeout=30)
 
-        logger.debug(f"GROBID response status: {response.status_code} - {response.text[:200]}")
-        if response.status_code == 200 and response.text:
+        self.logger.debug(f"GROBID response status: {response.status_code} - {response.text[:200]}")
+        if response.status_code == 200 and response.text:  # noqa: PLR2004
             return self._parse_grobid_bibtex(response.text)
         raise Exception(f"GROBID request failed with status {response.status_code}: {response.text}")
-
-        return None
 
     def _parse_grobid_bibtex(self, bibtex: str) -> dict | None:
         """Parse a BibTeX string returned by GROBID to extract basic metadata.

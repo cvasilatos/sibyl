@@ -7,7 +7,7 @@ import httpx
 from decimalog.logger import CustomLogger
 from fastapi import APIRouter, Query, WebSocket
 
-from sibyl.config import OLLAMA_BASE_URL, LLMConfig, SibylConfig
+from sibyl.config import OLLAMA_BASE_URL, SibylConfig
 from sibyl.llm.client.ollama import OllamaClient
 from sibyl.pdf_parser import PDFParser
 from sibyl.reviewer import PaperReview, ReviewSystem
@@ -43,7 +43,11 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, model: str =
         session = review_sessions[session_id]
         await websocket.send_json({"status": "progress", "progress": 10, "message": "Extracting text from PDF..."})
 
-        config: LLMConfig = SibylConfig.from_env()
+        sibyl_config: SibylConfig = SibylConfig.from_env()
+        llm_config = sibyl_config.ollama
+        if llm_config is None:
+            await websocket.send_json({"status": "error", "message": "Ollama is not configured. Please set OLLAMA_MODEL in your .env file."})
+            return
 
         parser = PDFParser(session["pdf_path"])
         metadata = parser.get_metadata()
@@ -55,7 +59,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, model: str =
         await websocket.send_json({"status": "progress", "progress": 40, "message": "Generating review..."})
 
         try:
-            client = OllamaClient(config)
+            client = OllamaClient(llm_config)
             reviewer = ReviewSystem(client)
 
             await websocket.send_json({"status": "progress", "progress": 50, "message": f"Reviewing with {model}..."})

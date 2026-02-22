@@ -4,3 +4,7 @@ repos:
     hooks:
       - id: ruff-check
       - id: ruff-format
+  - repo: https://github.com/astral-sh/ty
+    rev: 0.0.18
+    hooks:
+      - id: ty

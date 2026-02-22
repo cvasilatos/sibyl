@@ -138,10 +138,9 @@ def test_upload_returns_session_id(client):
 
 
 def test_session_not_found(client):
-    """Test getting status for non-existent session returns a server error."""
-    no_raise_client = TestClient(app, raise_server_exceptions=False)
-    response = no_raise_client.get("/api/session/invalid-session-id")
-    assert response.status_code == 500
+    """Test getting status for non-existent session returns 404."""
+    response = client.get("/api/session/invalid-session-id")
+    assert response.status_code == 404
 
 
 def test_response_models():
