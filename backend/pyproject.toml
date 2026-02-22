@@ -11,10 +11,8 @@ version = "0.1.0"
 description = "An LLM-powered research paper review system"
 readme = "README.md"
 requires-python = ">=3.12"
-license = {text = "MIT"}
-authors = [
-    {name = "Christoforos Vasilatos", email = "cv43@nyu.edu"}
-]
+license = { text = "MIT" }
+authors = [{ name = "Christoforos Vasilatos", email = "cv43@nyu.edu" }]
 keywords = ["llm", "research", "paper", "review", "ai"]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -38,21 +36,12 @@ dependencies = [
     "aiofiles>=25.1.0",
     "uvicorn>=0.41.0",
     "ollama>=0.6.1",
+    "python-multipart>=0.0.22",
 ]
 
 [project.optional-dependencies]
-dev = [
-    "pytest>=7.4.0",
-    "pytest-cov>=4.1.0",
-    "ruff>=0.1.0",
-    "ty>=0.0.18",
-    "pre-commit>=3.0.0",
-]
-web = [
-    "python-multipart>=0.0.6",
-    "websockets>=12.0",
-    "httpx>=0.25.0",
-]
+dev = ["pytest>=7.4.0", "pytest-cov>=4.1.0", "ruff>=0.1.0", "ty>=0.0.18", "pre-commit>=3.0.0"]
+web = ["python-multipart>=0.0.6", "websockets>=12.0", "httpx>=0.25.0"]
 
 [project.scripts]
 sibyl = "sibyl.main:run_server"
@@ -67,35 +56,35 @@ packages = ["src/sibyl"]
 [tool.ruff]
 line-length = 180
 target-version = "py312"
-exclude = [".git", ".mypy_cache", ".ruff_cache", "examples"]
+exclude = [".git", ".ruff_cache", "examples", "sibyl_storage"]
 src = ["./src"]
 
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = [
-    "D100",     # Missing docstring in public module
-    "G004",     # Logging statement uses f-string
-    "ANN401",   # Dynamically typed expressions (Any)
-    "COM812",   # Trailing comma missing
-    "EM101",    # Exception must not use string literal
-    "EM102",    # Exception must not use f-string literal
-    "PERF203",  # try-except within a loop
-    "D203",     # 1 blank line required before class docstring (conflicts with D211)
-    "D107",     # Missing docstring in __init__
-    "D102",     # Missing docstring in public method
-    "PT011",    # pytest.raises too broad
-    "BLE001",   # Do not use Exception as base class for custom exceptions
-    "TRY002",   # try-except without specifying exception type
-    "TRY003",   # try-except that catches BaseException
-    "TRY301",   # Abstract raise to an inner function (intentional fallback pattern)
-    "C901",     # Function is too complex
-    "PLR0912",  # Too many branches
-    "PLR0915",  # Too many statements
-    "S104",     # Possible binding to all interfaces (0.0.0.0 is intentional)
-    "S603",     # subprocess call: check for execution of untrusted input (openssl is trusted)
-    "S607",     # Starting a process with a partial executable path (openssl)
-    "FBT001",   # Boolean-typed positional argument in function definition (click flag)
-    "PLC0415",  # import should be at the top-level (conditional/optional imports)
+    "D100",    # Missing docstring in public module
+    "G004",    # Logging statement uses f-string
+    "ANN401",  # Dynamically typed expressions (Any)
+    "COM812",  # Trailing comma missing
+    "EM101",   # Exception must not use string literal
+    "EM102",   # Exception must not use f-string literal
+    "PERF203", # try-except within a loop
+    "D203",    # 1 blank line required before class docstring (conflicts with D211)
+    "D107",    # Missing docstring in __init__
+    "D102",    # Missing docstring in public method
+    "PT011",   # pytest.raises too broad
+    "BLE001",  # Do not use Exception as base class for custom exceptions
+    "TRY002",  # try-except without specifying exception type
+    "TRY003",  # try-except that catches BaseException
+    "TRY301",  # Abstract raise to an inner function (intentional fallback pattern)
+    "C901",    # Function is too complex
+    "PLR0912", # Too many branches
+    "PLR0915", # Too many statements
+    "S104",    # Possible binding to all interfaces (0.0.0.0 is intentional)
+    "S603",    # subprocess call: check for execution of untrusted input (openssl is trusted)
+    "S607",    # Starting a process with a partial executable path (openssl)
+    "FBT001",  # Boolean-typed positional argument in function definition (click flag)
+    "PLC0415", # import should be at the top-level (conditional/optional imports)
 ]
 
 
@@ -122,6 +111,4 @@ addopts = "-v --cov=sibyl --cov-report=term-missing"
 decimalog = { git = "https://github.com/cvasilatos/decimalog.git" }
 
 [dependency-groups]
-dev = [
-    "pre-commit>=4.5.1",
-]
+dev = ["pre-commit>=4.5.1"]

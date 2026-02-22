@@ -62,23 +62,26 @@ function HomeContent() {
   const [maxScore, setMaxScore] = useState<number>(10)
   const fileInputRef = useRef<HTMLInputElement>(null!)
 
-  // Load available models on mount
-  useEffect(() => {
-    const loadModels = async () => {
-      try {
-        const response = await fetch(`${API_URL}/api/models`)
-        if (response.ok) {
-          const data = await response.json()
-          const modelNames = data.models.map((m: any) => m.name)
-          setAvailableModels(modelNames)
-          if (modelNames.length > 0) {
-            setSelectedModel(modelNames[0])
-          }
+  const loadModels = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/models`)
+      if (response.ok) {
+        const data = await response.json()
+        const modelNames = data.models.map((m: any) => m.name)
+        setAvailableModels(modelNames)
+        if (modelNames.length > 0) {
+          setSelectedModel(modelNames[0])
         }
-      } catch (err) {
-        console.error("Failed to load models:", err)
       }
+    } catch (err) {
+      console.error("Failed to load models:", err)
     }
+  }, [])
+
+  // Load available models and max score on mount
+  useEffect(() => {
+    loadModels()
+
     const loadMaxScore = async () => {
       try {
         const score = await fetchMaxScore()
@@ -88,9 +91,16 @@ function HomeContent() {
         toast({ title: "Warning", description: "Could not load score scale from server, using default.", variant: "destructive" })
       }
     }
-    loadModels()
+
     loadMaxScore()
-  }, [])
+  }, [loadModels])
+
+  // Reload models when the review tab becomes active
+  useEffect(() => {
+    if (activeTab === "review") {
+      loadModels()
+    }
+  }, [activeTab, loadModels])
 
   const handleFileSelect = (file: File) => {
     if (file.type === "application/pdf") {
