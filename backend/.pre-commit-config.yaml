@@ -4,7 +4,17 @@ repos:
     hooks:
       - id: ruff-check
       - id: ruff-format
-  - repo: https://github.com/astral-sh/ty
-    rev: 0.0.18
+
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    rev: 0.10.3
+    hooks:
+      - id: uv-lock
+
+  - repo: local
     hooks:
       - id: ty
+        name: ty check
+        entry: uv run ty check
+        language: system
+        types: [python]
+        pass_filenames: false
