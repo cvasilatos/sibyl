@@ -9,7 +9,7 @@ from decimalog.logger import CustomLogger
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from sibyl.routers import web_reviews, web_upload, web_ws
+from sibyl.routers import web_gpu, web_reviews, web_upload, web_ws
 
 CustomLogger.setup_logging("logs", "app", level="DEBUG")
 
@@ -29,6 +29,7 @@ app.add_middleware(
 app.include_router(web_reviews.router, prefix="/api", tags=["Reviews"])
 app.include_router(web_upload.router, prefix="/api", tags=["Upload"])
 app.include_router(web_ws.router, prefix="/ws", tags=["WebSocket"])
+app.include_router(web_gpu.router, prefix="/api", tags=["GPU"])
 
 
 @app.get("/")
