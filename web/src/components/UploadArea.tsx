@@ -1,20 +1,20 @@
-import { FileText, Upload } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import type { RefObject } from "react"
+import { FileText, Upload } from "lucide-react";
+import type { RefObject } from "react";
+import { Button } from "@/components/ui/button";
 
 type Props = {
-  selectedFile: File | null
-  selectedModel: string
-  availableModels: string[]
-  onModelChange: (model: string) => void
-  fileInputRef: RefObject<HTMLInputElement>
-  isDragging: boolean
-  handleDragOver: (e: React.DragEvent) => void
-  handleDragLeave: (e: React.DragEvent) => void
-  handleDrop: (e: React.DragEvent) => void
-  handleFileInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void
-  startReview: () => Promise<void>
-}
+  selectedFile: File | null;
+  selectedModel: string;
+  availableModels: string[];
+  onModelChange: (model: string) => void;
+  fileInputRef: RefObject<HTMLInputElement | null>;
+  isDragging: boolean;
+  handleDragOver: (e: React.DragEvent) => void;
+  handleDragLeave: (e: React.DragEvent) => void;
+  handleDrop: (e: React.DragEvent) => void;
+  handleFileInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  startReview: () => Promise<void>;
+};
 
 export default function UploadArea({
   selectedFile,
@@ -31,49 +31,37 @@ export default function UploadArea({
 }: Props) {
   return (
     <>
-      <div
-        className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-all ${
+      <button
+        type="button"
+        className={`w-full border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-all ${
           isDragging ? "border-primary bg-primary/5 scale-[1.02]" : "border-border hover:border-primary hover:bg-accent"
         } ${selectedFile ? "border-green-500 bg-green-50 dark:bg-green-950" : ""}`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") fileInputRef.current?.click();
+        }}
       >
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".pdf"
-          onChange={handleFileInputChange}
-          className="hidden"
-        />
+        <input ref={fileInputRef} type="file" accept=".pdf" onChange={handleFileInputChange} className="hidden" />
         <FileText className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-        <p className="text-lg font-medium mb-2">
-          {selectedFile ? `Selected: ${selectedFile.name}` : "Drag and drop a PDF file here or click to browse"}
-        </p>
-        <p className="text-sm text-muted-foreground">
-          {selectedFile ? `Size: ${(selectedFile.size / 1024 / 1024).toFixed(2)} MB` : "Supports research papers in PDF format"}
-        </p>
-      </div>
+        <p className="text-lg font-medium mb-2">{selectedFile ? `Selected: ${selectedFile.name}` : "Drag and drop a PDF file here or click to browse"}</p>
+        <p className="text-sm text-muted-foreground">{selectedFile ? `Size: ${(selectedFile.size / 1024 / 1024).toFixed(2)} MB` : "Supports research papers in PDF format"}</p>
+      </button>
 
       {/* Model selection */}
       {availableModels.length > 0 && (
         <div className="space-y-2">
-          <label className="text-sm font-medium">Select Model for Review</label>
-          <select
-            value={selectedModel}
-            onChange={(e) => onModelChange(e.target.value)}
-            className="w-full px-3 py-2 text-sm border border-input rounded-md bg-background"
-          >
+          <label htmlFor="model-select" className="text-sm font-medium">Select Model for Review</label>
+          <select id="model-select" value={selectedModel} onChange={(e) => onModelChange(e.target.value)} className="w-full px-3 py-2 text-sm border border-input rounded-md bg-background">
             {availableModels.map((model) => (
               <option key={model} value={model}>
                 {model}
               </option>
             ))}
           </select>
-          <p className="text-xs text-muted-foreground">
-            This will override the default model configured in your environment
-          </p>
+          <p className="text-xs text-muted-foreground">This will override the default model configured in your environment</p>
         </div>
       )}
 
@@ -82,5 +70,5 @@ export default function UploadArea({
         Start Review
       </Button>
     </>
-  )
+  );
 }

@@ -1,184 +1,184 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Download, RefreshCw, Loader2, Search } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { useToast } from "@/components/ui/use-toast"
-import { API_URL } from "@/lib/config"
-import { useDownload } from "@/lib/download-context"
+import { Download, Loader2, RefreshCw, Search } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/components/ui/use-toast";
+import { API_URL } from "@/lib/config";
+import { useDownload } from "@/lib/download-context";
 
 interface Model {
-  name: string
-  size: number
-  modified_at: string
-  digest: string
+  name: string;
+  size: number;
+  modified_at: string;
+  digest: string;
 }
 
 interface AvailableModel {
-  name: string
-  description: string
-  size: string
-  installed: boolean
-  installed_variants?: string[]
+  name: string;
+  description: string;
+  size: string;
+  installed: boolean;
+  installed_variants?: string[];
 }
 
 interface ModelsResponse {
-  models: Model[]
-  count: number
+  models: Model[];
+  count: number;
 }
 
 interface AvailableModelsResponse {
-  models: AvailableModel[]
-  count: number
+  models: AvailableModel[];
+  count: number;
 }
 
 interface ModelTagsResponse {
-  model: string
-  tags: string[]
+  model: string;
+  tags: string[];
 }
 
 export default function ModelManager() {
-  const [models, setModels] = useState<Model[]>([])
-  const [availableModels, setAvailableModels] = useState<AvailableModel[]>([])
-  const [filteredModels, setFilteredModels] = useState<AvailableModel[]>([])
-  const [loading, setLoading] = useState(true)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [modelTags, setModelTags] = useState<Record<string, string[]>>({})
-  const [fetchingTags, setFetchingTags] = useState<Set<string>>(new Set())
-  const [selectedTags, setSelectedTags] = useState<Record<string, string>>({})
-  const [expandedModel, setExpandedModel] = useState<string | null>(null)
-  const { toast } = useToast()
-  const { installing, error, startDownload, clearError } = useDownload()
+  const [models, setModels] = useState<Model[]>([]);
+  const [availableModels, setAvailableModels] = useState<AvailableModel[]>([]);
+  const [filteredModels, setFilteredModels] = useState<AvailableModel[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [modelTags, setModelTags] = useState<Record<string, string[]>>({});
+  const [fetchingTags, setFetchingTags] = useState<Set<string>>(new Set());
+  const [selectedTags, setSelectedTags] = useState<Record<string, string>>({});
+  const [expandedModel, setExpandedModel] = useState<string | null>(null);
+  const { toast } = useToast();
+  const { installing, error, startDownload, clearError } = useDownload();
 
-  const loadModels = async () => {
-    setLoading(true)
-    clearError()
+  const loadModels = useCallback(async () => {
+    setLoading(true);
+    clearError();
     try {
-      const response = await fetch(`${API_URL}/api/models`)
+      const response = await fetch(`${API_URL}/api/models`);
       if (!response.ok) {
-        throw new Error("Failed to fetch models")
+        throw new Error("Failed to fetch models");
       }
-      const data: ModelsResponse = await response.json()
-      setModels(data.models || [])
+      const data: ModelsResponse = await response.json();
+      setModels(data.models || []);
     } catch (err) {
       // Note: error handling moved to context
-      console.error("Failed to load models:", err)
+      console.error("Failed to load models:", err);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  }, [clearError]);
 
-  const loadAvailableModels = async () => {
+  const loadAvailableModels = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/api/models/available`)
+      const response = await fetch(`${API_URL}/api/models/available`);
       if (!response.ok) {
-        throw new Error("Failed to fetch available models")
+        throw new Error("Failed to fetch available models");
       }
-      const data: AvailableModelsResponse = await response.json()
-      setAvailableModels(data.models || [])
-      setFilteredModels(data.models || [])
+      const data: AvailableModelsResponse = await response.json();
+      setAvailableModels(data.models || []);
+      setFilteredModels(data.models || []);
     } catch (err) {
-      console.error("Failed to load available models:", err)
+      console.error("Failed to load available models:", err);
     }
-  }
+  }, []);
 
   useEffect(() => {
-    loadModels()
-    loadAvailableModels()
-  }, [])
+    loadModels();
+    loadAvailableModels();
+  }, [loadAvailableModels, loadModels]);
 
   useEffect(() => {
     // Filter available models based on search query
     if (searchQuery.trim() === "") {
-      setFilteredModels(availableModels)
+      setFilteredModels(availableModels);
     } else {
-      const query = searchQuery.toLowerCase()
-      const filtered = availableModels.filter(
-        (model) =>
-          model.name.toLowerCase().includes(query) ||
-          model.description.toLowerCase().includes(query)
-      )
-      setFilteredModels(filtered)
+      const query = searchQuery.toLowerCase();
+      const filtered = availableModels.filter((model) => model.name.toLowerCase().includes(query) || model.description.toLowerCase().includes(query));
+      setFilteredModels(filtered);
     }
-  }, [searchQuery, availableModels])
+  }, [searchQuery, availableModels]);
 
   const fetchModelTags = async (modelName: string) => {
-    if (modelTags[modelName] !== undefined || fetchingTags.has(modelName)) return
-    setFetchingTags((prev) => new Set(prev).add(modelName))
+    if (modelTags[modelName] !== undefined || fetchingTags.has(modelName)) return;
+    setFetchingTags((prev) => new Set(prev).add(modelName));
     try {
-      const response = await fetch(`${API_URL}/api/models/available/${modelName}/tags`)
-      if (!response.ok) throw new Error("Failed to fetch tags")
-      const data: ModelTagsResponse = await response.json()
-      setModelTags((prev) => ({ ...prev, [modelName]: data.tags }))
+      const response = await fetch(`${API_URL}/api/models/available/${modelName}/tags`);
+      if (!response.ok) throw new Error("Failed to fetch tags");
+      const data: ModelTagsResponse = await response.json();
+      setModelTags((prev) => ({ ...prev, [modelName]: data.tags }));
       if (data.tags.length > 0) {
-        setSelectedTags((prev) => ({ ...prev, [modelName]: data.tags[0] }))
+        setSelectedTags((prev) => ({ ...prev, [modelName]: data.tags[0] }));
       }
     } catch (err) {
-      console.error(`Failed to load tags for ${modelName}:`, err)
-      setModelTags((prev) => ({ ...prev, [modelName]: [] }))
+      console.error(`Failed to load tags for ${modelName}:`, err);
+      setModelTags((prev) => ({ ...prev, [modelName]: [] }));
     } finally {
-      setFetchingTags((prev) => { const next = new Set(prev); next.delete(modelName); return next })
+      setFetchingTags((prev) => {
+        const next = new Set(prev);
+        next.delete(modelName);
+        return next;
+      });
     }
-  }
+  };
 
   const handleInstallClick = async (modelName: string) => {
     if (expandedModel === modelName) {
-      setExpandedModel(null)
-      return
+      setExpandedModel(null);
+      return;
     }
-    setExpandedModel(modelName)
-    await fetchModelTags(modelName)
-  }
+    setExpandedModel(modelName);
+    await fetchModelTags(modelName);
+  };
 
   const doInstall = (fullModelName: string) => {
-    clearError()
-    setExpandedModel(null)
+    clearError();
+    setExpandedModel(null);
 
     const toastId = toast({
       title: "Downloading Model",
       description: `Installing ${fullModelName}...`,
-    })
+    });
 
     startDownload(
       fullModelName,
       () => {
-        loadModels()
-        loadAvailableModels()
-        toastId.dismiss()
+        loadModels();
+        loadAvailableModels();
+        toastId.dismiss();
         toast({
           title: "Installation Complete",
           description: `${fullModelName} has been successfully installed!`,
-        })
+        });
       },
       (message: string) => {
-        toastId.dismiss()
+        toastId.dismiss();
         toast({
           title: "Installation Failed",
           description: message,
           variant: "destructive",
-        })
+        });
       },
       (progress: number, message: string) => {
         toastId.update({
           id: toastId.id,
           title: "Downloading Model",
           description: `${fullModelName}: ${progress}% - ${message}`,
-        })
+        });
       }
-    )
-  }
+    );
+  };
 
   const formatSize = (bytes: number) => {
-    if (bytes < 1024) return bytes + " B"
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + " KB"
-    if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(2) + " MB"
-    return (bytes / (1024 * 1024 * 1024)).toFixed(2) + " GB"
-  }
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB`;
+    if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+    return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+  };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString()
-  }
+    return new Date(dateString).toLocaleDateString();
+  };
 
   return (
     <Card>
@@ -222,37 +222,23 @@ export default function ModelManager() {
           {/* Available models list */}
           <div className="max-h-96 overflow-y-auto space-y-2 border rounded-md p-2">
             {filteredModels.map((model) => {
-              const tags = modelTags[model.name]
-              const isFetchingTags = fetchingTags.has(model.name)
-              const isExpanded = expandedModel === model.name
-              const selectedTag = selectedTags[model.name]
-              const isInstallingModel = installing.some(
-                (n) => n === model.name || n.startsWith(`${model.name}:`)
-              )
-              const hasInstalledVariants = model.installed_variants && model.installed_variants.length > 0
-              const isSelectedVariantInstalled = hasInstalledVariants && !!selectedTag && model.installed_variants!.includes(selectedTag)
+              const tags = modelTags[model.name];
+              const isFetchingTags = fetchingTags.has(model.name);
+              const isExpanded = expandedModel === model.name;
+              const selectedTag = selectedTags[model.name];
+              const isInstallingModel = installing.some((n) => n === model.name || n.startsWith(`${model.name}:`));
+              const hasInstalledVariants = model.installed_variants && model.installed_variants.length > 0;
+              const isSelectedVariantInstalled = hasInstalledVariants && !!selectedTag && model.installed_variants?.includes(selectedTag);
               return (
-                <div
-                  key={model.name}
-                  className="p-3 bg-muted/50 rounded-md hover:bg-muted"
-                >
+                <div key={model.name} className="p-3 bg-muted/50 rounded-md hover:bg-muted">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <p className="text-sm font-medium">{model.name}</p>
                       <p className="text-xs text-muted-foreground">{model.description}</p>
                       <p className="text-xs text-muted-foreground mt-1">{model.size}</p>
-                      {hasInstalledVariants && (
-                        <p className="text-xs text-green-600 mt-1">
-                          Installed: {model.installed_variants!.join(", ")}
-                        </p>
-                      )}
+                      {hasInstalledVariants && <p className="text-xs text-green-600 mt-1">Installed: {model.installed_variants?.join(", ")}</p>}
                     </div>
-                    <Button
-                      onClick={() => handleInstallClick(model.name)}
-                      disabled={isInstallingModel}
-                      size="sm"
-                      variant="default"
-                    >
+                    <Button onClick={() => handleInstallClick(model.name)} disabled={isInstallingModel} size="sm" variant="default">
                       {isInstallingModel ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
@@ -280,15 +266,12 @@ export default function ModelManager() {
                           >
                             {tags.map((tag) => (
                               <option key={tag} value={tag}>
-                                {tag}{model.installed_variants?.includes(tag) ? " (installed)" : ""}
+                                {tag}
+                                {model.installed_variants?.includes(tag) ? " (installed)" : ""}
                               </option>
                             ))}
                           </select>
-                          <Button
-                            size="sm"
-                            onClick={() => doInstall(`${model.name}:${selectedTag}`)}
-                            disabled={isInstallingModel || isSelectedVariantInstalled}
-                          >
+                          <Button size="sm" onClick={() => doInstall(`${model.name}:${selectedTag}`)} disabled={isInstallingModel || isSelectedVariantInstalled}>
                             <Download className="h-3 w-3 mr-1" />
                             Confirm
                           </Button>
@@ -305,13 +288,9 @@ export default function ModelManager() {
                     </div>
                   )}
                 </div>
-              )
+              );
             })}
-            {filteredModels.length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                No models found matching "{searchQuery}"
-              </p>
-            )}
+            {filteredModels.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No models found matching "{searchQuery}"</p>}
           </div>
         </div>
 
@@ -323,16 +302,11 @@ export default function ModelManager() {
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : models.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4 text-center">
-              No models installed. Install one from above.
-            </p>
+            <p className="text-sm text-muted-foreground py-4 text-center">No models installed. Install one from above.</p>
           ) : (
             <div className="space-y-2">
               {models.map((model) => (
-                <div
-                  key={model.digest}
-                  className="flex items-center justify-between p-3 bg-muted rounded-md"
-                >
+                <div key={model.digest} className="flex items-center justify-between p-3 bg-muted rounded-md">
                   <div>
                     <p className="text-sm font-medium">{model.name}</p>
                     <p className="text-xs text-muted-foreground">
@@ -346,5 +320,5 @@ export default function ModelManager() {
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }
