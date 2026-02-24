@@ -1,0 +1,56 @@
+site_name: Sibyl
+site_description: An LLM-powered research paper review system
+site_url: https://cvasilatos.github.io/sibyl/
+repo_url: https://github.com/cvasilatos/sibyl
+repo_name: cvasilatos/sibyl
+
+docs_dir: docs
+site_dir: site
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: deep purple
+      accent: purple
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: deep purple
+      accent: purple
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - pymdownx.details
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - Usage: usage.md
+  - Backend:
+      - Web App API: backend/web-app.md
+      - Web App Examples: backend/web-app-example.md
+      - Next.js Frontend: backend/web-app-nextjs.md
+      - Storage & Search: backend/storage.md
+      - Model Comparison: backend/model-comparison.md
+  - Contributing: contributing.md
+  - Changelog: changelog.md

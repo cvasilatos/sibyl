@@ -1,0 +1,50 @@
+name: Deploy Documentation
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "backend/docs/**"
+      - "backend/CHANGELOG.md"
+      - "backend/CONTRIBUTING.md"
+      - "backend/GETTING_STARTED.md"
+      - "backend/USAGE.md"
+      - "README.md"
+      - "mkdocs.yml"
+      - ".github/workflows/docs.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    name: Build & Deploy Docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install MkDocs
+        run: pip install -r docs-requirements.txt
+
+      - name: Assemble docs directory
+        run: |
+          mkdir -p docs/backend
+          cp README.md docs/index.md
+          cp backend/GETTING_STARTED.md docs/getting-started.md
+          cp backend/USAGE.md docs/usage.md
+          cp backend/docs/WEB_APP.md docs/backend/web-app.md
+          cp backend/docs/WEB_APP_EXAMPLE.md docs/backend/web-app-example.md
+          cp backend/docs/WEB_APP_NEXTJS.md docs/backend/web-app-nextjs.md
+          cp backend/docs/STORAGE.md docs/backend/storage.md
+          cp backend/docs/MODEL_COMPARISON.md docs/backend/model-comparison.md
+          cp backend/CONTRIBUTING.md docs/contributing.md
+          cp backend/CHANGELOG.md docs/changelog.md
+
+      - name: Deploy to GitHub Pages
+        run: mkdocs gh-deploy --force
