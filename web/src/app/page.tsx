@@ -4,6 +4,7 @@ import { useCallback, useRef, useState, useEffect, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 
 import ModelManager from "@/components/ModelManager"
+import GpuMonitor from "@/components/GpuMonitor"
 import ReviewLibrary from "@/components/ReviewLibrary"
 import Tabs from "@/components/Tabs"
 import UploadArea from "@/components/UploadArea"
@@ -51,8 +52,8 @@ function HomeContent() {
   const tabParam = searchParams.get("tab")
   const reviewParam = searchParams.get("review")
 
-  const activeTab: "review" | "library" | "models" =
-    tabParam === "review" || tabParam === "library" || tabParam === "models" ? tabParam : "review"
+  const activeTab: "review" | "library" | "models" | "gpu" =
+    tabParam === "review" || tabParam === "library" || tabParam === "models" || tabParam === "gpu" ? tabParam : "review"
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [selectedModel, setSelectedModel] = useState<string>("")
@@ -271,6 +272,8 @@ function HomeContent() {
         )}
 
         {activeTab === "models" && <ModelManager />}
+
+        {activeTab === "gpu" && <GpuMonitor />}
 
         {/* Results */}
         {results && (

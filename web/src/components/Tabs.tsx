@@ -1,8 +1,8 @@
 import Link from "next/link"
-import { BookOpen, FileText, Settings } from "lucide-react"
+import { BookOpen, FileText, Settings, Monitor } from "lucide-react"
 
 type Props = {
-  activeTab: "review" | "library" | "models"
+  activeTab: "review" | "library" | "models" | "gpu"
 }
 
 export default function Tabs({ activeTab }: Props) {
@@ -45,6 +45,19 @@ export default function Tabs({ activeTab }: Props) {
           <span>Models</span>
         </div>
         {activeTab === "models" && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
+      </Link>
+
+      <Link
+        href="/?tab=gpu"
+        className={`pb-6 px-2 text-sm font-medium transition-colors relative ${
+          activeTab === "gpu" ? "text-primary" : "text-muted-foreground hover:text-foreground"
+        }`}
+      >
+        <div className="flex items-center gap-2">
+          <Monitor className="h-4 w-4" />
+          <span>GPU</span>
+        </div>
+        {activeTab === "gpu" && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
       </Link>
     </div>
   )
