@@ -227,8 +227,7 @@ class Engine:
                 metadata = cast("dict[str, str | int | float | bool | None]", result_metadatas[i])
 
                 if search_lower and not any(
-                    search_lower in str(metadata.get(field) or "").lower()
-                    for field in ("paper_title", "pdf_filename", "reviewer_model", "recommendation")
+                    search_lower in str(metadata.get(field) or "").lower() for field in ("paper_title", "pdf_filename", "reviewer_model", "recommendation")
                 ):
                     continue
 
