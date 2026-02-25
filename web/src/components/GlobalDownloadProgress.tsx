@@ -1,12 +1,12 @@
-"use client"
+"use client";
 
-import { useDownload } from "@/lib/download-context"
-import { Progress } from "@/components/ui/progress"
+import { Progress } from "@/components/ui/progress";
+import { useDownload } from "@/lib/download-context";
 
 export function GlobalDownloadProgress() {
-  const { installing, downloadProgresses } = useDownload()
+  const { installing, downloadProgresses } = useDownload();
 
-  if (installing.length === 0) return null
+  if (installing.length === 0) return null;
 
   return (
     <div className="fixed top-0 left-0 right-0 z-50 bg-background border-b p-4 shadow-md">
@@ -22,5 +22,5 @@ export function GlobalDownloadProgress() {
         ))}
       </div>
     </div>
-  )
+  );
 }
