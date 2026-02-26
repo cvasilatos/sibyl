@@ -20,15 +20,11 @@ htmlcov/
 .DS_Store
 Thumbs.db
 
-# Output files
 outputs/
-reviews/
 
-# Storage
 sibyl_storage/
 ollama_data/
 
-# Logs
 logs/
 
 # Next.js / Node.js
