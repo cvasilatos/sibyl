@@ -1,20 +1,28 @@
 import asyncio
+import logging
 import re
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
+
+from decima import CustomLogger
 
 if TYPE_CHECKING:
+    from ollama import Client, ListResponse
+    from ollama._types import ModelDetails
+
     from sibyl.storage.review import Review
 
 import httpx
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse
 
-from sibyl.config import MAX_SCORE, OLLAMA_BASE_URL
+from sibyl.config import MAX_SCORE
 from sibyl.routers.web_state import review_sessions, storage
 from sibyl.web.model.search_request import SearchRequest
 from sibyl.web.model.session_status import SessionStatus
 
 router = APIRouter()
+
+logger: CustomLogger = cast("CustomLogger", logging.getLogger(__name__))
 
 
 @router.get("/session/{session_id}")
@@ -38,7 +46,7 @@ async def health_check() -> dict:
     try:
         return {
             "status": "healthy",
-            "ollama_base_url": OLLAMA_BASE_URL,
+            "ollama_base_url": "OLLAMA_BASE_URL",
             "storage_count": storage.count_reviews(),
         }
     except Exception as e:
@@ -105,21 +113,19 @@ async def get_statistics() -> dict:
 
 
 @router.get("/models")
-async def list_models() -> dict:
-    """List models currently available in Ollama."""
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        response = await client.get(f"{OLLAMA_BASE_URL}/api/tags")
-        response.raise_for_status()
+async def list_models(request: Request) -> dict:
+    """List models currently available in Ollama using the pre-instantiated client."""
+    client: Client = request.app.state.ollama_clients[0]._client
+    response: ListResponse = client.list()
 
-        models_data = response.json()
-        return {
-            "models": models_data.get("models", []),
-            "count": len(models_data.get("models", [])),
-        }
+    return {
+        "models": response.models,
+        "count": len(response.models),
+    }
 
 
 @router.get("/models/available")
-async def list_available_models() -> dict:
+async def list_available_models(request: Request) -> dict:
     """List models available from the Ollama library."""
     try:
         process = await asyncio.create_subprocess_exec(
@@ -144,17 +150,15 @@ async def list_available_models() -> dict:
 
     installed_model_names: set[str] = set()
     installed_variants_map: dict[str, list[str]] = {}
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get(f"{OLLAMA_BASE_URL}/api/tags")
-            response.raise_for_status()
-            models_data = response.json()
-            installed_model_names = {m["name"] for m in models_data.get("models", [])}
-            for full_name in installed_model_names:
-                base, _, tag = full_name.partition(":")
-                installed_variants_map.setdefault(base, []).append(tag or "latest")
-    except httpx.HTTPError:
-        pass
+
+    client: Client = request.app.state.ollama_clients[0]._client
+    response: ListResponse = client.list()
+
+    for model in response.models:
+        model: ListResponse.Model
+        details: ModelDetails | None = model.details
+        if details:
+            installed_variants_map.setdefault(model.model, []).append(details.parameter_size)
 
     available_models = []
     for model_name in model_names:

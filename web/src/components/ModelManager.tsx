@@ -9,7 +9,7 @@ import { API_URL } from "@/lib/config";
 import { useDownload } from "@/lib/download-context";
 
 interface Model {
-  name: string;
+  model: string;
   size: number;
   modified_at: string;
   digest: string;
@@ -308,7 +308,7 @@ export default function ModelManager() {
               {models.map((model) => (
                 <div key={model.digest} className="flex items-center justify-between p-3 bg-muted rounded-md">
                   <div>
-                    <p className="text-sm font-medium">{model.name}</p>
+                    <p className="text-sm font-medium">{model.model}</p>
                     <p className="text-xs text-muted-foreground">
                       {formatSize(model.size)} • Modified {formatDate(model.modified_at)}
                     </p>

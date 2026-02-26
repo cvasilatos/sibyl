@@ -1,14 +1,14 @@
 import contextlib
 import logging
-from typing import cast
+from typing import TYPE_CHECKING, cast
+
+if TYPE_CHECKING:
+    from ollama import AsyncClient
 
 import anyio
-import httpx
-from decimalog.logger import CustomLogger
+from decima.logger import CustomLogger
 from fastapi import APIRouter, Query, WebSocket
 
-from sibyl.config import OLLAMA_BASE_URL, SibylConfig
-from sibyl.llm.client.ollama import OllamaClient
 from sibyl.pdf_parser import PDFParser
 from sibyl.reviewer import PaperReview, ReviewSystem
 from sibyl.routers.web_state import review_sessions, storage
@@ -19,35 +19,37 @@ logger: CustomLogger = cast("CustomLogger", logging.getLogger(__name__))
 
 
 @router.websocket("/pull")
-async def pull_model(websocket: WebSocket, model_name: str) -> None:
+async def pull_model(websocket: WebSocket, model_name: str = Query()) -> None:
     """WebSocket endpoint to pull a model from Ollama."""
     await websocket.accept()
 
     try:
-        async with httpx.AsyncClient(timeout=600.0) as client, client.stream("POST", f"{OLLAMA_BASE_URL}/api/pull", json={"name": model_name}) as response:
-            async for line in response.aiter_lines():
-                if line:
-                    await websocket.send_text(line)
+        # If you stored them as a list: app.state.ollama_clients[0]
+        # If you stored them as a dict: app.state.ollama_clients["default"]
+        client: AsyncClient = websocket.app.state.ollama_clients[0]._async_client
+
+        async for part in await client.pull(model=model_name, stream=True):
+            logger.info(f"Pulling model {model_name}: {part}")
+            data = part.model_dump() if hasattr(part, "model_dump") else part.dict()
+
+            await websocket.send_json(data)
+
     except Exception as e:
+        logger.exception(f"Error during model pull for {model_name}")
         await websocket.send_json({"status": "error", "message": str(e)})
     finally:
-        await websocket.close()
+        with contextlib.suppress(Exception):
+            await websocket.close()
 
 
 @router.websocket("/session/{session_id}")
-async def websocket_endpoint(websocket: WebSocket, session_id: str, model: str = Query(...)) -> None:
+async def websocket_endpoint(websocket: WebSocket, session_id: str, model: str = Query(...), host: str = Query(...)) -> None:
     """WebSocket endpoint for real-time review progress updates."""
     await websocket.accept()
 
     try:
         session = review_sessions[session_id]
         await websocket.send_json({"status": "progress", "progress": 10, "message": "Extracting text from PDF..."})
-
-        sibyl_config: SibylConfig = SibylConfig.from_env()
-        llm_config = sibyl_config.ollama
-        if llm_config is None:
-            await websocket.send_json({"status": "error", "message": "Ollama is not configured. Please set OLLAMA_MODEL in your .env file."})
-            return
 
         parser = PDFParser(session["pdf_path"])
         metadata = parser.get_metadata()
@@ -59,7 +61,10 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, model: str =
         await websocket.send_json({"status": "progress", "progress": 40, "message": "Generating review..."})
 
         try:
-            client = OllamaClient(llm_config)
+            for key, value in websocket.app.state.ollama_clients.items():
+                logger.debug(f"Ollama client key: {key}, host: {value}")
+
+            client = websocket.app.state.ollama_clients[int(host) - 1]
             reviewer = ReviewSystem(client)
 
             await websocket.send_json({"status": "progress", "progress": 50, "message": f"Reviewing with {model}..."})

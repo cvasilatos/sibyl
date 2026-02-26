@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
-    from decimalog.logger import CustomLogger
+    from decima.logger import CustomLogger
     from pypdf._page import PageObject
 
 import pypdf

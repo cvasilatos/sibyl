@@ -1,0 +1,18 @@
+line-length = 180
+target-version = "py312"
+exclude = [".git", ".ruff_cache", "build", "dist", "__pycache__", "paper", "outputs", ".pytest_cache"]
+src = ["./src"]
+
+lint.select = ["ALL"]
+lint.ignore = [
+    "BLE001", # Do not catch blind exception: `Exception`
+    "G004",   # log with f-string
+    "TRY003", # Avoid specifying long messages outside the exception class
+    "EM101",  # Exception must not use a string literal, assign to variable first
+    "EM102",  # Exception must not use an f-string literal, assign to variable first
+    "D100",   # Missing docstring in public module
+    "COM812", # Missing trailing comma in a multi-line collection
+    "COM819", # Missing trailing comma in a multi-line collection
+]
+lint.isort = { combine-as-imports = true }
+format = { quote-style = "double", indent-style = "space" }

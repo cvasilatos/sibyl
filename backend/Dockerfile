@@ -6,10 +6,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl ca-certificates git\
     && rm -rf /var/lib/apt/lists/*
 
-COPY pyproject.toml .
-COPY README.md .
-COPY src/ src/
-
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 
@@ -17,7 +13,12 @@ ENV PATH="/root/.local/bin:${PATH}"
 ENV PATH="/root/.cargo/bin:${PATH}"
 ENV PATH="/app/.venv/bin:${PATH}"
 
-RUN uv sync --extra web --extra dev
+
+COPY pyproject.toml .
+COPY README.md .
+COPY src/ src/
+
+RUN uv sync --all-groups
 RUN uv build
 
 EXPOSE 8000

@@ -2,11 +2,10 @@
 
 import contextlib
 
+import pynvml
 from fastapi import APIRouter, HTTPException
 
 try:
-    import pynvml
-
     pynvml.nvmlInit()
     _NVML_AVAILABLE = True
 except Exception:

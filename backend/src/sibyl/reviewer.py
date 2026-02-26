@@ -5,7 +5,7 @@ import logging
 from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
-    from decimalog.logger import CustomLogger
+    from decima.logger import CustomLogger
 from pydantic import BaseModel, Field
 
 from sibyl.config import MAX_SCORE

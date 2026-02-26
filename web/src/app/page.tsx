@@ -36,6 +36,17 @@ interface ReviewResults {
   reviews: Review[];
 }
 
+interface GpuInfo {
+  index: number;
+  name: string;
+}
+
+interface GpuListResponse {
+  gpus: GpuInfo[];
+  count: number;
+  available: boolean;
+}
+
 export default function Home() {
   return (
     <Suspense fallback={null}>
@@ -56,6 +67,8 @@ function HomeContent() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedModel, setSelectedModel] = useState<string>("");
   const [availableModels, setAvailableModels] = useState<string[]>([]);
+  const [availableGpus, setAvailableGpus] = useState<GpuInfo[]>([]);
+  const [selectedGpuIndex, setSelectedGpuIndex] = useState<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [results, setResults] = useState<ReviewResults | null>(null);
   const [maxScore, setMaxScore] = useState<number>(10);
@@ -66,7 +79,7 @@ function HomeContent() {
       const response = await fetch(`${API_URL}/api/models`);
       if (response.ok) {
         const data = await response.json();
-        const modelNames = data.models.map((m: { name: string }) => m.name);
+        const modelNames = data.models.map((m: { model: string }) => m.model);
         setAvailableModels(modelNames);
         if (modelNames.length > 0) {
           setSelectedModel(modelNames[0]);
@@ -77,9 +90,34 @@ function HomeContent() {
     }
   }, []);
 
+  const loadGpus = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/gpu`);
+      if (!response.ok) return;
+      const data: GpuListResponse = await response.json();
+      if (!data.available) {
+        setAvailableGpus([]);
+        setSelectedGpuIndex(null);
+        return;
+      }
+      const gpuList = data.gpus ?? [];
+      setAvailableGpus(gpuList);
+      if (gpuList.length === 0) {
+        setSelectedGpuIndex(null);
+      } else if (selectedGpuIndex !== null && !gpuList.some((gpu) => gpu.index === selectedGpuIndex)) {
+        setSelectedGpuIndex(gpuList[0].index);
+      }
+    } catch (err) {
+      console.error("Failed to load GPUs:", err);
+      setAvailableGpus([]);
+      setSelectedGpuIndex(null);
+    }
+  }, [selectedGpuIndex]);
+
   // Load available models and max score on mount
   useEffect(() => {
     loadModels();
+    loadGpus();
 
     const loadMaxScore = async () => {
       try {
@@ -92,7 +130,7 @@ function HomeContent() {
     };
 
     loadMaxScore();
-  }, [loadModels]);
+  }, [loadModels, loadGpus]);
 
   // Reload models when the review tab becomes active
   useEffect(() => {
@@ -141,13 +179,15 @@ function HomeContent() {
     [handleFileSelect]
   );
 
-  const startReview = async () => {
+  const startReview = async (gpuIndex: number | null) => {
     if (!selectedFile) return;
 
     try {
       // Upload file
       const formData = new FormData();
       formData.append("file", selectedFile);
+      const hostIndex = gpuIndex !== null ? gpuIndex + 1 : 0;
+      formData.append("host", String(hostIndex));
 
       const response = await fetch(`${API_URL}/api/upload`, {
         method: "POST",
@@ -175,7 +215,7 @@ function HomeContent() {
 
       // Connect WebSocket with optional model parameter
       const wsBaseUrl = getWebSocketUrl();
-      const wsUrl = `${wsBaseUrl}/ws/session/${sessionId}${selectedModel ? `?model=${encodeURIComponent(selectedModel)}` : ""}`;
+      const wsUrl = `${wsBaseUrl}/ws/session/${sessionId}${selectedModel ? `?model=${encodeURIComponent(selectedModel)}&host=${hostIndex}` : ""}`;
       const ws = new WebSocket(wsUrl);
 
       ws.onmessage = (event) => {
@@ -261,6 +301,9 @@ function HomeContent() {
             selectedModel={selectedModel}
             availableModels={availableModels}
             onModelChange={setSelectedModel}
+            availableGpus={availableGpus}
+            selectedGpuIndex={selectedGpuIndex}
+            onGpuChange={setSelectedGpuIndex}
             fileInputRef={fileInputRef}
             isDragging={isDragging}
             handleDragOver={handleDragOver}

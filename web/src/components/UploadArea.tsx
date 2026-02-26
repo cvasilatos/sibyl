@@ -7,13 +7,16 @@ type Props = {
   selectedModel: string;
   availableModels: string[];
   onModelChange: (model: string) => void;
+  availableGpus: Array<{ index: number; name: string }>;
+  selectedGpuIndex: number | null;
+  onGpuChange: (gpuIndex: number | null) => void;
   fileInputRef: RefObject<HTMLInputElement | null>;
   isDragging: boolean;
   handleDragOver: (e: React.DragEvent) => void;
   handleDragLeave: (e: React.DragEvent) => void;
   handleDrop: (e: React.DragEvent) => void;
   handleFileInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  startReview: () => Promise<void>;
+  startReview: (gpuIndex: number | null) => Promise<void>;
 };
 
 export default function UploadArea({
@@ -21,6 +24,9 @@ export default function UploadArea({
   selectedModel,
   availableModels,
   onModelChange,
+  availableGpus,
+  selectedGpuIndex,
+  onGpuChange,
   fileInputRef,
   isDragging,
   handleDragOver,
@@ -65,7 +71,30 @@ export default function UploadArea({
         </div>
       )}
 
-      <Button onClick={startReview} disabled={!selectedFile} className="w-full" size="lg">
+      {/* GPU selection */}
+      {availableGpus.length > 0 && (
+        <div className="space-y-2">
+          <label htmlFor="gpu-select" className="text-sm font-medium">Select GPU</label>
+          <select
+            id="gpu-select"
+            value={selectedGpuIndex ?? "auto"}
+            onChange={(e) => onGpuChange(e.target.value === "auto" ? null : Number(e.target.value))}
+            className="w-full px-3 py-2 text-sm border border-input rounded-md bg-background"
+          >
+            <option value="auto">Auto</option>
+            {availableGpus.map((gpu) => (
+              <option key={gpu.index} value={gpu.index}>
+                GPU {gpu.index}: {gpu.name}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-muted-foreground">Choose which GPU host to use for this review run</p>
+        </div>
+      )}
+
+
+
+      <Button onClick={() => startReview(selectedGpuIndex)} disabled={!selectedFile} className="w-full" size="lg">
         <Upload className="mr-2 h-4 w-4" />
         Start Review
       </Button>

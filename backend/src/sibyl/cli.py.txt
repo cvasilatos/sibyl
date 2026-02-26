@@ -12,11 +12,12 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
 from sibyl.comparison import ReviewComparison
-from sibyl.config import MAX_SCORE, SibylConfig
+from sibyl.config import MAX_SCORE
 from sibyl.llm.client.ollama import OllamaClient
 from sibyl.pdf_parser import PDFParser
 from sibyl.reviewer import PaperReview, ReviewSystem
 from sibyl.storage.engine import Engine
+from sibyl.web_app import run_server
 
 console = Console()
 
@@ -48,36 +49,14 @@ def main() -> None:
     default=None,
     help="Maximum number of pages to extract from PDF",
 )
-def review(pdf_path: str, providers: tuple, output: str, max_pages: int) -> None:
+def review(pdf_path: str, output: str, max_pages: int) -> None:
     """Review a research paper PDF using LLMs.
 
     PDF_PATH: Path to the research paper PDF file
     """
     console.print("\n[bold blue]Sibyl Research Paper Review System[/bold blue]\n")
 
-    config = SibylConfig.from_env()
-    active_providers = config.get_active_providers()
-
-    if not active_providers:
-        console.print("[bold red]Error:[/bold red] No local LLM configured. Please set OLLAMA_MODEL in your .env file and ensure Ollama is running.")
-        return
-
-    if providers:
-        providers_to_use = [p.lower() for p in providers]
-
-        for provider in providers_to_use:
-            if provider not in active_providers:
-                console.print(f"[bold yellow]Warning:[/bold yellow] {provider} requested but not configured. Skipping.")
-        providers_to_use = [p for p in providers_to_use if p in active_providers]
-    else:
-        providers_to_use = active_providers
-
-    if not providers_to_use:
-        console.print("[bold red]Error:[/bold red] No valid providers available for review.")
-        return
-
     console.print(f"[bold]Paper:[/bold] {pdf_path}")
-    console.print(f"[bold]Providers:[/bold] {', '.join(providers_to_use)}\n")
 
     console.print("[bold]Step 1:[/bold] Extracting text from PDF...")
     try:
@@ -101,23 +80,18 @@ def review(pdf_path: str, providers: tuple, output: str, max_pages: int) -> None
         TextColumn("[progress.description]{task.description}"),
         console=console,
     ) as progress:
-        for provider in providers_to_use:
-            task = progress.add_task(f"Reviewing with {provider}...", total=None)
+        task = progress.add_task("Reviewing ...", total=None)
 
-            try:
-                provider_config = getattr(config, provider)
-                if not provider_config:
-                    continue
+        try:
+            client = OllamaClient(provider_config)
+            reviewer = ReviewSystem(client)
+            paper_review = reviewer.review_paper(paper_text, paper_title=metadata.get("title", "Unknown"), model=provider_config.model)
+            reviews.append(paper_review)
 
-                client = OllamaClient(provider_config)
-                reviewer = ReviewSystem(client)
-                paper_review = reviewer.review_paper(paper_text, paper_title=metadata.get("title", "Unknown"), model=provider_config.model)
-                reviews.append(paper_review)
-
-                progress.update(task, completed=True)
-                console.print(f"  ✓ {provider}: Score {paper_review.criteria.score}/{MAX_SCORE}, Recommendation: {paper_review.criteria.recommendation}")
-            except Exception as e:
-                console.print(f"  ✗ {provider}: [red]Error - {e!s}[/red]")
+            progress.update(task, completed=True)
+            console.print(f"  ✓ {provider}: Score {paper_review.criteria.score}/{MAX_SCORE}, Recommendation: {paper_review.criteria.recommendation}")
+        except Exception as e:
+            console.print(f"  ✗ {provider}: [red]Error - {e!s}[/red]")
 
     if not reviews:
         console.print("\n[bold red]Error:[/bold red] No reviews were generated.")
@@ -207,33 +181,6 @@ def check_config() -> None:
     """Check configuration and available providers."""
     console.print("\n[bold blue]Sibyl Configuration Check[/bold blue]\n")
 
-    config = SibylConfig.from_env()
-    providers = config.get_active_providers()
-
-    if not providers:
-        console.print(
-            "[bold red]No local LLM configured![/bold red]\n"
-            "Please create a .env file with your Ollama configuration.\n"
-            "See .env.example for the required format.\n"
-            "Make sure Ollama is installed and running."
-        )
-        return
-
-    table = Table(title="Configured Providers", show_header=True, header_style="bold magenta")
-    table.add_column("Provider", style="cyan")
-    table.add_column("Model", style="green")
-    table.add_column("Status", justify="center")
-
-    for provider in ["ollama"]:
-        provider_config = getattr(config, provider)
-        if provider_config:
-            table.add_row(provider_config.name, provider_config.model, "[green]✓ Configured[/green]")
-        else:
-            table.add_row(provider.title(), "N/A", "[red]✗ Not configured[/red]")
-
-    console.print(table)
-    console.print(f"\n[bold]Total active providers:[/bold] {len(providers)}")
-
 
 @main.command()
 @click.option("--host", default="0.0.0.0", help="Host to bind to (default: 0.0.0.0)")
@@ -297,8 +244,6 @@ def web(host: str, port: int, ssl: bool) -> None:
     console.print("[bold]Press Ctrl+C to stop[/bold]\n")
 
     try:
-        from sibyl.web_app import run_server
-
         run_server(host=host, port=port, ssl_certfile=ssl_certfile, ssl_keyfile=ssl_keyfile)
     except ImportError:
         console.print("[bold red]Error:[/bold red] FastAPI and uvicorn are required for the web interface.\nInstall them with: pip install 'sibyl[web]'")

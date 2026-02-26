@@ -1,23 +1,68 @@
 """Sibyl: An LLM-powered research paper review system."""
 
 import logging
+import os
+from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import cast
 
 import click
 import uvicorn
-from decimalog.logger import CustomLogger
+from decima.logger import CustomLogger
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from sibyl.config import LLMConfig
+from sibyl.llm.client.ollama import OllamaClient
 from sibyl.routers import web_gpu, web_reviews, web_upload, web_ws
 
-CustomLogger.setup_logging("logs", "app", level="DEBUG")
+OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 
+CustomLogger.setup_logging("logs", "app", level="DEBUG", class_length=30)
+logger: CustomLogger = cast("CustomLogger", logging.getLogger("sibyl.main"))
+logger.info("Starting Sibyl application...")
+
+
+def _is_docker() -> bool:
+    exists = Path("/.dockerenv").exists()
+    logger.debug(f"Checking if running in Docker environment...{exists}")
+    return exists
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):  # noqa: ANN201, D103
+    logger.info("Starting up: Initializing resources...")
+
+    llm_config = LLMConfig(
+        name="Ollama",
+        temperature=float(os.getenv("OLLAMA_TEMPERATURE", "0.7")),
+        max_tokens=int(os.getenv("OLLAMA_MAX_TOKENS", "8000")),
+    )
+
+    if _is_docker():
+        logger.info("Running in Docker environment. Using internal Ollama host.")
+        app.state.ollama_clients = {
+            0: OllamaClient(llm_config, host="http://ollama-0:11434"),
+            1: OllamaClient(llm_config, host="http://ollama-1:11434"),
+        }
+    else:
+        app.state.ollama_clients = {
+            0: OllamaClient(llm_config, host="http://localhost:11434"),
+        }
+
+    yield
+
+    logger.info("Shutting down: Cleaning up...")
+
+
+# 2. Pass the lifespan to the FastAPI instance
 app = FastAPI(
     title="Sibyl Research Paper Review System",
     description="AI-powered research paper review using local LLMs",
     version="0.1.0",
+    lifespan=lifespan,
 )
+
 app.add_middleware(
     CORSMiddleware,  # type: ignore[invalid-argument-type]
     allow_origins=["*"],
@@ -39,7 +84,7 @@ async def health_check() -> dict:
 
 
 @click.command()
-@click.option("--host", default="0.0.0.0", type=str)
+@click.option("--host", default="0.0.0.0", type=str)  # noqa: S104
 @click.option("--port", default=8000, type=int)
 @click.option("--ssl-certfile", default=None, type=str, help="Path to SSL certificate file for HTTPS")
 @click.option("--ssl-keyfile", default=None, type=str, help="Path to SSL key file for HTTPS")

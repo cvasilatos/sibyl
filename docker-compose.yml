@@ -1,14 +1,26 @@
 services:
-  ollama:
+  ollama-0:
     image: ollama/ollama:latest
-    ports:
-      - "21434:11434"
     volumes:
       - ollama_data:/root/.ollama
     restart: unless-stopped
     environment:
-      - OLLAMA_HOST=0.0.0.0
-    # Uncomment the section below to enable NVIDIA GPU support:
+      - OLLAMA_HOST=0.0.0.0:11434
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [ gpu ]
+              device_ids: [ '0' ]
+
+  ollama-1:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+    environment:
+      - OLLAMA_HOST=0.0.0.0:11434
     deploy:
       resources:
         reservations:
@@ -32,12 +44,19 @@ services:
     env_file:
       - backend/.env
     environment:
-      # Override localhost URLs so the backend talks to sibling containers
-      - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_BASE_URL=http://ollama-0:11434
       - GROBID_URL=http://grobid:8070
       - GROBID_ENABLED=true
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [ gpu ]
     depends_on:
-      - ollama
+      - ollama-0
+      - ollama-1
       - grobid
     volumes:
       - sibyl_storage:/app/sibyl_storage
@@ -48,7 +67,6 @@ services:
       context: ./web
       dockerfile: Dockerfile
       args:
-        # The browser calls the API directly, so use the host-exposed port.
         - NEXT_PUBLIC_API_URL=http://hydra.abudhabi.nyu.edu:8000
     ports:
       - "4000:3000"
@@ -58,6 +76,11 @@ services:
 
 volumes:
   ollama_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /data/cv43/sibyl/ollama_data
   sibyl_storage:
     driver: local
     driver_opts:

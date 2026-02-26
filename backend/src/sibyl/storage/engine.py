@@ -8,14 +8,14 @@ from typing import TYPE_CHECKING, cast
 if TYPE_CHECKING:
     from chromadb.api import ClientAPI
     from chromadb.api.models.Collection import Collection
-    from decimalog.logger import CustomLogger
+    from decima.logger import CustomLogger
 
 
 import chromadb
 import requests
 from chromadb.config import Settings
 
-from sibyl.config import MAX_SCORE, OLLAMA_BASE_URL
+from sibyl.config import MAX_SCORE
 from sibyl.reviewer import PaperReview
 from sibyl.storage.review import Review
 
@@ -41,7 +41,7 @@ class Engine:
         self.pdf_storage: Path = self.storage_path / "pdfs"
         self.pdf_storage.mkdir(exist_ok=True)
 
-        self.logger.debug(f"Initializing at {storage_path}, ollama_url={OLLAMA_BASE_URL}")
+        self.logger.debug(f"Initializing at {storage_path}, ollama_url={'OLLAMA_BASE_URL'}")
 
         self.client: ClientAPI = chromadb.PersistentClient(
             path=str(self.storage_path / "chromadb"),
@@ -67,7 +67,7 @@ class Engine:
         """
         self.logger.debug(f"Generating embedding for text ({len(text)} chars), model: {model_name}")
         try:
-            response: requests.Response = requests.post(f"{OLLAMA_BASE_URL}/api/embeddings", json={"model": "nomic-embed-text", "prompt": text[:5000]}, timeout=60)
+            response: requests.Response = requests.post("http://ollama-0:11434/api/embeddings", json={"model": "nomic-embed-text", "prompt": text[:5000]}, timeout=60)
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
             error_details = e.response.json().get("error", e.response.text)
@@ -227,8 +227,7 @@ class Engine:
                 metadata = cast("dict[str, str | int | float | bool | None]", result_metadatas[i])
 
                 if search_lower and not any(
-                    search_lower in str(metadata.get(field) or "").lower()
-                    for field in ("paper_title", "pdf_filename", "reviewer_model", "recommendation")
+                    search_lower in str(metadata.get(field) or "").lower() for field in ("paper_title", "pdf_filename", "reviewer_model", "recommendation")
                 ):
                     continue
 

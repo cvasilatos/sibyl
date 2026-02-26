@@ -14,13 +14,6 @@ requires-python = ">=3.12"
 license = { text = "MIT" }
 authors = [{ name = "Christoforos Vasilatos", email = "cv43@nyu.edu" }]
 keywords = ["llm", "research", "paper", "review", "ai"]
-classifiers = [
-    "Development Status :: 3 - Alpha",
-    "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.12",
-]
 
 dependencies = [
     "requests>=2.31.0",
@@ -31,18 +24,22 @@ dependencies = [
     "rich>=13.0.0",
     "tabulate>=0.9.0",
     "chromadb>=0.4.0",
-    "decimalog",
     "fastapi>=0.129.0",
     "aiofiles>=25.1.0",
     "uvicorn>=0.41.0",
     "ollama>=0.6.1",
     "python-multipart>=0.0.22",
     "nvidia-ml-py>=12.0.0",
+    "decima",
+    "python-multipart>=0.0.6",
+    "websockets>=12.0",
+    "httpx>=0.25.0",
 ]
 
-[project.optional-dependencies]
-dev = ["pytest>=7.4.0", "pytest-cov>=4.1.0", "ruff>=0.1.0", "ty>=0.0.18", "pre-commit>=3.0.0"]
-web = ["python-multipart>=0.0.6", "websockets>=12.0", "httpx>=0.25.0"]
+[dependency-groups]
+dev = ["pre-commit>=4.5.1", "ruff>=0.15.1", "ty>=0.0.17"]
+
+test = ["pytest>=9.0.2", "pytest-cov>=7.0.0"]
 
 [project.scripts]
 sibyl = "sibyl.main:run_server"
@@ -54,52 +51,7 @@ Repository = "https://github.com/cvasilatos/sibyl"
 [tool.hatch.build.targets.wheel]
 packages = ["src/sibyl"]
 
-[tool.ruff]
-line-length = 180
-target-version = "py312"
-exclude = [".git", ".ruff_cache", "examples", "sibyl_storage"]
-src = ["./src"]
-
-[tool.ruff.lint]
-select = ["ALL"]
-ignore = [
-    "D100",    # Missing docstring in public module
-    "G004",    # Logging statement uses f-string
-    "ANN401",  # Dynamically typed expressions (Any)
-    "COM812",  # Trailing comma missing
-    "EM101",   # Exception must not use string literal
-    "EM102",   # Exception must not use f-string literal
-    "PERF203", # try-except within a loop
-    "D203",    # 1 blank line required before class docstring (conflicts with D211)
-    "D107",    # Missing docstring in __init__
-    "D102",    # Missing docstring in public method
-    "PT011",   # pytest.raises too broad
-    "BLE001",  # Do not use Exception as base class for custom exceptions
-    "TRY002",  # try-except without specifying exception type
-    "TRY003",  # try-except that catches BaseException
-    "TRY301",  # Abstract raise to an inner function (intentional fallback pattern)
-    "C901",    # Function is too complex
-    "PLR0912", # Too many branches
-    "PLR0915", # Too many statements
-    "S104",    # Possible binding to all interfaces (0.0.0.0 is intentional)
-    "S603",    # subprocess call: check for execution of untrusted input (openssl is trusted)
-    "S607",    # Starting a process with a partial executable path (openssl)
-    "FBT001",  # Boolean-typed positional argument in function definition (click flag)
-    "PLC0415", # import should be at the top-level (conditional/optional imports)
-]
-
-
-[tool.ruff.lint.isort]
-combine-as-imports = true
-
-[tool.ruff.format]
-quote-style = "double"
-indent-style = "space"
-docstring-code-format = true
-
 [tool.ty]
-# ty type checker configuration
-# https://docs.astral.sh/ty/
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -109,7 +61,4 @@ python_functions = ["test_*"]
 addopts = "-v --cov=sibyl --cov-report=term-missing"
 
 [tool.uv.sources]
-decimalog = { git = "https://github.com/cvasilatos/decimalog.git" }
-
-[dependency-groups]
-dev = ["pre-commit>=4.5.1"]
+decima = { git = "https://github.com/cvasilatos/decima.git" }
