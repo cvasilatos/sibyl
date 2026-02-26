@@ -1,19 +1,20 @@
 """PDF parsing utilities for extracting text from research papers."""
 
+import io
 import logging
 import os
 import re
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
+from decima.logger import CustomLogger
+
 if TYPE_CHECKING:
-    from decima.logger import CustomLogger
     from pypdf._page import PageObject
 
 import pypdf
-import requests
 
-logger = logging.getLogger(__name__)
+logger: CustomLogger = cast("CustomLogger", logging.getLogger(__name__))
 
 
 class PDFParser:
@@ -62,80 +63,56 @@ class PDFParser:
             Dictionary containing PDF metadata
 
         """
-        pypdf_metadata = self._extract_metadata_pypdf()
+        return self._extract_metadata_grobid()
 
-        self.logger.info("PDF metadata incomplete, attempting GROBID extraction...")
-        grobid_metadata = self._extract_metadata_grobid()
-        if grobid_metadata:
-            pypdf_metadata.update(grobid_metadata)
-            self.logger.info("Successfully extracted metadata using GROBID")
-
-        return pypdf_metadata
-
-    def _extract_metadata_pypdf(self) -> dict:
-        """Extract metadata using pypdf.
-
-        Returns:
-            Dictionary containing PDF metadata from pypdf
-
-        """
-        with Path(self._pdf_path).open("rb") as file:
-            pdf_reader = pypdf.PdfReader(file)
-            metadata = pdf_reader.metadata
-
-            return {
-                "title": metadata.get("/Title", "Unknown") if metadata else "Unknown",
-                "author": metadata.get("/Author", "Unknown") if metadata else "Unknown",
-                "subject": metadata.get("/Subject", "Unknown") if metadata else "Unknown",
-                "creator": metadata.get("/Creator", "Unknown") if metadata else "Unknown",
-                "producer": metadata.get("/Producer", "Unknown") if metadata else "Unknown",
-                "num_pages": len(pdf_reader.pages),
-            }
-
-    def _extract_metadata_grobid(self) -> dict | None:
+    def _extract_metadata_grobid(self) -> dict:
         """Extract metadata using GROBID service.
 
         Returns:
             Dictionary containing PDF metadata from GROBID, or None if extraction fails
 
         """
-        url = f"{self._grobid_url}/api/processHeaderDocument"
+        from marker.converters.pdf import PdfConverter
+        from marker.models import create_model_dict
+        from marker.output import text_from_rendered
 
-        with Path(self._pdf_path).open("rb") as pdf_file:
-            files = {"input": pdf_file}
-            headers = {"Accept": "application/x-bibtex"}
-            response = requests.post(url, files=files, headers=headers, timeout=30)
+        converter = PdfConverter(
+            artifact_dict=create_model_dict(),
+        )
+        rendered = converter(io.BytesIO(Path(self._pdf_path).read_bytes()))
+        self.logger.error("PDF rendered successfully, extracting text and images for metadata analysis...")
+        text, _, images = text_from_rendered(rendered)
 
-        self.logger.debug(f"GROBID response status: {response.status_code} - {response.text[:200]}")
-        if response.status_code == 200 and response.text:  # noqa: PLR2004
-            return self._parse_grobid_bibtex(response.text)
-        raise Exception(f"GROBID request failed with status {response.status_code}: {response.text}")
+        self.logger.critical(f"Images: {images}")
 
-    def _parse_grobid_bibtex(self, bibtex: str) -> dict | None:
-        """Parse a BibTeX string returned by GROBID to extract basic metadata.
+        self.logger.error(f"Extracted text from PDF: {text}...")  # Log first 200 characters of extracted text
+        self.logger.error(f"Extracted images from PDF: {len(images)} images found")
 
-        This is a lightweight parser that extracts `title`, `author`, and
-        optionally `abstract` from a single BibTeX entry. It intentionally
-        avoids adding an external dependency.
-        """
-        max_bibtex_size = 200 * 1024
-        if len(bibtex) > max_bibtex_size:
-            logger.warning(f"GROBID BibTeX response too large: {len(bibtex)} bytes")
-            return None
+        return {"title": self.get_marker_title(text), "author": "author", "text": text}
 
-        def _extract(field: str) -> str | None:
-            pattern = rf"{field}\s*=\s*(?:\{{(.*?)\}}|\"(.*?)\")\s*,"
-            m = re.search(pattern, bibtex, re.IGNORECASE | re.DOTALL)
-            if not m:
-                return None
-            return (m.group(1) or m.group(2) or "").strip()
+        # url = f"{self._grobid_url}/api/processHeaderDocument"
 
-        title = _extract("title") or "Unknown"
-        author = _extract("author") or "Unknown"
-        abstract = _extract("abstract")
+        # with Path(self._pdf_path).open("rb") as pdf_file:
+        #     files = {"input": pdf_file}
+        #     # headers = {"Accept": "application/json"}
+        #     response = requests.post(url, files=files, data={"json_output": "true"}, timeout=30)
+        # self.logger.debug(f"GROBID response status: {response.status_code} - {response.text[:200]}...")
 
-        metadata = {"title": title, "author": author}
-        if abstract:
-            metadata["abstract"] = abstract
+        # import grobid_tei_xml
 
-        return metadata
+        # doc: GrobidDocument = grobid_tei_xml.parse_document_xml(response.text)
+        # logger.warning(f"GROBID document body: {doc.body}")
+        # logger.warning(f"GROBID document body: {doc.grobid_timestamp}")
+        # logger.debug(f"GROBID TEI XML document: {doc.to_dict()}")
+
+        # raise Exception(f"GROBID request failed with status {response.status_code}: {response.text}")
+
+    def get_marker_title(self, markdown_text: str) -> str:
+        # Search for the first Level 1 or Level 2 header
+        match = re.search(r"^#\s+(.*)", markdown_text, re.MULTILINE)
+        if not match:
+            match = re.search(r"^##\s+(.*)", markdown_text, re.MULTILINE)
+
+        if match:
+            return match.group(1).strip()
+        return "Title Not Found"

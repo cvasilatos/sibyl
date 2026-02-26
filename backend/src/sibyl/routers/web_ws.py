@@ -26,7 +26,7 @@ async def pull_model(websocket: WebSocket, model_name: str = Query()) -> None:
     try:
         # If you stored them as a list: app.state.ollama_clients[0]
         # If you stored them as a dict: app.state.ollama_clients["default"]
-        client: AsyncClient = websocket.app.state.ollama_clients[0]._async_client
+        client: AsyncClient = websocket.app.state.ollama_clients[0]
 
         async for part in await client.pull(model=model_name, stream=True):
             logger.info(f"Pulling model {model_name}: {part}")
@@ -53,7 +53,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, model: str =
 
         parser = PDFParser(session["pdf_path"])
         metadata = parser.get_metadata()
-        paper_text: str = parser.extract_text()
+        paper_text: str = metadata["text"]
         paper_title = (metadata or {}).get("title", "Unknown Paper")
 
         await websocket.send_json({"status": "progress", "progress": 30, "message": f"Extracted {len(paper_text)} characters"})
@@ -64,12 +64,12 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, model: str =
             for key, value in websocket.app.state.ollama_clients.items():
                 logger.debug(f"Ollama client key: {key}, host: {value}")
 
-            client = websocket.app.state.ollama_clients[int(host) - 1]
-            reviewer = ReviewSystem(client)
+            client: AsyncClient = websocket.app.state.ollama_clients[int(host) - 1]
+            reviewer = ReviewSystem(client, model)
 
             await websocket.send_json({"status": "progress", "progress": 50, "message": f"Reviewing with {model}..."})
 
-            review: PaperReview = await reviewer.areview_paper(paper_text, paper_title, model)
+            review: PaperReview = await reviewer.review_paper(paper_text, paper_title, model)
             logger.info(f"Generated review for paper '{paper_title}' with model {model}:\n{review.raw_response}")
         except Exception as e:
             logger.exception(f"Error during review with model {model}")

@@ -5,14 +5,16 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
+from sibyl.ollama_clients import get_ollama_client
+
 if TYPE_CHECKING:
     from chromadb.api import ClientAPI
     from chromadb.api.models.Collection import Collection
     from decima.logger import CustomLogger
+    from ollama._types import EmbeddingsResponse
 
 
 import chromadb
-import requests
 from chromadb.config import Settings
 
 from sibyl.config import MAX_SCORE
@@ -48,6 +50,8 @@ class Engine:
             settings=Settings(anonymized_telemetry=False),
         )
 
+        self._ollama_client: Client = get_ollama_client()
+
         self.collection: Collection = self.client.get_or_create_collection(
             name="paper_reviews",
             metadata={"hnsw:space": "cosine"},
@@ -55,25 +59,9 @@ class Engine:
         self.logger.info(f"Initialized with {self.collection.count()} existing reviews")
 
     def _generate_embedding(self, text: str, model_name: str = "nomic-embed-text") -> list[float]:
-        """Generate embedding for text using Ollama.
-
-        Args:
-            text: Text to generate embedding for
-            model_name: Name of the Ollama model to use for embedding generation
-
-        Returns:
-            List of embedding values
-
-        """
         self.logger.debug(f"Generating embedding for text ({len(text)} chars), model: {model_name}")
-        try:
-            response: requests.Response = requests.post("http://ollama-0:11434/api/embeddings", json={"model": "nomic-embed-text", "prompt": text[:5000]}, timeout=60)
-            response.raise_for_status()
-        except requests.exceptions.HTTPError as e:
-            error_details = e.response.json().get("error", e.response.text)
-            self.logger.exception(f"Failed to generate embedding for text with Ollama: {error_details}")
-            return []
-        return response.json()["embedding"]
+        response: EmbeddingsResponse = self._ollama_client.embeddings(model="nomic-embed-text", prompt=text[:5000])
+        return list(response.embedding)
 
     def save_review(self, review: PaperReview, pdf_filename: str, pdf_path: str | None = None, paper_text: str | None = None) -> str:
         """Save a review to the vector database.

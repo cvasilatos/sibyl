@@ -3,7 +3,6 @@
 import logging
 import os
 from contextlib import asynccontextmanager
-from pathlib import Path
 from typing import cast
 
 import click
@@ -11,9 +10,9 @@ import uvicorn
 from decima.logger import CustomLogger
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from ollama import AsyncClient
 
-from sibyl.config import LLMConfig
-from sibyl.llm.client.ollama import OllamaClient
+from sibyl.ollama_clients import _is_docker
 from sibyl.routers import web_gpu, web_reviews, web_upload, web_ws
 
 OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
@@ -23,31 +22,19 @@ logger: CustomLogger = cast("CustomLogger", logging.getLogger("sibyl.main"))
 logger.info("Starting Sibyl application...")
 
 
-def _is_docker() -> bool:
-    exists = Path("/.dockerenv").exists()
-    logger.debug(f"Checking if running in Docker environment...{exists}")
-    return exists
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):  # noqa: ANN201, D103
     logger.info("Starting up: Initializing resources...")
 
-    llm_config = LLMConfig(
-        name="Ollama",
-        temperature=float(os.getenv("OLLAMA_TEMPERATURE", "0.7")),
-        max_tokens=int(os.getenv("OLLAMA_MAX_TOKENS", "8000")),
-    )
-
     if _is_docker():
         logger.info("Running in Docker environment. Using internal Ollama host.")
         app.state.ollama_clients = {
-            0: OllamaClient(llm_config, host="http://ollama-0:11434"),
-            1: OllamaClient(llm_config, host="http://ollama-1:11434"),
+            0: AsyncClient(host="http://ollama-0:11434"),
+            1: AsyncClient(host="http://ollama-1:11434"),
         }
     else:
         app.state.ollama_clients = {
-            0: OllamaClient(llm_config, host="http://localhost:11434"),
+            0: AsyncClient(host=OLLAMA_BASE_URL),
         }
 
     yield
@@ -55,7 +42,6 @@ async def lifespan(app: FastAPI):  # noqa: ANN201, D103
     logger.info("Shutting down: Cleaning up...")
 
 
-# 2. Pass the lifespan to the FastAPI instance
 app = FastAPI(
     title="Sibyl Research Paper Review System",
     description="AI-powered research paper review using local LLMs",
@@ -100,7 +86,7 @@ def run_server(host: str, port: int, ssl_certfile: str | None, ssl_keyfile: str 
         log_level: Logging level (TRACE, DEBUG, INFO, WARNING, ERROR)
 
     """
-    logger: CustomLogger = cast("CustomLogger", logging.getLogger("alal"))
+    logger: CustomLogger = cast("CustomLogger", logging.getLogger("sibyl.main"))
     logger.info(f"Starting Sibyl server on {host}:{port} with log level {log_level}")
 
     uvicorn.run(app, host=host, port=port, ssl_certfile=ssl_certfile, ssl_keyfile=ssl_keyfile, log_config=None, log_level=log_level.lower())

@@ -4,9 +4,10 @@ import re
 from typing import TYPE_CHECKING, cast
 
 from decima import CustomLogger
+from ollama import AsyncClient
 
 if TYPE_CHECKING:
-    from ollama import Client, ListResponse
+    from ollama import ListResponse
     from ollama._types import ModelDetails
 
     from sibyl.storage.review import Review
@@ -115,8 +116,8 @@ async def get_statistics() -> dict:
 @router.get("/models")
 async def list_models(request: Request) -> dict:
     """List models currently available in Ollama using the pre-instantiated client."""
-    client: Client = request.app.state.ollama_clients[0]._client
-    response: ListResponse = client.list()
+    client: AsyncClient = request.app.state.ollama_clients[0]
+    response: ListResponse = await client.list()
 
     return {
         "models": response.models,
@@ -151,8 +152,8 @@ async def list_available_models(request: Request) -> dict:
     installed_model_names: set[str] = set()
     installed_variants_map: dict[str, list[str]] = {}
 
-    client: Client = request.app.state.ollama_clients[0]._client
-    response: ListResponse = client.list()
+    client: AsyncClient = request.app.state.ollama_clients[0]
+    response: ListResponse = await client.list()
 
     for model in response.models:
         model: ListResponse.Model

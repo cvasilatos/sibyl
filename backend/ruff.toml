@@ -15,4 +15,4 @@ lint.ignore = [
     "COM819", # Missing trailing comma in a multi-line collection
 ]
 lint.isort = { combine-as-imports = true }
-format = { quote-style = "double", indent-style = "space" }
+format = { quote-style = "double", indent-style = "space", skip-magic-trailing-comma = false }

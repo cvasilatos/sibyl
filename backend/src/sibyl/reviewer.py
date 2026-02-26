@@ -2,15 +2,20 @@
 
 import importlib.resources as pkg_resources
 import logging
+import os
 from typing import TYPE_CHECKING, cast
+
+from ollama import AsyncClient, GenerateResponse
 
 if TYPE_CHECKING:
     from decima.logger import CustomLogger
 from pydantic import BaseModel, Field
 
 from sibyl.config import MAX_SCORE
-from sibyl.llm.client.ollama import OllamaClient
 from sibyl.web.model.llm_reply import LLMReply
+
+TEMPERATURE: float = float(os.getenv("OLLAMA_TEMPERATURE", "0.7"))
+MAX_TOKENS: int = int(os.getenv("OLLAMA_MAX_TOKENS", "8000"))
 
 
 class ReviewCriteria(BaseModel):
@@ -40,18 +45,21 @@ class PaperReview(BaseModel):
 class ReviewSystem:
     """System for reviewing research papers using LLMs."""
 
-    def __init__(self, llm_client: OllamaClient) -> None:
+    def __init__(self, client: AsyncClient, model: str) -> None:
         """Initialize the review system.
 
         Args:
-            llm_client: LLM client to use for generating reviews
+            client: LLM client to use for generating reviews
+            model: The default model name to use for reviews
 
         """
-        self._llm_client: OllamaClient = llm_client
         self.logger: CustomLogger = cast("CustomLogger", logging.getLogger(f"{self.__class__.__module__}.{self.__class__.__name__}"))
-        self.prompt: str = pkg_resources.read_text("sibyl.resources", "review_prompt.md")
 
-    def review_paper(self, paper_text: str, paper_title: str, model: str) -> PaperReview:
+        self._client: AsyncClient = client
+        self._model: str = model
+        self._prompt: str = pkg_resources.read_text("sibyl.resources", "review_prompt.md")
+
+    async def review_paper(self, paper_text: str, paper_title: str, model: str) -> PaperReview:
         """Generate a review for a research paper.
 
         Args:
@@ -64,42 +72,27 @@ class ReviewSystem:
 
         """
         self.logger.info(f"Starting synchronous review for paper: '{paper_title}'")
-        self.logger.debug(f"Sending review prompt to LLM client: {self._llm_client.get_name()}")
-        response: str = self._llm_client.generate(self.prompt.format(paper_text=paper_text), model)
-        self.logger.debug(f"Received response from LLM ({len(response)} chars), parsing...")
-        criteria: LLMReply = LLMReply.model_validate_json(response)
+        response: GenerateResponse = await self._client.generate(
+            model=self._model,
+            prompt=self._prompt.format(paper_text=paper_text),
+            stream=False,
+            options={"temperature": TEMPERATURE, "num_predict": MAX_TOKENS},
+            format=LLMReply.model_json_schema(),
+            keep_alive="1m",
+        )
+
+        self.logger.warning(f"Received raw response from LLM for paper '{paper_title}': {response}\n\n\n\n")
+
+        if not response.response:
+            raise ValueError("Received empty response from LLM")
+
+        self.logger.debug(f"Received response from LLM ({len(response.response)} chars), parsing...")
+        criteria: LLMReply = LLMReply.model_validate_json(response.response)
         self.logger.info(f"Review complete for '{paper_title}': score={criteria.score}, recommendation={criteria.recommendation}")
 
         return PaperReview(
             paper_title=paper_title,
             reviewer_model=model,
             criteria=criteria,
-            raw_response=response,
-        )
-
-    async def areview_paper(self, paper_text: str, paper_title: str, model: str) -> PaperReview:
-        """Generate a review for a research paper asynchronously.
-
-        Args:
-            paper_text: The full text of the research paper
-            paper_title: Title of the paper
-            model: Name of the LLM model to use
-        Returns:
-            Structured review of the paper
-
-        """
-        self.logger.info(f"Starting async review for paper: '{paper_title}'")
-        prompt: str = self.prompt.format(paper_text=paper_text)
-        self.logger.debug(f"Sending async review prompt to LLM client: {model}")
-        response: str = await self._llm_client.agenerate(prompt, model)
-        self.logger.debug(f"Received async response from LLM\n{response}")
-
-        criteria: LLMReply = LLMReply.model_validate_json(response)
-        self.logger.info(f"Async review complete for '{paper_title}': score={criteria.score}, recommendation={criteria.recommendation}")
-
-        return PaperReview(
-            paper_title=paper_title,
-            reviewer_model=model,
-            criteria=criteria,
-            raw_response=response,
+            raw_response=response.response,
         )

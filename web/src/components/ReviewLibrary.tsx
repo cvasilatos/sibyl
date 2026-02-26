@@ -329,7 +329,6 @@ export default function ReviewLibrary({
             filteredReviews.map((review) => (
               <div key={review.id} className="bg-muted rounded-md transition-colors">
                 <button
-                  type="button"
                   className="flex w-full items-start justify-between p-4 hover:bg-muted/80 cursor-pointer transition-colors rounded-md text-left"
                   onClick={() => toggleExpand(review.id)}
                   onKeyDown={(e) => {

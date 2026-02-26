@@ -33,7 +33,9 @@ dependencies = [
     "decima",
     "python-multipart>=0.0.6",
     "websockets>=12.0",
-    "httpx>=0.25.0",
+    "grobid-client-python>=0.1.4",
+    "grobid-tei-xml>=0.1.3",
+    "marker-pdf>=1.10.2",
 ]
 
 [dependency-groups]
