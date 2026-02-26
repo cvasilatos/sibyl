@@ -6,6 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { API_URL } from "@/lib/config";
 
+interface GpuProcess {
+  pid: number;
+  name: string;
+  memory_bytes: number;
+  type: "compute" | "graphics";
+}
+
 interface GpuStats {
   index: number;
   name: string;
@@ -18,6 +25,7 @@ interface GpuStats {
   power_usage_watts: number | null;
   power_limit_watts: number | null;
   fan_speed_percent: number | null;
+  processes: GpuProcess[];
 }
 
 interface GpuResponse {
@@ -90,6 +98,22 @@ function GpuCard({ gpu }: { gpu: GpuStats }) {
         {gpu.fan_speed_percent !== null && <StatRow label="Fan Speed" value={`${gpu.fan_speed_percent}%`} />}
         <StatRow label="Free Memory" value={formatBytes(gpu.memory_free)} />
       </div>
+
+      {/* Running processes */}
+      {gpu.processes && gpu.processes.length > 0 && (
+        <div className="space-y-1 pt-1 border-t border-border">
+          <p className="text-xs font-medium text-muted-foreground">Processes ({gpu.processes.length})</p>
+          <div className="space-y-1 max-h-32 overflow-y-auto">
+            {gpu.processes.map((p, i) => (
+              <div key={`${p.type}-${p.pid}-${i}`} className="flex items-center justify-between text-xs gap-2">
+                <span className="font-mono truncate flex-1">{p.name || `PID ${p.pid}`}</span>
+                <span className={`shrink-0 px-1 rounded ${p.type === "compute" ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300" : "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300"}`}>{p.type}</span>
+                <span className="font-mono shrink-0">{formatBytes(p.memory_bytes)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -102,27 +126,19 @@ export default function GpuMonitor() {
 
   const fetchGpus = useCallback(async () => {
     try {
-      const url = selectedIndex !== null ? `${API_URL}/api/gpu/${selectedIndex}` : `${API_URL}/api/gpu`;
-
-      const response = await fetch(url);
+      const response = await fetch(`${API_URL}/api/gpu`);
       if (!response.ok) {
         const detail = await response.json().catch(() => ({ detail: "Unknown error" }));
         throw new Error(detail.detail ?? "Failed to fetch GPU data");
       }
 
-      if (selectedIndex !== null) {
-        const gpu: GpuStats = await response.json();
-        setData({ gpus: [gpu], count: 1, available: true });
-      } else {
-        const result: GpuResponse = await response.json();
-        setData(result);
-        // If we have GPUs and no selection yet, keep showing all
-      }
+      const result: GpuResponse = await response.json();
+      setData(result);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch GPU data");
     }
-  }, [selectedIndex]);
+  }, []);
 
   // Initial fetch + auto-refresh every 2 seconds
   useEffect(() => {
@@ -132,7 +148,7 @@ export default function GpuMonitor() {
     return () => clearInterval(interval);
   }, [fetchGpus, autoRefresh]);
 
-  const displayedGpus = data && selectedIndex !== null ? data.gpus : (data?.gpus ?? []);
+  const displayedGpus = selectedIndex !== null ? (data?.gpus.filter((g) => g.index === selectedIndex) ?? []) : (data?.gpus ?? []);
 
   return (
     <Card>

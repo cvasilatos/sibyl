@@ -1,6 +1,7 @@
 import { FileText, Upload } from "lucide-react";
 import type { RefObject } from "react";
 import { Button } from "@/components/ui/button";
+import GpuLoadSummary from "@/components/GpuLoadSummary";
 
 type Props = {
   selectedFile: File | null;
@@ -56,44 +57,47 @@ export default function UploadArea({
         <p className="text-sm text-muted-foreground">{selectedFile ? `Size: ${(selectedFile.size / 1024 / 1024).toFixed(2)} MB` : "Supports research papers in PDF format"}</p>
       </button>
 
-      {/* Model selection */}
-      {availableModels.length > 0 && (
-        <div className="space-y-2">
-          <label htmlFor="model-select" className="text-sm font-medium">Select Model for Review</label>
-          <select id="model-select" value={selectedModel} onChange={(e) => onModelChange(e.target.value)} className="w-full px-3 py-2 text-sm border border-input rounded-md bg-background">
-            {availableModels.map((model) => (
-              <option key={model} value={model}>
-                {model}
-              </option>
-            ))}
-          </select>
-          <p className="text-xs text-muted-foreground">This will override the default model configured in your environment</p>
+      {/* Model and GPU selection – side by side */}
+      {(availableModels.length > 0 || availableGpus.length > 0) && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {availableModels.length > 0 && (
+            <div className="space-y-2">
+              <label htmlFor="model-select" className="text-sm font-medium">Select Model for Review</label>
+              <select id="model-select" value={selectedModel} onChange={(e) => onModelChange(e.target.value)} className="w-full px-3 py-2 text-sm border border-input rounded-md bg-background">
+                {availableModels.map((model) => (
+                  <option key={model} value={model}>
+                    {model}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-muted-foreground">This will override the default model configured in your environment</p>
+            </div>
+          )}
+
+          {availableGpus.length > 0 && (
+            <div className="space-y-2">
+              <label htmlFor="gpu-select" className="text-sm font-medium">Select GPU</label>
+              <select
+                id="gpu-select"
+                value={selectedGpuIndex ?? "auto"}
+                onChange={(e) => onGpuChange(e.target.value === "auto" ? null : Number(e.target.value))}
+                className="w-full px-3 py-2 text-sm border border-input rounded-md bg-background"
+              >
+                <option value="auto">Auto</option>
+                {availableGpus.map((gpu) => (
+                  <option key={gpu.index} value={gpu.index}>
+                    GPU {gpu.index}: {gpu.name}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-muted-foreground">Choose which GPU host to use for this review run</p>
+            </div>
+          )}
         </div>
       )}
 
-      {/* GPU selection */}
-      {availableGpus.length > 0 && (
-        <div className="space-y-2">
-          <label htmlFor="gpu-select" className="text-sm font-medium">Select GPU</label>
-          <select
-            id="gpu-select"
-            value={selectedGpuIndex ?? "auto"}
-            onChange={(e) => onGpuChange(e.target.value === "auto" ? null : Number(e.target.value))}
-            className="w-full px-3 py-2 text-sm border border-input rounded-md bg-background"
-          >
-            <option value="auto">Auto</option>
-            {availableGpus.map((gpu) => (
-              <option key={gpu.index} value={gpu.index}>
-                GPU {gpu.index}: {gpu.name}
-              </option>
-            ))}
-          </select>
-          <p className="text-xs text-muted-foreground">Choose which GPU host to use for this review run</p>
-        </div>
-      )}
-
-
-
+      {/* Live GPU load */}
+      <GpuLoadSummary />
       <Button onClick={() => startReview(selectedGpuIndex)} disabled={!selectedFile} className="w-full" size="lg">
         <Upload className="mr-2 h-4 w-4" />
         Start Review

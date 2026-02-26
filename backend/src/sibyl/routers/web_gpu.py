@@ -38,6 +38,15 @@ def _get_gpu_info(index: int) -> dict:
     with contextlib.suppress(pynvml.NVMLError):
         fan_speed = pynvml.nvmlDeviceGetFanSpeed(handle)
 
+    processes: list[dict] = []
+    for proc_type, getter in (("compute", pynvml.nvmlDeviceGetComputeRunningProcesses), ("graphics", pynvml.nvmlDeviceGetGraphicsRunningProcesses)):
+        with contextlib.suppress(pynvml.NVMLError):
+            for proc in getter(handle):
+                process_info: dict = {"pid": proc.pid, "memory_bytes": proc.usedGpuMemory or 0, "type": proc_type, "name": ""}
+                with contextlib.suppress(Exception):
+                    process_info["name"] = pynvml.nvmlSystemGetProcessName(proc.pid)
+                processes.append(process_info)
+
     return {
         "index": index,
         "name": name,
@@ -50,6 +59,7 @@ def _get_gpu_info(index: int) -> dict:
         "power_usage_watts": power_usage,
         "power_limit_watts": power_limit,
         "fan_speed_percent": fan_speed,
+        "processes": processes,
     }
 
 
