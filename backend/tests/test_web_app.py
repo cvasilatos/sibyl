@@ -390,10 +390,11 @@ def test_get_review_not_found(client):
 
 
 def test_delete_review_not_found(client):
-    """Test deleting a non-existent review returns an error response."""
+    """Test deleting a non-existent review returns a server error (500)."""
     test_client = TestClient(app, raise_server_exceptions=False)
     response = test_client.delete("/api/reviews/nonexistent-id-12345")
-    assert response.status_code in (200, 404, 500)
+    # The engine raises IndexError for missing reviews which FastAPI translates to 500
+    assert response.status_code == 500
 
 
 # ---------------------------------------------------------------------------
@@ -415,16 +416,62 @@ def test_root_health_check(client):
 # ---------------------------------------------------------------------------
 
 
-def test_ws_pull_model_endpoint(client):
-    """Test the WebSocket pull model endpoint sends at least an error or progress message."""
-    from unittest.mock import AsyncMock, patch
+def test_ws_pull_model_error_path(client):
+    """Test the WebSocket pull model endpoint sends an error message when pull fails."""
+    from unittest.mock import AsyncMock
 
     mock_ollama = AsyncMock()
-    # Simulate pull raising an exception (no real Ollama present)
     mock_ollama.pull = AsyncMock(side_effect=Exception("Ollama unavailable"))
     client.app.state.ollama_clients = {0: mock_ollama}
 
     with client.websocket_connect("/ws/pull?model_name=llama3") as ws:
         data = ws.receive_json()
-        assert "status" in data
-        assert data["status"] in ("error", "progress", "done", "success")
+        assert data["status"] == "error"
+        assert "Ollama unavailable" in data["message"]
+
+
+def test_ws_pull_model_success_path(client):
+    """Test the WebSocket pull endpoint streams progress messages from Ollama pull."""
+    from unittest.mock import AsyncMock
+
+    from starlette.websockets import WebSocketDisconnect
+
+    class FakePart:
+        def __init__(self, data: dict) -> None:
+            self._data = data
+
+        def model_dump(self) -> dict:
+            return self._data
+
+    class FakeAsyncIter:
+        def __init__(self) -> None:
+            self._items = [
+                FakePart({"status": "pulling", "completed": 50, "total": 100}),
+                FakePart({"status": "success"}),
+            ]
+            self._idx = 0
+
+        def __aiter__(self):
+            return self
+
+        async def __anext__(self):
+            if self._idx >= len(self._items):
+                raise StopAsyncIteration
+            item = self._items[self._idx]
+            self._idx += 1
+            return item
+
+    mock_ollama = AsyncMock()
+    mock_ollama.pull = AsyncMock(return_value=FakeAsyncIter())
+    client.app.state.ollama_clients = {0: mock_ollama}
+
+    received = []
+    with client.websocket_connect("/ws/pull?model_name=llama3") as ws:
+        try:
+            while True:
+                received.append(ws.receive_json())
+        except WebSocketDisconnect:
+            pass
+
+    assert any(m.get("status") == "pulling" for m in received)
+    assert any(m.get("status") == "success" for m in received)
