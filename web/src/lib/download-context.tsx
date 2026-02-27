@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, type ReactNode, useContext, useState } from "react";
+import { createContext, type ReactNode, useCallback, useContext, useState } from "react";
 import { getWebSocketUrl } from "@/lib/config";
 
 interface DownloadContextType {
@@ -18,7 +18,7 @@ export function DownloadProvider({ children }: { children: ReactNode }) {
   const [downloadProgresses, setDownloadProgresses] = useState<Record<string, number>>({});
   const [error, setError] = useState<string | null>(null);
 
-  const clearError = () => setError(null);
+  const clearError = useCallback(() => setError(null), []);
 
   const startDownload = (modelName: string, onComplete: () => void, onError: (message: string) => void, onProgress?: (progress: number, message: string) => void) => {
     setInstalling((prev) => [...prev, modelName]);
