@@ -6,11 +6,30 @@ from unittest.mock import patch
 
 import pytest
 
-from sibyl.reviewer import PaperReview, ReviewCriteria
+from sibyl.reviewer import PaperReview
 from sibyl.storage.engine import Engine
 from sibyl.storage.review import Review
+from sibyl.web.model.llm_reply import LLMReply, Recommendation
 
 MOCK_EMBEDDING = [0.1, 0.2, 0.3]
+
+
+def _make_llm_reply(score: int = 4, recommendation: Recommendation = Recommendation.ACCEPT, **kwargs) -> LLMReply:
+    """Helper to create a valid LLMReply."""
+    defaults = {
+        "novelty": "High novelty and originality",
+        "methodology": "Strong methodology with clear design",
+        "results": "Significant and well-presented results",
+        "clarity": "Clear and well-written",
+        "impact": "High potential impact",
+        "limitations": "Minor limitations identified",
+        "strengths": "Multiple key strengths",
+        "score": score,
+        "recommendation": recommendation,
+        "detailed_feedback": "Excellent work overall with minor suggestions",
+    }
+    defaults.update(kwargs)
+    return LLMReply(**defaults)  # type: ignore[arg-type]
 
 
 @pytest.fixture
@@ -31,22 +50,10 @@ def storage(temp_storage):
 @pytest.fixture
 def sample_review():
     """Create a sample PaperReview for testing."""
-    criteria = ReviewCriteria(
-        novelty="High novelty and originality",
-        methodology="Strong methodology with clear design",
-        results="Significant and well-presented results",
-        clarity="Clear and well-written",
-        impact="High potential impact",
-        limitations="Minor limitations identified",
-        strengths="Multiple key strengths",
-        score=8,
-        recommendation="Accept",
-        detailed_feedback="Excellent work overall with minor suggestions",
-    )
     return PaperReview(
         paper_title="Test Paper on Machine Learning",
         reviewer_model="TestModel v1.0",
-        criteria=criteria,
+        criteria=_make_llm_reply(score=4, recommendation=Recommendation.ACCEPT),
         raw_response="Test raw response",
     )
 
@@ -85,7 +92,7 @@ def test_get_review(storage, sample_review):
     assert retrieved["paper_title"] == "Test Paper on Machine Learning"
     assert retrieved["pdf_filename"] == "test_paper.pdf"
     assert retrieved["reviewer_model"] == "TestModel v1.0"
-    assert retrieved["score"] == 8
+    assert retrieved["score"] == 4
     assert retrieved["recommendation"] == "Accept"
 
 
@@ -145,22 +152,10 @@ def test_search_reviews_semantic(storage, sample_review):
         paper_text="Machine learning algorithms and neural networks for image classification",
     )
 
-    other_criteria = ReviewCriteria(
-        novelty="Good",
-        methodology="Good",
-        results="Good",
-        clarity="Good",
-        impact="Good",
-        limitations="Some",
-        strengths="Several",
-        score=7,
-        recommendation="Revise",
-        detailed_feedback="Good work on quantum computing research",
-    )
     other_review = PaperReview(
         paper_title="Paper on Quantum Computing",
         reviewer_model="TestModel v1.0",
-        criteria=other_criteria,
+        criteria=_make_llm_reply(score=3, recommendation=Recommendation.MINOR_REVISION, detailed_feedback="Good work on quantum computing research"),
         raw_response="Test",
     )
     storage.save_review(
@@ -237,22 +232,10 @@ def test_get_statistics(storage, sample_review):
 
     storage.save_review(review=sample_review, pdf_filename="test1.pdf")
 
-    criteria2 = ReviewCriteria(
-        novelty="Good",
-        methodology="Good",
-        results="Good",
-        clarity="Good",
-        impact="Good",
-        limitations="Some",
-        strengths="Several",
-        score=6,
-        recommendation="Revise",
-        detailed_feedback="Good",
-    )
     review2 = PaperReview(
         paper_title="Another Paper",
         reviewer_model="TestModel v2.0",
-        criteria=criteria2,
+        criteria=_make_llm_reply(score=3, recommendation=Recommendation.MINOR_REVISION),
         raw_response="Test",
     )
     storage.save_review(review=review2, pdf_filename="test2.pdf")
@@ -262,34 +245,20 @@ def test_get_statistics(storage, sample_review):
     assert stats["unique_papers"] == 2
     assert stats["unique_models"] == 2
     assert "Accept" in stats["recommendations"]
-    assert "Revise" in stats["recommendations"]
+    assert "Minor Revision" in stats["recommendations"]
 
 
 def test_list_reviews_with_text_search(storage, sample_review):
     """Test listing reviews with text-based search filtering."""
-    from sibyl.reviewer import PaperReview, ReviewCriteria
-
     storage.save_review(
         review=sample_review,
         pdf_filename="ml_paper.pdf",
     )
 
-    quantum_criteria = ReviewCriteria(
-        novelty="Good",
-        methodology="Solid",
-        results="Promising",
-        clarity="Clear",
-        impact="High",
-        limitations="None",
-        strengths="Many",
-        score=7,
-        recommendation="Revise",
-        detailed_feedback="Good quantum work",
-    )
     quantum_review = PaperReview(
         paper_title="Paper on Quantum Computing",
         reviewer_model="QuantumModel v1.0",
-        criteria=quantum_criteria,
+        criteria=_make_llm_reply(score=3, recommendation=Recommendation.MINOR_REVISION, detailed_feedback="Good quantum work"),
         raw_response="Test",
     )
     storage.save_review(review=quantum_review, pdf_filename="quantum_paper.pdf")
@@ -305,9 +274,9 @@ def test_list_reviews_with_text_search(storage, sample_review):
     assert results[0].reviewer_model == "QuantumModel v1.0"
 
     # Search by recommendation
-    results = storage.list_reviews(search="Accept")
+    results = storage.list_reviews(search="Minor Revision")
     assert len(results) == 1
-    assert results[0].recommendation == "Accept"
+    assert results[0].recommendation == "Minor Revision"
 
     # Empty search returns all
     results = storage.list_reviews(search="")

@@ -1,81 +1,57 @@
 """Tests for the configuration module."""
 
-from sibyl.config import LLMConfig, SibylConfig
-from sibyl.main import OLLAMA_BASE_URL
+import pytest
+
+from sibyl.config import LLMConfig, MAX_SCORE
+
+
+def test_max_score_value():
+    """Test that MAX_SCORE is a positive integer."""
+    assert isinstance(MAX_SCORE, int)
+    assert MAX_SCORE > 0
+
+
+def test_max_score_is_five():
+    """Test that MAX_SCORE equals 5."""
+    assert MAX_SCORE == 5
 
 
 def test_llm_config_creation():
-    """Test creating an LLM configuration."""
-    config = LLMConfig(
-        name="TestLLM",
-        api_key=None,
-        api_url=OLLAMA_BASE_URL,
-        model="test-model",
-        temperature=0.5,
-        max_tokens=2000,
-    )
-
+    """Test creating an LLM configuration with required fields."""
+    config = LLMConfig(name="TestLLM")
     assert config.name == "TestLLM"
-    assert config.api_key is None
-    assert config.api_url == OLLAMA_BASE_URL
-    assert config.model == "test-model"
-    assert config.temperature == 0.5
-    assert config.max_tokens == 2000
 
 
 def test_llm_config_defaults():
     """Test LLM configuration default values."""
-    config = LLMConfig(name="TestLLM", model="test-model")
-
+    config = LLMConfig(name="TestLLM")
     assert config.temperature == 0.7
+    assert config.max_tokens == 300000
+
+
+def test_llm_config_custom_values():
+    """Test LLM configuration with custom temperature and max_tokens."""
+    config = LLMConfig(name="CustomLLM", temperature=0.5, max_tokens=2000)
+    assert config.name == "CustomLLM"
+    assert config.temperature == 0.5
+    assert config.max_tokens == 2000
+
+
+def test_llm_config_name_required():
+    """Test that LLM configuration requires a name field."""
+    with pytest.raises(Exception):
+        LLMConfig()  # type: ignore[call-arg]
+
+
+def test_llm_config_temperature_range():
+    """Test LLM configuration accepts valid temperature values."""
+    config = LLMConfig(name="t", temperature=0.0)
+    assert config.temperature == 0.0
+    config2 = LLMConfig(name="t", temperature=1.0)
+    assert config2.temperature == 1.0
+
+
+def test_llm_config_max_tokens_custom():
+    """Test LLM configuration with a custom max_tokens value."""
+    config = LLMConfig(name="t", max_tokens=8000)
     assert config.max_tokens == 8000
-
-
-def test_sibyl_config_from_env(monkeypatch):
-    """Test creating Sibyl config from environment variables."""
-    monkeypatch.setenv("OLLAMA_MODEL", "llama3.2")
-    monkeypatch.setenv("OLLAMA_BASE_URL", OLLAMA_BASE_URL)
-
-    config = SibylConfig.from_env()
-
-    assert isinstance(config, SibylConfig)
-    assert config.ollama is not None
-    assert config.ollama.model == "llama3.2"
-    assert config.ollama.api_url == OLLAMA_BASE_URL
-
-
-def test_ollama_config_defaults(monkeypatch):
-    """Test Ollama configuration with default values."""
-    monkeypatch.setenv("OLLAMA_MODEL", "mistral")
-    monkeypatch.delenv("OLLAMA_BASE_URL", raising=False)
-
-    config = SibylConfig.from_env()
-
-    assert isinstance(config, SibylConfig)
-    assert config.ollama is not None
-    assert config.ollama.model == "mistral"
-    assert config.ollama.api_url == OLLAMA_BASE_URL
-    assert config.ollama.temperature == 0.7
-    assert config.ollama.max_tokens == 8000
-
-
-def test_from_env_returns_llm_config(monkeypatch):
-    """Test that from_env returns a SibylConfig instance with ollama configured."""
-    monkeypatch.setenv("OLLAMA_MODEL", "llama3.2")
-
-    config = SibylConfig.from_env()
-
-    assert isinstance(config, SibylConfig)
-    assert config.ollama is not None
-    assert config.ollama.name == "Ollama"
-
-
-def test_no_providers_configured(monkeypatch):
-    """Test that from_env returns SibylConfig with no providers when OLLAMA_MODEL is not set."""
-    monkeypatch.delenv("OLLAMA_MODEL", raising=False)
-
-    config = SibylConfig.from_env()
-
-    assert isinstance(config, SibylConfig)
-    assert config.ollama is None
-    assert config.get_active_providers() == []

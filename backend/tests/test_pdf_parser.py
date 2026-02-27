@@ -1,7 +1,7 @@
 """Tests for the PDF parser module."""
 
 import os
-from unittest.mock import MagicMock, mock_open, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -35,99 +35,28 @@ def test_pdf_parser_init_stores_pdf_path():
     assert parser._pdf_path == "/test/file.pdf"
 
 
-def test_get_metadata_pypdf_only():
-    """Test metadata extraction using pypdf when GROBID returns nothing."""
-    mock_metadata = {
-        "/Title": "Test Paper",
-        "/Author": "John Doe",
-        "/Subject": "Test Subject",
-        "/Creator": "Test Creator",
-        "/Producer": "Test Producer",
-    }
-
-    with patch("pathlib.Path.open", mock_open(read_data=b"fake pdf")), patch(
-        "pypdf.PdfReader"
-    ) as mock_reader, patch.object(PDFParser, "_extract_metadata_grobid", return_value=None):
-        mock_reader.return_value.metadata = mock_metadata
-        mock_reader.return_value.pages = [None, None, None]
-
-        parser = PDFParser("/test/file.pdf")
-        metadata = parser.get_metadata()
-
-        assert metadata["title"] == "Test Paper"
-        assert metadata["author"] == "John Doe"
-        assert metadata["subject"] == "Test Subject"
-        assert metadata["num_pages"] == 3
-
-
-def test_get_metadata_grobid_fallback():
-    """Test GROBID enriches pypdf metadata when available."""
-    mock_metadata = {}
-
-    grobid_bibtex = """@article{unknown,
-  title = {GROBID Extracted Title},
-  author = {Jane Smith, Bob Jones},
-}"""
-
-    with patch("pathlib.Path.open", mock_open(read_data=b"fake pdf")), patch(
-        "pypdf.PdfReader"
-    ) as mock_reader, patch("requests.post") as mock_post:
-        mock_reader.return_value.metadata = mock_metadata
-        mock_reader.return_value.pages = [None, None]
-
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.text = grobid_bibtex
-        mock_post.return_value = mock_response
-
-        parser = PDFParser("/test/file.pdf")
-        metadata = parser.get_metadata()
-
-        assert metadata["title"] == "GROBID Extracted Title"
-        assert metadata["author"] == "Jane Smith, Bob Jones"
-        assert metadata["num_pages"] == 2
-
-
-def test_get_metadata_grobid_failure_raises():
-    """Test that get_metadata raises an exception when GROBID request fails."""
-    mock_metadata = {}
-
-    with patch(
-        "builtins.open", mock_open(read_data=b"fake pdf")
-    ), patch("pypdf.PdfReader") as mock_reader, patch("requests.post") as mock_post:
-        mock_reader.return_value.metadata = mock_metadata
-        mock_reader.return_value.pages = [None]
-
-        mock_post.side_effect = Exception("Connection error")
-
-        parser = PDFParser("/test/file.pdf")
-        with pytest.raises(Exception):
-            parser.get_metadata()
-
-
-def test_parse_grobid_bibtex_with_fields():
-    """Test parsing GROBID BibTeX with title, author, and abstract."""
-    bibtex = """@article{test,
-  title = {Research Paper Title},
-  author = {Alice Wonder},
-  abstract = {This is the abstract of the paper.},
-}"""
-
+def test_get_marker_title_h1():
+    """Test get_marker_title extracts level-1 heading."""
     parser = PDFParser("/test/file.pdf")
-    metadata = parser._parse_grobid_bibtex(bibtex)
-
-    assert metadata["title"] == "Research Paper Title"
-    assert metadata["author"] == "Alice Wonder"
-    assert metadata["abstract"] == "This is the abstract of the paper."
+    markdown = "# My Paper Title\n\nSome text here."
+    assert parser.get_marker_title(markdown) == "My Paper Title"
 
 
-def test_parse_grobid_bibtex_missing_fields():
-    """Test parsing GROBID BibTeX with no recognized fields returns Unknown defaults."""
-    bibtex = "@article{test,}"
-
+def test_get_marker_title_h2_fallback():
+    """Test get_marker_title falls back to level-2 heading when no h1 found."""
     parser = PDFParser("/test/file.pdf")
-    metadata = parser._parse_grobid_bibtex(bibtex)
+    markdown = "## Secondary Title\n\nSome text."
+    assert parser.get_marker_title(markdown) == "Secondary Title"
 
-    assert metadata["title"] == "Unknown"
-    assert metadata["author"] == "Unknown"
-    assert "abstract" not in metadata
+
+def test_get_marker_title_not_found():
+    """Test get_marker_title returns fallback text when no heading found."""
+    parser = PDFParser("/test/file.pdf")
+    assert parser.get_marker_title("Just plain text with no headings.") == "Title Not Found"
+
+
+def test_get_marker_title_strips_whitespace():
+    """Test get_marker_title strips surrounding whitespace from title."""
+    parser = PDFParser("/test/file.pdf")
+    markdown = "#   Spaced Title   \n\nContent."
+    assert parser.get_marker_title(markdown) == "Spaced Title"

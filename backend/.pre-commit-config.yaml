@@ -18,3 +18,10 @@ repos:
         language: system
         types: [python]
         pass_filenames: false
+
+      - id: pytest
+        name: pytest
+        entry: uv run pytest --no-cov -q
+        language: system
+        types: [python]
+        pass_filenames: false
