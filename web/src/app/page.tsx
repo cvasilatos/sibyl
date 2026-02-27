@@ -71,8 +71,13 @@ function HomeContent() {
   const [selectedGpuIndex, setSelectedGpuIndex] = useState<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [results, setResults] = useState<ReviewResults | null>(null);
+  const [isReviewing, setIsReviewing] = useState(false);
   const [maxScore, setMaxScore] = useState<number>(10);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Ref to read the latest selectedGpuIndex inside the stable loadGpus callback
+  // without adding it to the callback's dependency array.
+  const selectedGpuIndexRef = useRef<number | null>(null);
+  selectedGpuIndexRef.current = selectedGpuIndex;
 
   const loadModels = useCallback(async () => {
     try {
@@ -82,7 +87,7 @@ function HomeContent() {
         const modelNames = data.models.map((m: { model: string }) => m.model);
         setAvailableModels(modelNames);
         if (modelNames.length > 0) {
-          setSelectedModel(modelNames[0]);
+          setSelectedModel((prev) => (prev && modelNames.includes(prev) ? prev : modelNames[0]));
         }
       }
     } catch (err) {
@@ -104,7 +109,7 @@ function HomeContent() {
       setAvailableGpus(gpuList);
       if (gpuList.length === 0) {
         setSelectedGpuIndex(null);
-      } else if (selectedGpuIndex !== null && !gpuList.some((gpu) => gpu.index === selectedGpuIndex)) {
+      } else if (selectedGpuIndexRef.current !== null && !gpuList.some((gpu) => gpu.index === selectedGpuIndexRef.current)) {
         setSelectedGpuIndex(gpuList[0].index);
       }
     } catch (err) {
@@ -112,7 +117,7 @@ function HomeContent() {
       setAvailableGpus([]);
       setSelectedGpuIndex(null);
     }
-  }, [selectedGpuIndex]);
+  }, []);
 
   // Load available models and max score on mount
   useEffect(() => {
@@ -182,6 +187,7 @@ function HomeContent() {
   const startReview = async (gpuIndex: number | null) => {
     if (!selectedFile) return;
 
+    setIsReviewing(true);
     try {
       // Upload file
       const formData = new FormData();
@@ -229,6 +235,7 @@ function HomeContent() {
             duration: Infinity,
           });
         } else if (message.status === "completed") {
+          setIsReviewing(false);
           setResults(message.results);
           dismissToast();
           toast({
@@ -237,6 +244,7 @@ function HomeContent() {
           });
           ws.close();
         } else if (message.status === "error") {
+          setIsReviewing(false);
           dismissToast();
           toast({
             title: "Review Failed",
@@ -248,6 +256,7 @@ function HomeContent() {
       };
 
       ws.onerror = () => {
+        setIsReviewing(false);
         dismissToast();
         toast({
           title: "Connection Error",
@@ -256,6 +265,7 @@ function HomeContent() {
         });
       };
     } catch (err) {
+      setIsReviewing(false);
       toast({
         title: "Upload Failed",
         description: err instanceof Error ? err.message : "An error occurred",
@@ -311,6 +321,7 @@ function HomeContent() {
             handleDrop={handleDrop}
             handleFileInputChange={handleFileInputChange}
             startReview={startReview}
+            isReviewing={isReviewing}
           />
         )}
 
