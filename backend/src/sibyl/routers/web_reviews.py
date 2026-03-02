@@ -8,7 +8,6 @@ from ollama import AsyncClient
 
 if TYPE_CHECKING:
     from ollama import ListResponse
-    from ollama._types import ModelDetails
 
     from sibyl.storage.review import Review
 
@@ -157,9 +156,12 @@ async def list_available_models(request: Request) -> dict:
 
     for model in response.models:
         model: ListResponse.Model
-        details: ModelDetails | None = model.details
-        if details:
-            installed_variants_map.setdefault(model.model, []).append(details.parameter_size)
+        full_name: str = model.model or ""
+        base_name, _, tag = full_name.partition(":")
+        if not tag:
+            tag = "latest"
+        if base_name:
+            installed_variants_map.setdefault(base_name, []).append(tag)
 
     available_models = []
     for model_name in model_names:

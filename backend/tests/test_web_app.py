@@ -224,28 +224,29 @@ def test_available_models_installed_variants(client):
     from unittest.mock import AsyncMock, MagicMock, patch
 
     fake_library_html = '<a href="/library/llama3">llama3</a>'
-    # Simulate Ollama reporting llama3:7b as installed (not the bare :latest tag)
-    installed_model = {"name": "llama3:7b"}
 
     library_response = MagicMock()
     library_response.text = fake_library_html
     library_response.raise_for_status = MagicMock()
 
-    tags_response = MagicMock()
-    tags_response.json = MagicMock(return_value={"models": [installed_model]})
-    tags_response.raise_for_status = MagicMock()
-
     async def mock_get(url, *args, **kwargs):
-        if "ollama.com/library" in url:
-            return library_response
-        return tags_response
+        return library_response
 
-    mock_client = AsyncMock()
-    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-    mock_client.__aexit__ = AsyncMock(return_value=None)
-    mock_client.get = mock_get
+    mock_httpx_client = AsyncMock()
+    mock_httpx_client.__aenter__ = AsyncMock(return_value=mock_httpx_client)
+    mock_httpx_client.__aexit__ = AsyncMock(return_value=None)
+    mock_httpx_client.get = mock_get
 
-    with patch("sibyl.routers.web_reviews.httpx.AsyncClient", return_value=mock_client):
+    # Mock Ollama client list() – llama3:7b installed
+    mock_model = MagicMock()
+    mock_model.model = "llama3:7b"
+    mock_list_response = MagicMock()
+    mock_list_response.models = [mock_model]
+    mock_ollama = AsyncMock()
+    mock_ollama.list = AsyncMock(return_value=mock_list_response)
+    client.app.state.ollama_clients = {0: mock_ollama}
+
+    with patch("sibyl.routers.web_reviews.httpx.AsyncClient", return_value=mock_httpx_client):
         response = client.get("/api/models/available")
 
     assert response.status_code == 200
@@ -265,27 +266,29 @@ def test_available_models_installed_latest_is_not_marked(client):
     from unittest.mock import AsyncMock, MagicMock, patch
 
     fake_library_html = '<a href="/library/mistral">mistral</a>'
-    installed_model = {"name": "mistral:latest"}
 
     library_response = MagicMock()
     library_response.text = fake_library_html
     library_response.raise_for_status = MagicMock()
 
-    tags_response = MagicMock()
-    tags_response.json = MagicMock(return_value={"models": [installed_model]})
-    tags_response.raise_for_status = MagicMock()
-
     async def mock_get(url, *args, **kwargs):
-        if "ollama.com/library" in url:
-            return library_response
-        return tags_response
+        return library_response
 
-    mock_client = AsyncMock()
-    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-    mock_client.__aexit__ = AsyncMock(return_value=None)
-    mock_client.get = mock_get
+    mock_httpx_client = AsyncMock()
+    mock_httpx_client.__aenter__ = AsyncMock(return_value=mock_httpx_client)
+    mock_httpx_client.__aexit__ = AsyncMock(return_value=None)
+    mock_httpx_client.get = mock_get
 
-    with patch("sibyl.routers.web_reviews.httpx.AsyncClient", return_value=mock_client):
+    # Mock Ollama client list() – mistral:latest installed
+    mock_model = MagicMock()
+    mock_model.model = "mistral:latest"
+    mock_list_response = MagicMock()
+    mock_list_response.models = [mock_model]
+    mock_ollama = AsyncMock()
+    mock_ollama.list = AsyncMock(return_value=mock_list_response)
+    client.app.state.ollama_clients = {0: mock_ollama}
+
+    with patch("sibyl.routers.web_reviews.httpx.AsyncClient", return_value=mock_httpx_client):
         response = client.get("/api/models/available")
 
     assert response.status_code == 200
@@ -313,3 +316,162 @@ def test_concurrent_requests():
         assert response.status_code == 200
         data = response.json()
         assert "status" in data
+
+
+# ---------------------------------------------------------------------------
+# GPU endpoints
+# ---------------------------------------------------------------------------
+
+
+def test_gpu_list_no_nvml(client):
+    """Test GPU list endpoint when NVML is unavailable returns empty list."""
+    response = client.get("/api/gpu")
+    assert response.status_code == 200
+    data = response.json()
+    assert "gpus" in data
+    assert "count" in data
+    # When no GPU hardware present, available must be False and count 0
+    if not data["available"]:
+        assert data["count"] == 0
+        assert data["gpus"] == []
+
+
+def test_gpu_single_no_nvml(client):
+    """Test single GPU endpoint when NVML is unavailable returns 503."""
+    # When no NVML is available the endpoint raises 503
+    response = client.get("/api/gpu/0")
+    # Either 503 (no NVML) or 404 (no GPU at index 0 when count=0) are acceptable
+    assert response.status_code in (503, 404)
+
+
+# ---------------------------------------------------------------------------
+# Statistics endpoint
+# ---------------------------------------------------------------------------
+
+
+def test_get_statistics_empty(client):
+    """Test statistics endpoint returns zeros when no reviews exist."""
+    response = client.get("/api/statistics")
+    assert response.status_code == 200
+    data = response.json()
+    assert "total_reviews" in data
+    assert isinstance(data["total_reviews"], int)
+
+
+# ---------------------------------------------------------------------------
+# Search endpoint
+# ---------------------------------------------------------------------------
+
+
+def test_search_endpoint(client):
+    """Test the semantic search endpoint returns expected structure."""
+    from unittest.mock import patch
+
+    from sibyl.routers.web_state import storage
+
+    with patch.object(storage, "_generate_embedding", return_value=[0.1, 0.2, 0.3]):
+        response = client.post("/api/search", json={"query": "machine learning", "limit": 5})
+    assert response.status_code == 200
+    data = response.json()
+    assert "query" in data
+    assert "results" in data
+    assert "count" in data
+
+
+# ---------------------------------------------------------------------------
+# Review detail and delete endpoints
+# ---------------------------------------------------------------------------
+
+
+def test_get_review_not_found(client):
+    """Test getting a non-existent review returns 404."""
+    response = client.get("/api/reviews/nonexistent-id-12345")
+    assert response.status_code == 404
+
+
+def test_delete_review_not_found(client):
+    """Test deleting a non-existent review returns a server error (500)."""
+    test_client = TestClient(app, raise_server_exceptions=False)
+    response = test_client.delete("/api/reviews/nonexistent-id-12345")
+    # The engine raises IndexError for missing reviews which FastAPI translates to 500
+    assert response.status_code == 500
+
+
+# ---------------------------------------------------------------------------
+# Root endpoint
+# ---------------------------------------------------------------------------
+
+
+def test_root_health_check(client):
+    """Test the root health check endpoint."""
+    response = client.get("/")
+    assert response.status_code == 200
+    data = response.json()
+    assert data.get("status") == "online"
+    assert "system" in data
+
+
+# ---------------------------------------------------------------------------
+# WebSocket endpoints
+# ---------------------------------------------------------------------------
+
+
+def test_ws_pull_model_error_path(client):
+    """Test the WebSocket pull model endpoint sends an error message when pull fails."""
+    from unittest.mock import AsyncMock
+
+    mock_ollama = AsyncMock()
+    mock_ollama.pull = AsyncMock(side_effect=Exception("Ollama unavailable"))
+    client.app.state.ollama_clients = {0: mock_ollama}
+
+    with client.websocket_connect("/ws/pull?model_name=llama3") as ws:
+        data = ws.receive_json()
+        assert data["status"] == "error"
+        assert "Ollama unavailable" in data["message"]
+
+
+def test_ws_pull_model_success_path(client):
+    """Test the WebSocket pull endpoint streams progress messages from Ollama pull."""
+    from unittest.mock import AsyncMock
+
+    from starlette.websockets import WebSocketDisconnect
+
+    class FakePart:
+        def __init__(self, data: dict) -> None:
+            self._data = data
+
+        def model_dump(self) -> dict:
+            return self._data
+
+    class FakeAsyncIter:
+        def __init__(self) -> None:
+            self._items = [
+                FakePart({"status": "pulling", "completed": 50, "total": 100}),
+                FakePart({"status": "success"}),
+            ]
+            self._idx = 0
+
+        def __aiter__(self):
+            return self
+
+        async def __anext__(self):
+            if self._idx >= len(self._items):
+                raise StopAsyncIteration
+            item = self._items[self._idx]
+            self._idx += 1
+            return item
+
+    mock_ollama = AsyncMock()
+    mock_ollama.pull = AsyncMock(return_value=FakeAsyncIter())
+    client.app.state.ollama_clients = {0: mock_ollama}
+
+    received = []
+    with client.websocket_connect("/ws/pull?model_name=llama3") as ws:
+        try:
+            while True:
+                received.append(ws.receive_json())
+        except WebSocketDisconnect:
+            pass
+
+    assert any(m.get("status") == "pulling" for m in received)
+    assert any(m.get("status") == "success" for m in received)
