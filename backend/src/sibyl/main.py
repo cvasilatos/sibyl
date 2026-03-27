@@ -10,9 +10,8 @@ import uvicorn
 from decima.logger import CustomLogger
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from ollama import AsyncClient
 
-from sibyl.ollama_clients import _is_docker
+from sibyl.ollama_clients import _is_docker, base_ollama, docker_ollama
 from sibyl.routers import web_gpu, web_reviews, web_upload, web_ws
 
 OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
@@ -28,14 +27,9 @@ async def lifespan(app: FastAPI):  # noqa: ANN201, D103
 
     if _is_docker():
         logger.info("Running in Docker environment. Using internal Ollama host.")
-        app.state.ollama_clients = {
-            0: AsyncClient(host="http://ollama-0:11434"),
-            1: AsyncClient(host="http://ollama-1:11434"),
-        }
+        app.state.ollama_clients = docker_ollama
     else:
-        app.state.ollama_clients = {
-            0: AsyncClient(host=OLLAMA_BASE_URL),
-        }
+        app.state.ollama_clients = {0: base_ollama}
 
     yield
 

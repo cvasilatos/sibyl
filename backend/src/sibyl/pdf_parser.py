@@ -2,12 +2,14 @@
 
 import io
 import logging
-import os
 import re
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
 from decima.logger import CustomLogger
+from marker.converters.pdf import PdfConverter
+from marker.models import create_model_dict
+from marker.output import text_from_rendered
 
 if TYPE_CHECKING:
     from pypdf._page import PageObject
@@ -28,7 +30,6 @@ class PDFParser:
 
         """
         self.logger: CustomLogger = cast("CustomLogger", logging.getLogger(f"{self.__class__.__module__}.{self.__class__.__name__}"))
-        self._grobid_url: str = os.getenv("GROBID_URL", "http://localhost:8070")
         self._pdf_path: str = pdf_path
 
     def extract_text(self, max_pages: int | None = None) -> str:
@@ -56,28 +57,28 @@ class PDFParser:
 
         return "\n\n".join(text_content)
 
-    def get_metadata(self) -> dict:
+    def get_metadata(self, ollama_host: int) -> dict:
         """Extract metadata from the PDF.
+
+        Args:
+            ollama_host: The Ollama host number to use for GPU device assignment
 
         Returns:
             Dictionary containing PDF metadata
 
         """
-        return self._extract_metadata_grobid()
+        return self._extract_metadata_grobid(ollama_host)
 
-    def _extract_metadata_grobid(self) -> dict:
+    def _extract_metadata_grobid(self, ollama_host: int) -> dict:
         """Extract metadata using GROBID service.
 
         Returns:
             Dictionary containing PDF metadata from GROBID, or None if extraction fails
 
         """
-        from marker.converters.pdf import PdfConverter
-        from marker.models import create_model_dict
-        from marker.output import text_from_rendered
-
+        artifact_dict = create_model_dict(device=f"cuda:{ollama_host - 1}")
         converter = PdfConverter(
-            artifact_dict=create_model_dict(),
+            artifact_dict=artifact_dict,
         )
         rendered = converter(io.BytesIO(Path(self._pdf_path).read_bytes()))
         self.logger.error("PDF rendered successfully, extracting text and images for metadata analysis...")

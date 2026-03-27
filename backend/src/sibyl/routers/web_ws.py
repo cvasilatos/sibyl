@@ -52,7 +52,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, model: str =
         await websocket.send_json({"status": "progress", "progress": 10, "message": "Extracting text from PDF..."})
 
         parser = PDFParser(session["pdf_path"])
-        metadata = parser.get_metadata()
+        metadata = parser.get_metadata(ollama_host=int(host))
         paper_text: str = metadata["text"]
         paper_title = (metadata or {}).get("title", "Unknown Paper")
 

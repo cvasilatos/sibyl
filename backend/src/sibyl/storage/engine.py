@@ -11,6 +11,7 @@ if TYPE_CHECKING:
     from chromadb.api import ClientAPI
     from chromadb.api.models.Collection import Collection
     from decima.logger import CustomLogger
+    from ollama import AsyncClient, Client
     from ollama._types import EmbeddingsResponse
 
 
@@ -50,7 +51,7 @@ class Engine:
             settings=Settings(anonymized_telemetry=False),
         )
 
-        self._ollama_client: Client = get_ollama_client()
+        self._ollama_client: AsyncClient | Client = get_ollama_client()
 
         self.collection: Collection = self.client.get_or_create_collection(
             name="paper_reviews",

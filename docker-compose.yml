@@ -117,12 +117,6 @@ services:
             - driver: nvidia
               capabilities: [ gpu ]
               device_ids: [ '7' ]
-  grobid:
-    image: lfoppiano/grobid:0.8.0
-    ports:
-      - "8070:8070"
-    restart: unless-stopped
-
   backend:
     build:
       context: ./backend
@@ -133,8 +127,6 @@ services:
       - backend/.env
     environment:
       - OLLAMA_BASE_URL=http://ollama-0:11434
-      - GROBID_URL=http://grobid:8070
-      - GROBID_ENABLED=true
     deploy:
       resources:
         reservations:
@@ -151,7 +143,6 @@ services:
       - ollama-5
       - ollama-6
       - ollama-7
-      - grobid
     volumes:
       - sibyl_storage:/app/sibyl_storage
     restart: unless-stopped

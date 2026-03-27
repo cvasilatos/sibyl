@@ -15,7 +15,7 @@ from sibyl.config import MAX_SCORE
 from sibyl.web.model.llm_reply import LLMReply
 
 TEMPERATURE: float = float(os.getenv("OLLAMA_TEMPERATURE", "0.7"))
-MAX_TOKENS: int = int(os.getenv("OLLAMA_MAX_TOKENS", "8000"))
+MAX_TOKENS: int = int(os.getenv("OLLAMA_MAX_TOKENS", "30000"))
 
 
 class ReviewCriteria(BaseModel):
