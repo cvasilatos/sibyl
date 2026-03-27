@@ -60,7 +60,7 @@ class Engine:
 
     def _generate_embedding(self, text: str, model_name: str = "nomic-embed-text") -> list[float]:
         self.logger.debug(f"Generating embedding for text ({len(text)} chars), model: {model_name}")
-        response: EmbeddingsResponse = self._ollama_client.embeddings(model="nomic-embed-text", prompt=text[:5000])
+        response: EmbeddingsResponse = self._ollama_client.embeddings(model="nomic-embed-text", prompt=text[:5000], keep_alive=0)
         return list(response.embedding)
 
     def save_review(self, review: PaperReview, pdf_filename: str, pdf_path: str | None = None, paper_text: str | None = None) -> str:
