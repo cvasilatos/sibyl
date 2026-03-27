@@ -78,7 +78,7 @@ class ReviewSystem:
             stream=False,
             options={"temperature": TEMPERATURE, "num_predict": MAX_TOKENS},
             format=LLMReply.model_json_schema(),
-            keep_alive="1m",
+            keep_alive=0,
         )
 
         self.logger.warning(f"Received raw response from LLM for paper '{paper_title}': {response}\n\n\n\n")
