@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, Loader2, RefreshCw, Search } from "lucide-react";
+import { Download, Loader2, RefreshCw, Search, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,6 +43,7 @@ export default function ModelManager() {
   const [availableModels, setAvailableModels] = useState<AvailableModel[]>([]);
   const [filteredModels, setFilteredModels] = useState<AvailableModel[]>([]);
   const [loading, setLoading] = useState(true);
+  const [removing, setRemoving] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
   const [modelTags, setModelTags] = useState<Record<string, string[]>>({});
   const [fetchingTags, setFetchingTags] = useState<Set<string>>(new Set());
@@ -167,6 +168,28 @@ export default function ModelManager() {
         });
       }
     );
+  };
+
+  const removeModel = async (modelName: string) => {
+    setRemoving((prev) => new Set(prev).add(modelName));
+    try {
+      const response = await fetch(`${API_URL}/api/models/${encodeURIComponent(modelName)}`, { method: "DELETE" });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.detail ?? "Failed to remove model");
+      }
+      toast({ title: "Model Removed", description: `${modelName} has been removed.` });
+      loadModels();
+      loadAvailableModels();
+    } catch (err) {
+      toast({ title: "Removal Failed", description: err instanceof Error ? err.message : "Unknown error", variant: "destructive" });
+    } finally {
+      setRemoving((prev) => {
+        const next = new Set(prev);
+        next.delete(modelName);
+        return next;
+      });
+    }
   };
 
   const formatSize = (bytes: number) => {
@@ -313,6 +336,14 @@ export default function ModelManager() {
                       {formatSize(model.size)} • Modified {formatDate(model.modified_at)}
                     </p>
                   </div>
+                  <Button
+                    onClick={() => removeModel(model.model)}
+                    disabled={removing.has(model.model)}
+                    size="sm"
+                    variant="destructive"
+                  >
+                    {removing.has(model.model) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                  </Button>
                 </div>
               ))}
             </div>
