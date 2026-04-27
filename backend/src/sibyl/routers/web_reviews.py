@@ -124,6 +124,17 @@ async def list_models(request: Request) -> dict:
     }
 
 
+@router.delete("/models/{model_name:path}")
+async def delete_model(model_name: str, request: Request) -> dict:
+    """Delete a model from Ollama."""
+    client: AsyncClient = request.app.state.ollama_clients[0]
+    try:
+        await client.delete(model=model_name)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to delete model: {e}") from e
+    return {"message": f"Model '{model_name}' deleted successfully", "model": model_name}
+
+
 @router.get("/models/available")
 async def list_available_models(request: Request) -> dict:
     """List models available from the Ollama library."""
