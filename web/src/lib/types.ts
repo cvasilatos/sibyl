@@ -11,6 +11,7 @@ export interface ReviewCriteria {
   score: number;
   recommendation: string;
   detailed_feedback: string;
+  review_form_response?: string | null;
 }
 
 export interface Review {
@@ -100,4 +101,3 @@ export interface GpuResponse {
 }
 
 export type GpuSummary = Pick<GpuStats, "index" | "name" | "gpu_utilization" | "memory_used" | "memory_total">;
-

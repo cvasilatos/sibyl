@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, type ChangeEvent, type DragEvent, useCallback, useState } from "react";
+import { type ChangeEvent, type DragEvent, Suspense, useCallback, useState } from "react";
 import GpuMonitor from "@/components/GpuMonitor";
 import ModelManager from "@/components/ModelManager";
 import ResultsPanel from "@/components/ResultsPanel";
@@ -36,6 +36,14 @@ function HomeContent() {
       if (file) review.selectFile(file);
     },
     [review.selectFile]
+  );
+
+  const handleReviewFormInputChange = useCallback(
+    (event: ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (file) review.selectReviewForm(file);
+    },
+    [review.selectReviewForm]
   );
 
   const handleDragOver = useCallback((event: DragEvent) => {
@@ -83,6 +91,8 @@ function HomeContent() {
         {activeTab === "review" && (
           <UploadArea
             selectedFile={review.selectedFile}
+            selectedReviewForm={review.selectedReviewForm}
+            onReviewFormChange={review.selectReviewForm}
             selectedModel={review.selectedModel}
             availableModels={review.availableModels}
             onModelChange={review.setSelectedModel}
@@ -90,11 +100,13 @@ function HomeContent() {
             selectedGpuIndex={review.selectedGpuIndex}
             onGpuChange={review.setSelectedGpuIndex}
             fileInputRef={review.fileInputRef}
+            reviewFormInputRef={review.reviewFormInputRef}
             isDragging={isDragging}
             handleDragOver={handleDragOver}
             handleDragLeave={handleDragLeave}
             handleDrop={handleDrop}
             handleFileInputChange={handleFileInputChange}
+            handleReviewFormInputChange={handleReviewFormInputChange}
             startReview={review.startReview}
             isReviewing={review.isReviewing}
           />

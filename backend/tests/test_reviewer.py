@@ -202,3 +202,49 @@ def test_review_system_empty_response_raises():
 
     with pytest.raises(ValueError, match="empty response"):
         asyncio.run(run())
+
+
+def test_review_system_completes_custom_review_form():
+    """Test that custom forms use the strict form schema and lower temperature."""
+    import asyncio
+    from unittest.mock import AsyncMock, MagicMock
+
+    from ollama import AsyncClient
+
+    from sibyl.reviewer import FORM_TEMPERATURE, ReviewSystem
+
+    response_data = {
+        "novelty": "Novel",
+        "methodology": "Sound",
+        "results": "Supported",
+        "clarity": "Clear",
+        "impact": "High",
+        "limitations": "Small sample",
+        "strengths": "Strong design",
+        "score": 4,
+        "recommendation": "Accept",
+        "detailed_feedback": "Good work",
+        "review_form_response": "# Significance\n\nThe work is significant.",
+    }
+    mock_response = MagicMock(response=json.dumps(response_data))
+    mock_client = AsyncMock(spec=AsyncClient)
+    mock_client.generate = AsyncMock(return_value=mock_response)
+    reviewer = ReviewSystem(mock_client, "test-model")
+
+    async def run():
+        return await reviewer.review_paper(
+            "paper text",
+            "Paper title",
+            "test-model",
+            review_form="# Significance\n[Answer here]",
+        )
+
+    review = asyncio.run(run())
+    call = mock_client.generate.await_args.kwargs
+
+    assert review.criteria.review_form_response == response_data["review_form_response"]
+    assert "<review_form>\n# Significance" in call["prompt"]
+    assert "<research_paper>\npaper text" in call["prompt"]
+    assert call["system"]
+    assert call["options"]["temperature"] == FORM_TEMPERATURE
+    assert "review_form_response" in call["format"]["required"]

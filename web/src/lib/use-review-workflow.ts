@@ -16,6 +16,7 @@ interface ReviewSocketMessage {
 
 export function useReviewWorkflow(activeTab: AppTab) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedReviewForm, setSelectedReviewForm] = useState<File | null>(null);
   const [selectedModel, setSelectedModel] = useState("");
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [availableGpus, setAvailableGpus] = useState<Array<Pick<GpuStats, "index" | "name">>>([]);
@@ -26,6 +27,7 @@ export function useReviewWorkflow(activeTab: AppTab) {
   const selectedGpuIndexRef = useRef<number | null>(null);
   const activeSocketRef = useRef<WebSocket | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const reviewFormInputRef = useRef<HTMLInputElement>(null);
 
   selectedGpuIndexRef.current = selectedGpuIndex;
 
@@ -66,10 +68,12 @@ export function useReviewWorkflow(activeTab: AppTab) {
   useEffect(() => {
     loadModels();
     loadGpus();
-    fetchMaxScore().then(setMaxScore).catch((error) => {
-      console.error("Failed to load max score:", error);
-      toast({ title: "Warning", description: "Could not load score scale from server, using default.", variant: "destructive" });
-    });
+    fetchMaxScore()
+      .then(setMaxScore)
+      .catch((error) => {
+        console.error("Failed to load max score:", error);
+        toast({ title: "Warning", description: "Could not load score scale from server, using default.", variant: "destructive" });
+      });
   }, [loadGpus, loadModels]);
 
   useEffect(() => {
@@ -96,6 +100,26 @@ export function useReviewWorkflow(activeTab: AppTab) {
     setResults(null);
   }, []);
 
+  const selectReviewForm = useCallback((file: File | null) => {
+    if (file === null) {
+      setSelectedReviewForm(null);
+      if (reviewFormInputRef.current) reviewFormInputRef.current.value = "";
+      return;
+    }
+
+    const extension = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
+    if (![".txt", ".md", ".markdown"].includes(extension)) {
+      toast({ title: "Invalid Review Form", description: "Choose a .txt, .md, or .markdown file.", variant: "destructive" });
+      return;
+    }
+    if (file.size > 64 * 1024) {
+      toast({ title: "Review Form Too Large", description: "The review form must be 64 KiB or smaller.", variant: "destructive" });
+      return;
+    }
+    setSelectedReviewForm(file);
+    setResults(null);
+  }, []);
+
   const startReview = useCallback(
     async (gpuIndex: number | null) => {
       if (!selectedFile || !selectedModel) {
@@ -105,7 +129,7 @@ export function useReviewWorkflow(activeTab: AppTab) {
 
       setIsReviewing(true);
       try {
-        const upload = await api.uploadPaper(selectedFile);
+        const upload = await api.uploadPaper(selectedFile, selectedReviewForm);
         const hostIndex = gpuIndex !== null ? gpuIndex + 1 : 0;
         const filename = selectedFile.name;
         const progressToast = toast({
@@ -165,12 +189,14 @@ export function useReviewWorkflow(activeTab: AppTab) {
         toast({ title: "Upload Failed", description: error instanceof Error ? error.message : "An error occurred", variant: "destructive" });
       }
     },
-    [selectedFile, selectedModel]
+    [selectedFile, selectedModel, selectedReviewForm]
   );
 
   return {
     selectedFile,
     selectFile,
+    selectedReviewForm,
+    selectReviewForm,
     selectedModel,
     setSelectedModel,
     availableModels,
@@ -181,6 +207,7 @@ export function useReviewWorkflow(activeTab: AppTab) {
     isReviewing,
     maxScore,
     fileInputRef,
+    reviewFormInputRef,
     startReview,
   };
 }

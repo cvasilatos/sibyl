@@ -1,12 +1,5 @@
 import { API_URL } from "@/lib/config";
-import type {
-  AvailableModel,
-  FullReview,
-  GpuResponse,
-  InstalledModel,
-  ReviewsResponse,
-  ReviewStatistics,
-} from "@/lib/types";
+import type { AvailableModel, FullReview, GpuResponse, InstalledModel, ReviewStatistics, ReviewsResponse } from "@/lib/types";
 
 interface ModelsResponse<T> {
   models: T[];
@@ -21,6 +14,7 @@ interface ModelTagsResponse {
 interface UploadResponse {
   session_id: string;
   filename: string;
+  review_form_filename: string | null;
 }
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
@@ -48,10 +42,10 @@ export const api = {
     if (!response.ok) throw new Error("Failed to download PDF");
     return response.blob();
   },
-  async uploadPaper(file: File): Promise<UploadResponse> {
+  async uploadPaper(file: File, reviewForm?: File | null): Promise<UploadResponse> {
     const formData = new FormData();
     formData.append("file", file);
+    if (reviewForm) formData.append("review_form", reviewForm);
     return requestJson<UploadResponse>("/api/upload", { method: "POST", body: formData });
   },
 };
-

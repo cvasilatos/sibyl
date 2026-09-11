@@ -3,7 +3,7 @@
 import pytest
 
 from sibyl.config import MAX_SCORE
-from sibyl.web.model.llm_reply import LLMReply, Recommendation
+from sibyl.web.model.llm_reply import FormAwareLLMReply, LLMReply, Recommendation
 
 
 def _make_reply(**kwargs) -> LLMReply:
@@ -60,6 +60,17 @@ def test_llm_reply_basic_creation():
     assert reply.novelty == "Novel approach"
     assert reply.score == 3
     assert reply.recommendation == Recommendation.ACCEPT
+    assert reply.review_form_response is None
+
+
+def test_form_aware_reply_requires_completed_form():
+    data = _make_reply().model_dump(exclude={"review_form_response"})
+
+    with pytest.raises(ValueError):
+        FormAwareLLMReply(**data)
+
+    reply = FormAwareLLMReply(**data, review_form_response="# Completed form\n\nAnswer")
+    assert reply.review_form_response.startswith("# Completed form")
 
 
 def test_llm_reply_all_recommendations():

@@ -74,7 +74,12 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, model: str =
 
             await websocket.send_json({"status": "progress", "progress": 50, "message": f"Reviewing with {model}..."})
 
-            review: PaperReview = await reviewer.review_paper(paper_text, paper_title, model)
+            review: PaperReview = await reviewer.review_paper(
+                paper_text,
+                paper_title,
+                model,
+                review_form=session.get("review_form"),
+            )
             logger.info(f"Generated review for paper '{paper_title}' with model {model}:\n{review.raw_response}")
         except Exception as e:
             logger.exception(f"Error during review with model {model}")

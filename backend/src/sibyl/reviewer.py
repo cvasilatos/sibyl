@@ -1,6 +1,7 @@
 """Research paper review framework."""
 
 import importlib.resources as pkg_resources
+import json
 import logging
 import os
 from typing import TYPE_CHECKING, cast
@@ -12,9 +13,10 @@ if TYPE_CHECKING:
 from pydantic import BaseModel, Field
 
 from sibyl.config import MAX_SCORE
-from sibyl.web.model.llm_reply import LLMReply
+from sibyl.web.model.llm_reply import FormAwareLLMReply, LLMReply
 
 TEMPERATURE: float = float(os.getenv("OLLAMA_TEMPERATURE", "0.7"))
+FORM_TEMPERATURE: float = float(os.getenv("OLLAMA_FORM_TEMPERATURE", "0.2"))
 MAX_TOKENS: int = int(os.getenv("OLLAMA_MAX_TOKENS", "30000"))
 
 
@@ -57,27 +59,50 @@ class ReviewSystem:
 
         self._client: AsyncClient = client
         self._model: str = model
-        self._prompt: str = pkg_resources.read_text("sibyl.resources", "review_prompt.md")
+        self._system_prompt: str = pkg_resources.read_text("sibyl.resources", "review_prompt.md")
 
-    async def review_paper(self, paper_text: str, paper_title: str, model: str) -> PaperReview:
+    async def review_paper(self, paper_text: str, paper_title: str, model: str, review_form: str | None = None) -> PaperReview:
         """Generate a review for a research paper.
 
         Args:
             paper_text: The full text of the research paper
             paper_title: Title of the paper
             model: Name of the LLM model to use
+            review_form: Optional plain-text or Markdown review form to complete
 
         Returns:
             Structured review of the paper
 
         """
         self.logger.info(f"Starting synchronous review for paper: '{paper_title}'")
+        response_model: type[LLMReply] = FormAwareLLMReply if review_form else LLMReply
+        response_schema = response_model.model_json_schema()
+        form_section = ""
+        if review_form:
+            form_section = f"""
+<review_form>
+{review_form}
+</review_form>
+
+Complete the supplied review form in the review_form_response field.
+"""
+
+        prompt = f"""Review the research paper below.{form_section}
+<research_paper>
+{paper_text}
+</research_paper>
+
+Output JSON schema:
+{json.dumps(response_schema, ensure_ascii=False)}
+"""
+
         response: GenerateResponse = await self._client.generate(
             model=self._model,
-            prompt=self._prompt.format(paper_text=paper_text),
+            system=self._system_prompt,
+            prompt=prompt,
             stream=False,
-            options={"temperature": TEMPERATURE, "num_predict": MAX_TOKENS},
-            format=LLMReply.model_json_schema(),
+            options={"temperature": FORM_TEMPERATURE if review_form else TEMPERATURE, "num_predict": MAX_TOKENS},
+            format=response_schema,
             keep_alive=0,
         )
 
@@ -87,7 +112,7 @@ class ReviewSystem:
             raise ValueError("Received empty response from LLM")
 
         self.logger.debug(f"Received response from LLM ({len(response.response)} chars), parsing...")
-        criteria: LLMReply = LLMReply.model_validate_json(response.response)
+        criteria: LLMReply = response_model.model_validate_json(response.response)
         self.logger.info(f"Review complete for '{paper_title}': score={criteria.score}, recommendation={criteria.recommendation}")
 
         return PaperReview(

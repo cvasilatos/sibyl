@@ -27,3 +27,17 @@ class LLMReply(BaseModel):
     score: int = Field(..., ge=1, le=MAX_SCORE, description=f"Overall score from 1-{MAX_SCORE}")
     recommendation: Recommendation = Field(..., description="Accept/Minor Revision/Major Revision/Reject")
     detailed_feedback: str = Field(..., description="Detailed feedback and suggestions for improvement")
+    review_form_response: str | None = Field(
+        default=None,
+        description="Completed response matching the user-supplied review form, or null when no form was supplied",
+    )
+
+
+class FormAwareLLMReply(LLMReply):
+    """Structured reply used when a custom review form must be completed."""
+
+    review_form_response: str = Field(
+        ...,
+        min_length=1,
+        description="Completed response matching every applicable section of the user-supplied review form",
+    )

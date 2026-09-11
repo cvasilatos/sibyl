@@ -106,6 +106,9 @@ class Engine:
         Detailed Feedback: {review.criteria.detailed_feedback}
         """
 
+        if review.criteria.review_form_response:
+            searchable_content += f"\n\nCompleted Review Form:\n{review.criteria.review_form_response}"
+
         if paper_text:
             searchable_content += f"\n\nPaper Content: {paper_text}"
 

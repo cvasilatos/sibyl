@@ -13,6 +13,7 @@ Sibyl is a Python-based tool that uses Local Large Language Models (LLMs) runnin
 - 🔒 **Privacy First**: All processing happens locally - no data sent to external APIs
 - 💰 **Zero Cost**: No API fees or subscription costs
 - 📊 **Structured Reviews**: Get consistent, structured feedback across multiple dimensions
+- 📋 **Custom Review Forms**: Upload a UTF-8 `.txt`, `.md`, or `.markdown` form and receive a completed response that preserves its sections
 - 📈 **Comparative Analysis**: View statistics, consensus, and differences across reviewers
 - 💻 **CLI Interface**: Easy-to-use command-line interface with rich formatting
 - 🌐 **Web API**: FastAPI server with WebSocket support for real-time progress

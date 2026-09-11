@@ -13,5 +13,12 @@ const REVIEW_SECTIONS: Array<{ title: string; field: keyof ReviewCriteria }> = [
 ];
 
 export default function ReviewDetails({ criteria }: { criteria: ReviewCriteria }) {
-  return REVIEW_SECTIONS.map(({ title, field }) => <ReviewSection key={field} title={title} content={String(criteria[field])} />);
+  return (
+    <>
+      {criteria.review_form_response && <ReviewSection title="📋 Completed Review Form" content={criteria.review_form_response} />}
+      {REVIEW_SECTIONS.map(({ title, field }) => (
+        <ReviewSection key={field} title={title} content={String(criteria[field])} />
+      ))}
+    </>
+  );
 }
