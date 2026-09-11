@@ -1,47 +1,18 @@
 "use client";
 
-import { Download, Loader2, RefreshCw, Search, Trash2 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { Download, Loader2, RefreshCw, Search } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
-import { API_URL } from "@/lib/config";
+import { api } from "@/lib/api";
 import { useDownload } from "@/lib/download-context";
-
-interface Model {
-  model: string;
-  size: number;
-  modified_at: string;
-  digest: string;
-}
-
-interface AvailableModel {
-  name: string;
-  description: string;
-  size: string;
-  installed: boolean;
-  installed_variants?: string[];
-}
-
-interface ModelsResponse {
-  models: Model[];
-  count: number;
-}
-
-interface AvailableModelsResponse {
-  models: AvailableModel[];
-  count: number;
-}
-
-interface ModelTagsResponse {
-  model: string;
-  tags: string[];
-}
+import { formatBytes, formatDate } from "@/lib/presentation";
+import type { AvailableModel, InstalledModel } from "@/lib/types";
 
 export default function ModelManager() {
-  const [models, setModels] = useState<Model[]>([]);
+  const [models, setModels] = useState<InstalledModel[]>([]);
   const [availableModels, setAvailableModels] = useState<AvailableModel[]>([]);
-  const [filteredModels, setFilteredModels] = useState<AvailableModel[]>([]);
   const [loading, setLoading] = useState(true);
   const [removing, setRemoving] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
@@ -56,11 +27,7 @@ export default function ModelManager() {
     setLoading(true);
     clearError();
     try {
-      const response = await fetch(`${API_URL}/api/models`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch models");
-      }
-      const data: ModelsResponse = await response.json();
+      const data = await api.listInstalledModels();
       setModels(data.models || []);
     } catch (err) {
       // Note: error handling moved to context
@@ -72,13 +39,8 @@ export default function ModelManager() {
 
   const loadAvailableModels = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/api/models/available`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch available models");
-      }
-      const data: AvailableModelsResponse = await response.json();
+      const data = await api.listAvailableModels();
       setAvailableModels(data.models || []);
-      setFilteredModels(data.models || []);
     } catch (err) {
       console.error("Failed to load available models:", err);
     }
@@ -89,24 +51,17 @@ export default function ModelManager() {
     loadAvailableModels();
   }, [loadAvailableModels, loadModels]);
 
-  useEffect(() => {
-    // Filter available models based on search query
-    if (searchQuery.trim() === "") {
-      setFilteredModels(availableModels);
-    } else {
-      const query = searchQuery.toLowerCase();
-      const filtered = availableModels.filter((model) => model.name.toLowerCase().includes(query) || model.description.toLowerCase().includes(query));
-      setFilteredModels(filtered);
-    }
-  }, [searchQuery, availableModels]);
+  const filteredModels = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return availableModels;
+    return availableModels.filter((model) => model.name.toLowerCase().includes(query) || model.description.toLowerCase().includes(query));
+  }, [availableModels, searchQuery]);
 
   const fetchModelTags = async (modelName: string) => {
     if (modelTags[modelName] !== undefined || fetchingTags.has(modelName)) return;
     setFetchingTags((prev) => new Set(prev).add(modelName));
     try {
-      const response = await fetch(`${API_URL}/api/models/available/${modelName}/tags`);
-      if (!response.ok) throw new Error("Failed to fetch tags");
-      const data: ModelTagsResponse = await response.json();
+      const data = await api.listModelTags(modelName);
       setModelTags((prev) => ({ ...prev, [modelName]: data.tags }));
       if (data.tags.length > 0) {
         setSelectedTags((prev) => ({ ...prev, [modelName]: data.tags[0] }));
@@ -168,39 +123,6 @@ export default function ModelManager() {
         });
       }
     );
-  };
-
-  const removeModel = async (modelName: string) => {
-    setRemoving((prev) => new Set(prev).add(modelName));
-    try {
-      const response = await fetch(`${API_URL}/api/models/${encodeURIComponent(modelName)}`, { method: "DELETE" });
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.detail ?? "Failed to remove model");
-      }
-      toast({ title: "Model Removed", description: `${modelName} has been removed.` });
-      loadModels();
-      loadAvailableModels();
-    } catch (err) {
-      toast({ title: "Removal Failed", description: err instanceof Error ? err.message : "Unknown error", variant: "destructive" });
-    } finally {
-      setRemoving((prev) => {
-        const next = new Set(prev);
-        next.delete(modelName);
-        return next;
-      });
-    }
-  };
-
-  const formatSize = (bytes: number) => {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB`;
-    if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
-    return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString();
   };
 
   return (
@@ -333,7 +255,7 @@ export default function ModelManager() {
                   <div>
                     <p className="text-sm font-medium">{model.model}</p>
                     <p className="text-xs text-muted-foreground">
-                      {formatSize(model.size)} • Modified {formatDate(model.modified_at)}
+                      {formatBytes(model.size)} • Modified {formatDate(model.modified_at)}
                     </p>
                   </div>
                   <Button

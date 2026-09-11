@@ -181,11 +181,10 @@ def test_delete_review(storage, sample_review):
 
     assert storage.count_reviews() == 1
 
-    storage.delete_review(review_id)
+    assert storage.delete_review(review_id) is True
     assert storage.count_reviews() == 0
 
-    with pytest.raises(Exception):
-        storage.delete_review(review_id)
+    assert storage.delete_review(review_id) is False
 
 
 def test_delete_all_reviews(storage, sample_review):
@@ -285,4 +284,3 @@ def test_list_reviews_with_text_search(storage, sample_review):
     # No-match search returns empty list
     results = storage.list_reviews(search="zzz_no_match_zzz")
     assert len(results) == 0
-

@@ -1,6 +1,7 @@
 import json
 import logging
 import shutil
+import uuid
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
@@ -24,6 +25,7 @@ from sibyl.storage.review import Review
 
 # Maximum number of characters to include in a review summary preview
 _REVIEW_SUMMARY_MAX_LEN: int = 200
+_EMBEDDING_MODEL = "nomic-embed-text"
 
 
 class Engine:
@@ -59,9 +61,9 @@ class Engine:
         )
         self.logger.info(f"Initialized with {self.collection.count()} existing reviews")
 
-    def _generate_embedding(self, text: str, model_name: str = "nomic-embed-text") -> list[float]:
-        self.logger.debug(f"Generating embedding for text ({len(text)} chars), model: {model_name}")
-        response: EmbeddingsResponse = self._ollama_client.embeddings(model="nomic-embed-text", prompt=text[:5000], keep_alive=0)
+    def _generate_embedding(self, text: str) -> list[float]:
+        self.logger.debug(f"Generating embedding for text ({len(text)} chars), model: {_EMBEDDING_MODEL}")
+        response: EmbeddingsResponse = self._ollama_client.embeddings(model=_EMBEDDING_MODEL, prompt=text[:5000], keep_alive=0)
         return list(response.embedding)
 
     def save_review(self, review: PaperReview, pdf_filename: str, pdf_path: str | None = None, paper_text: str | None = None) -> str:
@@ -77,7 +79,7 @@ class Engine:
             ID of the saved review
 
         """
-        review_id = f"review_{datetime.now(tz=UTC).timestamp()}_{pdf_filename}"
+        review_id = f"review_{uuid.uuid4().hex}"
 
         self.logger.info(f"Saving review for paper '{review.paper_title}' (model={review.reviewer_model}, score={review.criteria.score})")
 
@@ -104,9 +106,10 @@ class Engine:
         Detailed Feedback: {review.criteria.detailed_feedback}
         """
 
-        searchable_content += f"\n\nPaper Content: {paper_text}"
+        if paper_text:
+            searchable_content += f"\n\nPaper Content: {paper_text}"
 
-        embedding = self._generate_embedding(searchable_content, review.reviewer_model)
+        embedding = self._generate_embedding(searchable_content)
 
         metadata = {
             "paper_title": review.paper_title,
@@ -282,7 +285,7 @@ class Engine:
         except Exception:
             return None
 
-    def delete_review(self, review_id: str) -> None:
+    def delete_review(self, review_id: str) -> bool:
         """Delete a review by ID.
 
         Args:
@@ -292,14 +295,17 @@ class Engine:
         results = self.collection.get(ids=[review_id], include=["metadatas"])
 
         result_metadatas = results["metadatas"]
-        if result_metadatas is not None:
-            metadata = cast("dict[str, str | int | float | bool | None]", result_metadatas[0])
-            pdf_path = str(metadata["pdf_path"]) if metadata.get("pdf_path") else None
-            if pdf_path and Path(pdf_path).exists():
-                Path(pdf_path).unlink()
+        if not results["ids"] or not result_metadatas:
+            return False
+
+        metadata = cast("dict[str, str | int | float | bool | None]", result_metadatas[0])
+        pdf_path = str(metadata["pdf_path"]) if metadata.get("pdf_path") else None
+        if pdf_path and Path(pdf_path).exists():
+            Path(pdf_path).unlink()
 
         self.collection.delete(ids=[review_id])
         self.logger.info(f"Review deleted: {review_id}")
+        return True
 
     def delete_all_reviews(self) -> int:
         """Delete all reviews from storage.

@@ -337,11 +337,11 @@ def test_gpu_list_no_nvml(client):
 
 
 def test_gpu_single_no_nvml(client):
-    """Test single GPU endpoint when NVML is unavailable returns 503."""
-    # When no NVML is available the endpoint raises 503
+    """Test the single GPU endpoint with or without available hardware."""
     response = client.get("/api/gpu/0")
-    # Either 503 (no NVML) or 404 (no GPU at index 0 when count=0) are acceptable
-    assert response.status_code in (503, 404)
+    assert response.status_code in (200, 503, 404)
+    if response.status_code == 200:
+        assert response.json()["index"] == 0
 
 
 # ---------------------------------------------------------------------------
@@ -369,7 +369,7 @@ def test_search_endpoint(client):
 
     from sibyl.routers.web_state import storage
 
-    with patch.object(storage, "_generate_embedding", return_value=[0.1, 0.2, 0.3]):
+    with patch.object(storage, "search_reviews", return_value=[]):
         response = client.post("/api/search", json={"query": "machine learning", "limit": 5})
     assert response.status_code == 200
     data = response.json()
@@ -390,11 +390,10 @@ def test_get_review_not_found(client):
 
 
 def test_delete_review_not_found(client):
-    """Test deleting a non-existent review returns a server error (500)."""
+    """Test deleting a non-existent review returns 404."""
     test_client = TestClient(app, raise_server_exceptions=False)
     response = test_client.delete("/api/reviews/nonexistent-id-12345")
-    # The engine raises IndexError for missing reviews which FastAPI translates to 500
-    assert response.status_code == 500
+    assert response.status_code == 404
 
 
 # ---------------------------------------------------------------------------

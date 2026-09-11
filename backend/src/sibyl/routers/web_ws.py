@@ -46,9 +46,14 @@ async def pull_model(websocket: WebSocket, model_name: str = Query()) -> None:
 async def websocket_endpoint(websocket: WebSocket, session_id: str, model: str = Query(...), host: str = Query(...)) -> None:
     """WebSocket endpoint for real-time review progress updates."""
     await websocket.accept()
+    session = review_sessions.get(session_id)
+
+    if session is None:
+        await websocket.send_json({"status": "error", "message": "Session not found"})
+        await websocket.close(code=1008)
+        return
 
     try:
-        session = review_sessions[session_id]
         await websocket.send_json({"status": "progress", "progress": 10, "message": "Extracting text from PDF..."})
 
         parser = PDFParser(session["pdf_path"])

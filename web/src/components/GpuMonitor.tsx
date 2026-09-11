@@ -4,42 +4,9 @@ import { Cpu, RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { API_URL } from "@/lib/config";
-
-interface GpuProcess {
-  pid: number;
-  name: string;
-  memory_bytes: number;
-  type: "compute" | "graphics";
-}
-
-interface GpuStats {
-  index: number;
-  name: string;
-  gpu_utilization: number;
-  memory_utilization: number;
-  memory_used: number;
-  memory_total: number;
-  memory_free: number;
-  temperature: number | null;
-  power_usage_watts: number | null;
-  power_limit_watts: number | null;
-  fan_speed_percent: number | null;
-  processes: GpuProcess[];
-}
-
-interface GpuResponse {
-  gpus: GpuStats[];
-  count: number;
-  available: boolean;
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(0)} MB`;
-  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
-}
+import { api } from "@/lib/api";
+import { formatBytes } from "@/lib/presentation";
+import type { GpuResponse, GpuStats } from "@/lib/types";
 
 function UtilBar({ value, color }: { value: number; color: string }) {
   return (
@@ -126,13 +93,7 @@ export default function GpuMonitor() {
 
   const fetchGpus = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/api/gpu`);
-      if (!response.ok) {
-        const detail = await response.json().catch(() => ({ detail: "Unknown error" }));
-        throw new Error(detail.detail ?? "Failed to fetch GPU data");
-      }
-
-      const result: GpuResponse = await response.json();
+      const result = await api.listGpus();
       setData(result);
       setError(null);
     } catch (err) {

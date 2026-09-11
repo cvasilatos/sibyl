@@ -1,8 +1,9 @@
 import { BookOpen, FileText, Monitor, Settings } from "lucide-react";
 import Link from "next/link";
+import type { AppTab } from "@/lib/types";
 
 type Props = {
-  activeTab: "review" | "library" | "models" | "gpu";
+  activeTab: AppTab;
 };
 
 export default function Tabs({ activeTab }: Props) {

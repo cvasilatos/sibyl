@@ -1,13 +1,10 @@
-import asyncio
 import logging
-import re
 from typing import TYPE_CHECKING, cast
 
 from decima import CustomLogger
-from ollama import AsyncClient
 
 if TYPE_CHECKING:
-    from ollama import ListResponse
+    from ollama import AsyncClient, ListResponse
 
     from sibyl.storage.review import Review
 
@@ -17,6 +14,7 @@ from fastapi.responses import FileResponse
 
 from sibyl.config import MAX_SCORE
 from sibyl.routers.web_state import review_sessions, storage
+from sibyl.services.model_catalog import ModelCatalog
 from sibyl.web.model.search_request import SearchRequest
 from sibyl.web.model.session_status import SessionStatus
 
@@ -102,7 +100,8 @@ async def delete_all_reviews() -> dict:
 @router.delete("/reviews/{review_id}")
 async def delete_review(review_id: str) -> dict:
     """Delete a specific review by ID."""
-    storage.delete_review(review_id)
+    if not storage.delete_review(review_id):
+        raise HTTPException(status_code=404, detail="Review not found")
     return {"message": "Review deleted successfully", "id": review_id}
 
 
@@ -139,51 +138,11 @@ async def delete_model(model_name: str, request: Request) -> dict:
 async def list_available_models(request: Request) -> dict:
     """List models available from the Ollama library."""
     try:
-        process = await asyncio.create_subprocess_exec(
-            "curl",
-            "-s",
-            "https://ollama.com/library",
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-        stdout, _ = await asyncio.wait_for(process.communicate(), timeout=30)
-        if process.returncode != 0:
-            raise RuntimeError(f"curl failed with return code {process.returncode}")
-        html_content = stdout.decode("utf-8")
-    except (TimeoutError, RuntimeError, FileNotFoundError):
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            library_response = await client.get("https://ollama.com/library")
-            library_response.raise_for_status()
-            html_content = library_response.text
-
-    model_names = re.findall(r'href="/library/([^\"]+)', html_content)
-    model_names = sorted(set(model_names))
-
-    installed_model_names: set[str] = set()
-    installed_variants_map: dict[str, list[str]] = {}
-
-    client: AsyncClient = request.app.state.ollama_clients[0]
-    response: ListResponse = await client.list()
-
-    for model in response.models:
-        model: ListResponse.Model
-        full_name: str = model.model or ""
-        base_name, _, tag = full_name.partition(":")
-        if not tag:
-            tag = "latest"
-        if base_name:
-            installed_variants_map.setdefault(base_name, []).append(tag)
-
-    available_models = []
-    for model_name in model_names:
-        model_info = {
-            "name": model_name,
-            "description": "Available from Ollama library",
-            "size": "Unknown",
-            "installed": model_name in installed_model_names,
-            "installed_variants": installed_variants_map.get(model_name, []),
-        }
-        available_models.append(model_info)
+        client: AsyncClient = request.app.state.ollama_clients[0]
+        installed: ListResponse = await client.list()
+        available_models = await ModelCatalog(client_factory=httpx.AsyncClient).list_available(installed)
+    except httpx.HTTPError as e:
+        raise HTTPException(status_code=502, detail=f"Failed to fetch model catalog: {e}") from e
 
     return {"models": available_models, "count": len(available_models)}
 
@@ -192,17 +151,11 @@ async def list_available_models(request: Request) -> dict:
 async def get_model_tags(model_name: str) -> dict:
     """Fetch numerical size tags (e.g. 1.5b, 7b, 70b) for a specific Ollama library model."""
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.get(f"https://ollama.com/library/{model_name}")
-            response.raise_for_status()
-            html_content = response.text
+        tags = await ModelCatalog(client_factory=httpx.AsyncClient).list_tags(model_name)
     except httpx.HTTPError as e:
         raise HTTPException(status_code=502, detail=f"Failed to fetch model tags: {e}") from e
 
-    raw_tags = re.findall(rf'href="/library/{re.escape(model_name)}:([^"]+)"', html_content)
-    numerical_tags = sorted({tag for tag in raw_tags if re.fullmatch(r"\d+(\.\d+)?[bBmMkK]", tag)})
-
-    return {"model": model_name, "tags": numerical_tags}
+    return {"model": model_name, "tags": tags}
 
 
 @router.get("/reviews/{review_id}/pdf")

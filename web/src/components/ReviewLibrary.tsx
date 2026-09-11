@@ -2,63 +2,14 @@
 
 import { ChevronDown, ChevronUp, Download, Loader2, RefreshCw, Search, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import ReviewSection from "@/components/ReviewSection";
+import ReviewDetails from "@/components/ReviewDetails";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/use-toast";
-import { API_URL, fetchMaxScore } from "@/lib/config";
-
-interface StoredReview {
-  id: string;
-  paper_title: string;
-  pdf_filename: string;
-  pdf_path: string | null;
-  reviewer_model: string;
-  score: number;
-  recommendation: string;
-  review_summary: string;
-  created_at: string;
-}
-
-interface ReviewCriteria {
-  novelty: string;
-  methodology: string;
-  results: string;
-  clarity: string;
-  impact: string;
-  limitations: string;
-  strengths: string;
-  score: number;
-  recommendation: string;
-  detailed_feedback: string;
-}
-
-interface FullReview {
-  id: string;
-  paper_title: string;
-  pdf_filename: string;
-  pdf_path: string | null;
-  reviewer_model: string;
-  score: number;
-  recommendation: string;
-  created_at: string;
-  criteria: ReviewCriteria;
-  raw_response: string;
-}
-
-interface ReviewsResponse {
-  reviews: StoredReview[];
-  total: number;
-  limit: number;
-  offset: number;
-}
-
-interface Statistics {
-  total_reviews: number;
-  unique_papers: number;
-  unique_models: number;
-  recommendations: Record<string, number>;
-}
+import { api } from "@/lib/api";
+import { fetchMaxScore } from "@/lib/config";
+import { formatDate, recommendationClassName } from "@/lib/presentation";
+import type { FullReview, ReviewStatistics, StoredReview } from "@/lib/types";
 
 export default function ReviewLibrary({
   initialExpandedReview = null,
@@ -74,7 +25,7 @@ export default function ReviewLibrary({
   const [deletingAll, setDeletingAll] = useState(false);
   const [downloading, setDownloading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [stats, setStats] = useState<Statistics | null>(null);
+  const [stats, setStats] = useState<ReviewStatistics | null>(null);
   const [expandedReview, setExpandedReview] = useState<string | null>(initialExpandedReview);
   const [fullReviewData, setFullReviewData] = useState<Record<string, FullReview>>({});
   const [loadingFull, setLoadingFull] = useState<string | null>(null);
@@ -98,14 +49,7 @@ export default function ReviewLibrary({
     setLoading(true);
     setError(null);
     try {
-      const [reviewsResponse, statsResponse] = await Promise.all([fetch(`${API_URL}/api/reviews?limit=50`), fetch(`${API_URL}/api/statistics`)]);
-
-      if (!reviewsResponse.ok || !statsResponse.ok) {
-        throw new Error("Failed to fetch reviews");
-      }
-
-      const reviewsData: ReviewsResponse = await reviewsResponse.json();
-      const statsData = await statsResponse.json();
+      const [reviewsData, statsData] = await Promise.all([api.listReviews(), api.getStatistics()]);
 
       setReviews(reviewsData.reviews);
       setStats(statsData);
@@ -131,11 +75,8 @@ export default function ReviewLibrary({
     if (!initialExpandedReview) return;
     const controller = new AbortController();
     setLoadingFull(initialExpandedReview);
-    fetch(`${API_URL}/api/reviews/${initialExpandedReview}`, { signal: controller.signal })
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch review details");
-        return res.json();
-      })
+    api
+      .getReview(initialExpandedReview, controller.signal)
       .then((data: FullReview) => {
         setFullReviewData((prev) => ({ ...prev, [initialExpandedReview]: data }));
       })
@@ -158,15 +99,7 @@ export default function ReviewLibrary({
     setDeleting(reviewId);
     setError(null);
     try {
-      const response = await fetch(`${API_URL}/api/reviews/${reviewId}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to delete review");
-      }
-
-      // Reload reviews after deletion
+      await api.deleteReview(reviewId);
       await loadReviews();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete review");
@@ -183,14 +116,7 @@ export default function ReviewLibrary({
     setDeletingAll(true);
     setError(null);
     try {
-      const response = await fetch(`${API_URL}/api/reviews`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to delete all reviews");
-      }
-
+      await api.deleteAllReviews();
       await loadReviews();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete all reviews");
@@ -203,14 +129,7 @@ export default function ReviewLibrary({
     setDownloading(reviewId);
     setError(null);
     try {
-      const response = await fetch(`${API_URL}/api/reviews/${reviewId}/pdf`);
-
-      if (!response.ok) {
-        throw new Error("Failed to download PDF");
-      }
-
-      // Create a blob from the response
-      const blob = await response.blob();
+      const blob = await api.downloadReviewPdf(reviewId);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -239,9 +158,7 @@ export default function ReviewLibrary({
     if (!fullReviewData[reviewId]) {
       setLoadingFull(reviewId);
       try {
-        const response = await fetch(`${API_URL}/api/reviews/${reviewId}`);
-        if (!response.ok) throw new Error("Failed to fetch review details");
-        const data: FullReview = await response.json();
+        const data = await api.getReview(reviewId);
         setFullReviewData((prev) => ({ ...prev, [reviewId]: data }));
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load review details");
@@ -250,17 +167,6 @@ export default function ReviewLibrary({
         setLoadingFull(null);
       }
     }
-  };
-
-  const getRecommendationColor = (recommendation: string) => {
-    const rec = recommendation.toLowerCase();
-    if (rec.includes("accept")) return "text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-950";
-    if (rec.includes("reject")) return "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-950";
-    return "text-yellow-600 bg-yellow-50 dark:text-yellow-400 dark:bg-yellow-950";
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString();
   };
 
   return (
@@ -328,29 +234,15 @@ export default function ReviewLibrary({
           ) : (
             filteredReviews.map((review) => (
               <div key={review.id} className="bg-muted rounded-md transition-colors">
-                <button
-                  className="flex w-full items-start justify-between p-4 hover:bg-muted/80 cursor-pointer transition-colors rounded-md text-left"
-                  onClick={() => toggleExpand(review.id)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") toggleExpand(review.id);
-                  }}
-                >
+                <div className="flex w-full items-start justify-between p-4 hover:bg-muted/80 transition-colors rounded-md text-left">
                   <div className="flex-1 min-w-0">
-                    <h3
-                      className="font-semibold text-sm truncate cursor-pointer hover:text-primary hover:underline"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedPaperTitle(review.paper_title);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.stopPropagation();
-                          setSelectedPaperTitle(review.paper_title);
-                        }
-                      }}
+                    <button
+                      type="button"
+                      className="block max-w-full font-semibold text-sm truncate cursor-pointer hover:text-primary hover:underline"
+                      onClick={() => setSelectedPaperTitle(review.paper_title)}
                     >
                       {review.paper_title}
-                    </h3>
+                    </button>
                     <p className="text-xs text-muted-foreground mb-2">
                       {review.pdf_filename} • {review.reviewer_model} • {formatDate(review.created_at)}
                     </p>
@@ -358,7 +250,7 @@ export default function ReviewLibrary({
                       <span className="text-sm font-semibold text-primary">
                         {review.score}/{maxScore}
                       </span>
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${getRecommendationColor(review.recommendation)}`}>{review.recommendation}</span>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${recommendationClassName(review.recommendation)}`}>{review.recommendation}</span>
                     </div>
                     <p className="text-xs text-muted-foreground line-clamp-2">{review.review_summary}</p>
                   </div>
@@ -367,19 +259,22 @@ export default function ReviewLibrary({
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={(e) => { e.stopPropagation(); downloadPDF(review.id, review.pdf_filename); }}
+                        onClick={() => downloadPDF(review.id, review.pdf_filename)}
                         disabled={downloading === review.id || !review.pdf_path}
                         title={review.pdf_path ? "Download PDF" : "PDF not available"}
+                        aria-label={`Download ${review.pdf_filename}`}
                       >
                         {downloading === review.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
                       </Button>
-                      <Button size="sm" variant="destructive" onClick={(e) => { e.stopPropagation(); deleteReview(review.id); }} disabled={deleting === review.id}>
+                      <Button size="sm" variant="destructive" onClick={() => deleteReview(review.id)} disabled={deleting === review.id} aria-label={`Delete review for ${review.paper_title}`}>
                         {deleting === review.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                       </Button>
                     </div>
-                    {expandedReview === review.id ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                    <Button size="sm" variant="ghost" onClick={() => toggleExpand(review.id)} aria-label={`${expandedReview === review.id ? "Collapse" : "Expand"} review for ${review.paper_title}`}>
+                      {expandedReview === review.id ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                    </Button>
                   </div>
-                </button>
+                </div>
                 {expandedReview === review.id && (
                   <div className="px-4 pb-4 space-y-3 border-t border-border pt-4">
                     {loadingFull === review.id ? (
@@ -387,16 +282,7 @@ export default function ReviewLibrary({
                         <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                       </div>
                     ) : fullReviewData[review.id] ? (
-                      <>
-                        <ReviewSection title="💡 Novelty" content={fullReviewData[review.id].criteria.novelty} />
-                        <ReviewSection title="🔬 Methodology" content={fullReviewData[review.id].criteria.methodology} />
-                        <ReviewSection title="📈 Results" content={fullReviewData[review.id].criteria.results} />
-                        <ReviewSection title="✍️ Clarity" content={fullReviewData[review.id].criteria.clarity} />
-                        <ReviewSection title="🎯 Impact" content={fullReviewData[review.id].criteria.impact} />
-                        <ReviewSection title="💪 Strengths" content={fullReviewData[review.id].criteria.strengths} />
-                        <ReviewSection title="⚠️ Limitations" content={fullReviewData[review.id].criteria.limitations} />
-                        <ReviewSection title="📝 Detailed Feedback" content={fullReviewData[review.id].criteria.detailed_feedback} />
-                      </>
+                      <ReviewDetails criteria={fullReviewData[review.id].criteria} />
                     ) : null}
                   </div>
                 )}
@@ -408,21 +294,12 @@ export default function ReviewLibrary({
 
       {/* Paper reviews panel */}
       {selectedPaperTitle && (
-        <button
-          type="button"
-          aria-label="Close dialog"
-          className="fixed inset-0 z-50 flex w-full items-center justify-center bg-black/50"
-          onClick={() => setSelectedPaperTitle(null)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === "Escape") setSelectedPaperTitle(null);
-          }}
-        >
+        <div className="fixed inset-0 z-50 flex w-full items-center justify-center">
+          <button type="button" className="absolute inset-0 bg-black/50" aria-label="Close paper reviews dialog" onClick={() => setSelectedPaperTitle(null)} />
           <div
             role="dialog"
             aria-modal="true"
-            className="bg-background rounded-lg shadow-xl max-w-lg w-full mx-4 p-6"
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
+            className="relative z-10 bg-background rounded-lg shadow-xl max-w-lg w-full mx-4 p-6"
           >
             <div className="flex items-start justify-between mb-4 gap-4">
               <div>
@@ -441,8 +318,8 @@ export default function ReviewLibrary({
                     <div className="flex items-center justify-between gap-2 flex-wrap">
                       <span className="text-sm font-medium">🤖 {r.reviewer_model}</span>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-primary">{r.score}/10</span>
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${getRecommendationColor(r.recommendation)}`}>{r.recommendation}</span>
+                        <span className="text-sm font-bold text-primary">{r.score}/{maxScore}</span>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${recommendationClassName(r.recommendation)}`}>{r.recommendation}</span>
                       </div>
                     </div>
                     <p className="text-xs text-muted-foreground font-mono break-all">ID: {r.id}</p>
@@ -450,7 +327,7 @@ export default function ReviewLibrary({
                 ))}
             </div>
           </div>
-        </button>
+        </div>
       )}
     </Card>
   );

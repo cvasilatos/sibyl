@@ -171,7 +171,7 @@ def test_review_system_review_paper():
     async def run():
         return await reviewer.review_paper("paper text content", "Test Paper Title", "test-model")
 
-    review = asyncio.get_event_loop().run_until_complete(run())
+    review = asyncio.run(run())
 
     assert review.paper_title == "Test Paper Title"
     assert review.reviewer_model == "test-model"
@@ -201,4 +201,4 @@ def test_review_system_empty_response_raises():
         return await reviewer.review_paper("paper text", "Title", "test-model")
 
     with pytest.raises(ValueError, match="empty response"):
-        asyncio.get_event_loop().run_until_complete(run())
+        asyncio.run(run())

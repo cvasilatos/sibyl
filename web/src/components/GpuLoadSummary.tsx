@@ -1,20 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { API_URL } from "@/lib/config";
-
-interface GpuStats {
-  index: number;
-  name: string;
-  gpu_utilization: number;
-  memory_used: number;
-  memory_total: number;
-}
-
-interface GpuResponse {
-  gpus: GpuStats[];
-  available: boolean;
-}
+import { api } from "@/lib/api";
+import type { GpuSummary } from "@/lib/types";
 
 function MiniBar({ value, color }: { value: number; color: string }) {
   return (
@@ -25,13 +13,11 @@ function MiniBar({ value, color }: { value: number; color: string }) {
 }
 
 export default function GpuLoadSummary() {
-  const [gpus, setGpus] = useState<GpuStats[]>([]);
+  const [gpus, setGpus] = useState<GpuSummary[]>([]);
 
   const fetchGpus = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/api/gpu`);
-      if (!response.ok) return;
-      const data: GpuResponse = await response.json();
+      const data = await api.listGpus();
       if (data.available) setGpus(data.gpus ?? []);
     } catch {
       // Supplementary info – silently ignore errors
