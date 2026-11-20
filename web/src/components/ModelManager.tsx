@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, Loader2, RefreshCw, Search } from "lucide-react";
+import { Download, Loader2, RefreshCw, Search, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -123,6 +123,27 @@ export default function ModelManager() {
         });
       }
     );
+  };
+
+  const removeModel = async (modelName: string) => {
+    setRemoving((prev) => new Set(prev).add(modelName));
+    try {
+      await api.deleteModel(modelName);
+      toast({ title: "Model Removed", description: `${modelName} has been removed.` });
+      await Promise.all([loadModels(), loadAvailableModels()]);
+    } catch (err) {
+      toast({
+        title: "Removal Failed",
+        description: err instanceof Error ? err.message : "Unknown error",
+        variant: "destructive",
+      });
+    } finally {
+      setRemoving((prev) => {
+        const next = new Set(prev);
+        next.delete(modelName);
+        return next;
+      });
+    }
   };
 
   return (

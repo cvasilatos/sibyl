@@ -31,6 +31,8 @@ export const api = {
   listInstalledModels: () => requestJson<ModelsResponse<InstalledModel>>("/api/models"),
   listAvailableModels: () => requestJson<ModelsResponse<AvailableModel>>("/api/models/available"),
   listModelTags: (modelName: string) => requestJson<ModelTagsResponse>(`/api/models/available/${encodeURIComponent(modelName)}/tags`),
+  deleteModel: (modelName: string) =>
+    requestJson<{ message: string; model: string }>(`/api/models/${encodeURIComponent(modelName)}`, { method: "DELETE" }),
   listGpus: () => requestJson<GpuResponse>("/api/gpu"),
   listReviews: (limit = 50) => requestJson<ReviewsResponse>(`/api/reviews?limit=${limit}`),
   getReview: (reviewId: string, signal?: AbortSignal) => requestJson<FullReview>(`/api/reviews/${encodeURIComponent(reviewId)}`, { signal }),
