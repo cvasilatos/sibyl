@@ -44,15 +44,22 @@ npm start
 
 The frontend communicates with the FastAPI backend:
 
-- **REST API**: `http://localhost:8000/api/*` for file uploads and health checks
+- **REST API**: `http://localhost:8000/api/*`, called through the typed client in `src/lib/api/`
 - **WebSocket**: `ws://localhost:8000/ws/{session_id}` for real-time progress updates
 
-Make sure the Python backend is running before starting the frontend:
+Start the backend before the frontend (`cd backend && uv run sibyl --log-level INFO`).
+
+### Generated API client
+
+`openapi.json` and `src/lib/api/schema.d.ts` are generated from the backend's response models. Never edit them by hand.
+After changing a backend route or response model, regenerate both and commit them:
 
 ```bash
-# In the sibyl root directory
-sibyl web
+npm run gen:api          # needs uv and the backend environment
 ```
+
+CI fails when either file is out of date. `src/lib/api/index.ts` wraps the generated client as `api.*` calls, and
+`src/lib/types.ts` aliases the generated types for components.
 
 ## Features
 
@@ -67,18 +74,19 @@ sibyl web
 
 ```
 web/
+├── openapi.json               # GENERATED from the backend (npm run gen:api)
 ├── src/
-│   ├── app/
-│   │   ├── page.tsx          # Main page component
-│   │   ├── layout.tsx         # Root layout
-│   │   └── globals.css        # Global styles with Tailwind
-│   ├── components/
-│   │   └── ui/                # shadcn/ui components
-│   │       ├── button.tsx
-│   │       ├── card.tsx
-│   │       └── progress.tsx
-│   └── lib/
-│       └── utils.ts           # Utility functions
+│   ├── app/                   # App Router: layout, page, global styles
+│   ├── components/            # feature components
+│   │   └── ui/                # shadcn/ui primitives
+│   ├── hooks/                 # React hooks and context (review workflow, downloads, toasts)
+│   ├── lib/
+│   │   ├── api/
+│   │   │   ├── index.ts       # typed `api` client
+│   │   │   └── schema.d.ts    # GENERATED types
+│   │   ├── types.ts           # aliases of generated types + frontend-only types
+│   │   └── ...                # config, formatting and text helpers
+│   └── __tests__/             # Vitest tests
 ├── public/                    # Static assets
 └── package.json
 ```

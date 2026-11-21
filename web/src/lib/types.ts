@@ -1,40 +1,22 @@
+import type { Schemas } from "@/lib/api";
+
 export type AppTab = "review" | "library" | "models" | "gpu";
 
-export interface ReviewCriteria {
-  novelty: string;
-  methodology: string;
-  results: string;
-  clarity: string;
-  impact: string;
-  limitations: string;
-  strengths: string;
-  score: number;
-  recommendation: string;
-  detailed_feedback: string;
-  review_form_response?: string | null;
-  conference?: string | null;
-  review_form_answers?: Record<string, number | string> | null;
-}
+// Backend models, generated from the OpenAPI schema (see src/lib/api/schema.d.ts). Do not redefine them here.
+export type ReviewCriteria = Schemas["ReviewCriteria"];
+export type ConferenceSummary = Schemas["ConferenceSummary"];
+export type EngineInfo = Schemas["EngineInfo"];
+export type StoredReview = Schemas["Review"];
+export type FullReview = Schemas["FullReview"];
+export type ReviewsResponse = Schemas["ReviewList"];
+export type ReviewStatistics = Schemas["ReviewStatistics"];
+export type InstalledModel = Schemas["InstalledModel"];
+export type AvailableModel = Schemas["AvailableModel"];
+export type GpuProcess = Schemas["GpuProcess"];
+export type GpuStats = Schemas["GpuStats"];
+export type GpuResponse = Schemas["GpuList"];
 
-export interface ConferenceSummary {
-  id: string;
-  name: string;
-  full_name: string;
-  area: string;
-  edition: string;
-  verified: boolean;
-  source_urls: string[];
-  question_count: number;
-}
-
-export interface EngineInfo {
-  name: "ollama" | "vllm" | "openai" | string;
-  label: string;
-  supports_downloads: boolean;
-  platform: string;
-  machine: string;
-}
-
+// Frontend-only types. Review and ReviewResults arrive over the review WebSocket, which OpenAPI doesn't describe.
 export interface Review {
   paper_title: string;
   reviewer_model: string;
@@ -45,80 +27,6 @@ export interface Review {
 export interface ReviewResults {
   paper_title: string;
   reviews: Review[];
-}
-
-export interface StoredReview {
-  id: string;
-  paper_title: string;
-  pdf_filename: string;
-  pdf_path: string | null;
-  reviewer_model: string;
-  score: number;
-  recommendation: string;
-  review_summary: string;
-  created_at: string;
-}
-
-export interface FullReview extends Omit<StoredReview, "review_summary"> {
-  criteria: ReviewCriteria;
-  raw_response: string;
-}
-
-export interface ReviewsResponse {
-  reviews: StoredReview[];
-  total: number;
-  limit: number;
-  offset: number;
-}
-
-export interface ReviewStatistics {
-  total_reviews: number;
-  unique_papers: number;
-  unique_models: number;
-  recommendations: Record<string, number>;
-}
-
-export interface InstalledModel {
-  model: string;
-  size: number;
-  modified_at: string;
-  digest: string;
-}
-
-export interface AvailableModel {
-  name: string;
-  description: string;
-  size: string;
-  installed: boolean;
-  installed_variants?: string[];
-}
-
-export interface GpuProcess {
-  pid: number;
-  name: string;
-  memory_bytes: number;
-  type: "compute" | "graphics";
-}
-
-export interface GpuStats {
-  index: number;
-  name: string;
-  gpu_utilization: number;
-  memory_utilization: number;
-  memory_used: number;
-  memory_total: number;
-  memory_free: number;
-  temperature: number | null;
-  power_usage_watts: number | null;
-  power_limit_watts: number | null;
-  fan_speed_percent: number | null;
-  processes: GpuProcess[];
-}
-
-export interface GpuResponse {
-  gpus: GpuStats[];
-  count: number;
-  available: boolean;
 }
 
 export type GpuSummary = Pick<GpuStats, "index" | "name" | "gpu_utilization" | "memory_used" | "memory_total">;

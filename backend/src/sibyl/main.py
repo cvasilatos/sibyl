@@ -14,6 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from sibyl.inference import create_engine
 from sibyl.routers import conferences, gpu, reviews, upload, ws
+from sibyl.schemas.system import Online
 from sibyl.services.figures import prefetch_vlm
 
 CustomLogger.setup_logging("logs", "app", level="DEBUG", class_length=30)
@@ -64,9 +65,9 @@ app.include_router(conferences.router, prefix="/api", tags=["Conferences"])
 
 
 @app.get("/")
-async def health_check() -> dict:
+async def health_check() -> Online:
     """Health check endpoint."""
-    return {"status": "online", "system": "Sibyl"}
+    return Online(status="online", system="Sibyl")
 
 
 @click.command()

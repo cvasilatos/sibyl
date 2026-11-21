@@ -5,11 +5,13 @@ on:
     branches: ["**"]
     paths:
       - "backend/**"
+      - "web/openapi.json"
       - ".github/workflows/backend-ci.yml"
   pull_request:
     branches: ["**"]
     paths:
       - "backend/**"
+      - "web/openapi.json"
       - ".github/workflows/backend-ci.yml"
 
 jobs:
@@ -40,6 +42,14 @@ jobs:
 
       - name: Install dependencies
         run: uv sync --group dev --group test
+
+      - name: OpenAPI schema is up to date
+        run: |
+          uv run python -m sibyl.openapi ../web/openapi.json
+          git diff --exit-code -- ../web/openapi.json || {
+            echo "::error::web/openapi.json is out of date. Run 'npm run gen:api' in web/ and commit the result."
+            exit 1
+          }
 
       - name: Run tests with coverage
         run: uv run pytest -v --cov=sibyl --cov-report=term-missing --cov-report=xml

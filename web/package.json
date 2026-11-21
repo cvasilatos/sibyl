@@ -11,7 +11,9 @@
     "check": "biome check --write .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "gen:api": "uv run --directory ../backend python -m sibyl.openapi ../web/openapi.json && npm run gen:api:types",
+    "gen:api:types": "openapi-typescript openapi.json -o src/lib/api/schema.d.ts && biome format --write src/lib/api/schema.d.ts"
   },
   "dependencies": {
     "@radix-ui/react-progress": "^1.1.8",
@@ -21,6 +23,7 @@
     "clsx": "^2.1.1",
     "lucide-react": "^0.574.0",
     "next": "16.1.6",
+    "openapi-fetch": "^0.17.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "tailwind-merge": "^3.4.1"
@@ -37,6 +40,7 @@
     "@vitejs/plugin-react": "^5.1.4",
     "@vitest/coverage-v8": "^4.0.18",
     "jsdom": "^28.1.0",
+    "openapi-typescript": "^7.13.0",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.0.18"

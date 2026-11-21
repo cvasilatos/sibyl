@@ -2,27 +2,28 @@
 
 from fastapi import APIRouter, HTTPException
 
+from sibyl.schemas.gpu import GpuList, GpuStats
 from sibyl.services import hardware
 
 router = APIRouter()
 
 
 @router.get("/gpu")
-async def list_gpus() -> dict:
+async def list_gpus() -> GpuList:
     """List all available GPUs with their current stats."""
     try:
-        return hardware.list_gpus()
+        return GpuList.model_validate(hardware.list_gpus())
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"GPU monitoring unavailable: {e}") from e
 
 
 @router.get("/gpu/{gpu_index}")
-async def get_gpu(gpu_index: int) -> dict:
+async def get_gpu(gpu_index: int) -> GpuStats:
     """Get stats for a specific GPU by index."""
     data = await list_gpus()
-    if not data["available"]:
+    if not data.available:
         raise HTTPException(status_code=503, detail="GPU monitoring unavailable on this machine")
-    for gpu in data["gpus"]:
-        if gpu["index"] == gpu_index:
+    for gpu in data.gpus:
+        if gpu.index == gpu_index:
             return gpu
-    raise HTTPException(status_code=404, detail=f"GPU index {gpu_index} not found (count={data['count']})")
+    raise HTTPException(status_code=404, detail=f"GPU index {gpu_index} not found (count={data.count})")

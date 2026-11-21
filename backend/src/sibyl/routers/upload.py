@@ -3,11 +3,12 @@
 import tempfile
 import uuid
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated
 
 import aiofiles
 from fastapi import APIRouter, Form, HTTPException, UploadFile
 
+from sibyl.schemas.system import UploadResult
 from sibyl.services.conferences import get_conference
 from sibyl.state import review_sessions
 
@@ -33,7 +34,7 @@ def _decode_review_form(filename: str, content: bytes) -> str:
 
 
 @router.post("/upload")
-async def upload_paper(file: UploadFile, review_form: UploadFile | None = None, conference_id: Annotated[str | None, Form()] = None) -> dict[str, Any]:
+async def upload_paper(file: UploadFile, review_form: UploadFile | None = None, conference_id: Annotated[str | None, Form()] = None) -> UploadResult:
     """Upload a PDF paper with either a conference template id or an optional UTF-8 text/Markdown review form."""
     conference_id = conference_id or None
     if conference_id is not None:
@@ -69,9 +70,4 @@ async def upload_paper(file: UploadFile, review_form: UploadFile | None = None, 
         "message": "File uploaded successfully",
     }
 
-    return {
-        "session_id": session_id,
-        "filename": file.filename,
-        "review_form_filename": review_form_filename,
-        "conference_id": conference_id,
-    }
+    return UploadResult(session_id=session_id, filename=file.filename, review_form_filename=review_form_filename, conference_id=conference_id)

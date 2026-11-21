@@ -1,0 +1,1989 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Sibyl Research Paper Review System",
+    "description": "AI-powered research paper review using local LLMs",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/session/{session_id}": {
+      "get": {
+        "tags": [
+          "Reviews"
+        ],
+        "summary": "Get Session Status",
+        "description": "Get the status of a review session.",
+        "operationId": "get_session_status_api_session__session_id__get",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionStatus"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/health": {
+      "get": {
+        "tags": [
+          "Reviews"
+        ],
+        "summary": "Health Check",
+        "description": "Check the health of the service.",
+        "operationId": "health_check_api_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/config": {
+      "get": {
+        "tags": [
+          "Reviews"
+        ],
+        "summary": "Get Config",
+        "description": "Get service configuration values.",
+        "operationId": "get_config_api_config_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceConfig"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/search": {
+      "post": {
+        "tags": [
+          "Reviews"
+        ],
+        "summary": "Search Reviews",
+        "description": "Search reviews using semantic similarity.",
+        "operationId": "search_reviews_api_search_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResults"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reviews": {
+      "get": {
+        "tags": [
+          "Reviews"
+        ],
+        "summary": "List Reviews",
+        "description": "List all reviews with optional search filtering.",
+        "operationId": "list_reviews_api_reviews_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewList"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Reviews"
+        ],
+        "summary": "Delete All Reviews",
+        "description": "Delete all reviews from storage.",
+        "operationId": "delete_all_reviews_api_reviews_delete",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletedReviews"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reviews/{review_id}": {
+      "get": {
+        "tags": [
+          "Reviews"
+        ],
+        "summary": "Get Review Details",
+        "description": "Get the full details of a specific review.",
+        "operationId": "get_review_details_api_reviews__review_id__get",
+        "parameters": [
+          {
+            "name": "review_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Review Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FullReview"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Reviews"
+        ],
+        "summary": "Delete Review",
+        "description": "Delete a specific review by ID.",
+        "operationId": "delete_review_api_reviews__review_id__delete",
+        "parameters": [
+          {
+            "name": "review_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Review Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletedReview"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/statistics": {
+      "get": {
+        "tags": [
+          "Reviews"
+        ],
+        "summary": "Get Statistics",
+        "description": "Get statistics about stored reviews.",
+        "operationId": "get_statistics_api_statistics_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewStatistics"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/engine": {
+      "get": {
+        "tags": [
+          "Reviews"
+        ],
+        "summary": "Engine Info",
+        "description": "Describe the active inference engine and platform.",
+        "operationId": "engine_info_api_engine_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EngineInfo"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/models": {
+      "get": {
+        "tags": [
+          "Reviews"
+        ],
+        "summary": "List Models",
+        "description": "List models installed in the active inference engine.",
+        "operationId": "list_models_api_models_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstalledModels"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/models/{model_name}": {
+      "delete": {
+        "tags": [
+          "Reviews"
+        ],
+        "summary": "Delete Model",
+        "description": "Delete a downloaded model.",
+        "operationId": "delete_model_api_models__model_name__delete",
+        "parameters": [
+          {
+            "name": "model_name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Model Name"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletedModel"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/models/available": {
+      "get": {
+        "tags": [
+          "Reviews"
+        ],
+        "summary": "List Available Models",
+        "description": "List models that can be downloaded through the active engine.",
+        "operationId": "list_available_models_api_models_available_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailableModels"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/models/available/{model_name}/tags": {
+      "get": {
+        "tags": [
+          "Reviews"
+        ],
+        "summary": "Get Model Tags",
+        "description": "Fetch downloadable size variants (e.g. 1.5b, 7b, 70b) for a catalog model.",
+        "operationId": "get_model_tags_api_models_available__model_name__tags_get",
+        "parameters": [
+          {
+            "name": "model_name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Model Name"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelTags"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reviews/{review_id}/pdf": {
+      "get": {
+        "tags": [
+          "Reviews"
+        ],
+        "summary": "Download Review Pdf",
+        "description": "Download the original PDF for a review.",
+        "operationId": "download_review_pdf_api_reviews__review_id__pdf_get",
+        "parameters": [
+          {
+            "name": "review_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Review Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/upload": {
+      "post": {
+        "tags": [
+          "Upload"
+        ],
+        "summary": "Upload Paper",
+        "description": "Upload a PDF paper with either a conference template id or an optional UTF-8 text/Markdown review form.",
+        "operationId": "upload_paper_api_upload_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_paper_api_upload_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gpu": {
+      "get": {
+        "tags": [
+          "GPU"
+        ],
+        "summary": "List Gpus",
+        "description": "List all available GPUs with their current stats.",
+        "operationId": "list_gpus_api_gpu_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GpuList"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gpu/{gpu_index}": {
+      "get": {
+        "tags": [
+          "GPU"
+        ],
+        "summary": "Get Gpu",
+        "description": "Get stats for a specific GPU by index.",
+        "operationId": "get_gpu_api_gpu__gpu_index__get",
+        "parameters": [
+          {
+            "name": "gpu_index",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Gpu Index"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GpuStats"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/conferences": {
+      "get": {
+        "tags": [
+          "Conferences"
+        ],
+        "summary": "Conferences",
+        "description": "List bundled conference templates, grouped order by research area.",
+        "operationId": "conferences_api_conferences_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConferenceList"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/conferences/{conference_id}": {
+      "get": {
+        "tags": [
+          "Conferences"
+        ],
+        "summary": "Conference Detail",
+        "description": "Return a conference template with all of its questions and scales.",
+        "operationId": "conference_detail_api_conferences__conference_id__get",
+        "parameters": [
+          {
+            "name": "conference_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Conference Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConferenceDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/": {
+      "get": {
+        "summary": "Health Check",
+        "description": "Health check endpoint.",
+        "operationId": "health_check__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Online"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AvailableModel": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "size": {
+            "type": "string",
+            "title": "Size"
+          },
+          "installed": {
+            "type": "boolean",
+            "title": "Installed"
+          },
+          "installed_variants": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Installed Variants",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "description",
+          "size",
+          "installed"
+        ],
+        "title": "AvailableModel",
+        "description": "A model the engine can download."
+      },
+      "AvailableModels": {
+        "properties": {
+          "models": {
+            "items": {
+              "$ref": "#/components/schemas/AvailableModel"
+            },
+            "type": "array",
+            "title": "Models"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "models",
+          "count"
+        ],
+        "title": "AvailableModels",
+        "description": "Models the engine can download."
+      },
+      "Body_upload_paper_api_upload_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "format": "binary",
+            "title": "File"
+          },
+          "review_form": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "binary"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Form"
+          },
+          "conference_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conference Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_paper_api_upload_post"
+      },
+      "ChoiceOption": {
+        "properties": {
+          "value": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Value"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          }
+        },
+        "type": "object",
+        "required": [
+          "value",
+          "label"
+        ],
+        "title": "ChoiceOption",
+        "description": "One level of a rating scale."
+      },
+      "ConferenceDetail": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "full_name": {
+            "type": "string",
+            "title": "Full Name"
+          },
+          "area": {
+            "type": "string",
+            "title": "Area"
+          },
+          "edition": {
+            "type": "string",
+            "title": "Edition"
+          },
+          "source_urls": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Source Urls"
+          },
+          "verified": {
+            "type": "boolean",
+            "title": "Verified",
+            "default": false
+          },
+          "notes": {
+            "type": "string",
+            "title": "Notes",
+            "default": ""
+          },
+          "guidelines": {
+            "type": "string",
+            "title": "Guidelines",
+            "default": ""
+          },
+          "questions": {
+            "items": {
+              "$ref": "#/components/schemas/Question"
+            },
+            "type": "array",
+            "title": "Questions"
+          },
+          "form_markdown": {
+            "type": "string",
+            "title": "Form Markdown"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "full_name",
+          "area",
+          "edition",
+          "questions",
+          "form_markdown"
+        ],
+        "title": "ConferenceDetail",
+        "description": "A conference template with its questions and the form rendered as Markdown."
+      },
+      "ConferenceList": {
+        "properties": {
+          "conferences": {
+            "items": {
+              "$ref": "#/components/schemas/ConferenceSummary"
+            },
+            "type": "array",
+            "title": "Conferences"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "conferences",
+          "count"
+        ],
+        "title": "ConferenceList",
+        "description": "All bundled conference templates."
+      },
+      "ConferenceSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "full_name": {
+            "type": "string",
+            "title": "Full Name"
+          },
+          "area": {
+            "type": "string",
+            "title": "Area"
+          },
+          "edition": {
+            "type": "string",
+            "title": "Edition"
+          },
+          "verified": {
+            "type": "boolean",
+            "title": "Verified"
+          },
+          "source_urls": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Source Urls"
+          },
+          "question_count": {
+            "type": "integer",
+            "title": "Question Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "full_name",
+          "area",
+          "edition",
+          "verified",
+          "source_urls",
+          "question_count"
+        ],
+        "title": "ConferenceSummary",
+        "description": "A conference template, without its questions."
+      },
+      "DeletedModel": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          }
+        },
+        "type": "object",
+        "required": [
+          "message",
+          "model"
+        ],
+        "title": "DeletedModel",
+        "description": "Result of deleting a model."
+      },
+      "DeletedReview": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "message",
+          "id"
+        ],
+        "title": "DeletedReview",
+        "description": "Result of deleting one review."
+      },
+      "DeletedReviews": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "message",
+          "count"
+        ],
+        "title": "DeletedReviews",
+        "description": "Result of deleting all reviews."
+      },
+      "EngineInfo": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "supports_downloads": {
+            "type": "boolean",
+            "title": "Supports Downloads"
+          },
+          "platform": {
+            "type": "string",
+            "title": "Platform"
+          },
+          "machine": {
+            "type": "string",
+            "title": "Machine"
+          },
+          "gpus": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gpus"
+          },
+          "servers": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/VllmServer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Servers"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "label",
+          "supports_downloads",
+          "platform",
+          "machine"
+        ],
+        "title": "EngineInfo",
+        "description": "The active inference engine and the machine it runs on. ``gpus`` and ``servers`` are set by vLLM only."
+      },
+      "FullReview": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "paper_title": {
+            "type": "string",
+            "title": "Paper Title"
+          },
+          "pdf_filename": {
+            "type": "string",
+            "title": "Pdf Filename"
+          },
+          "pdf_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pdf Path"
+          },
+          "reviewer_model": {
+            "type": "string",
+            "title": "Reviewer Model"
+          },
+          "score": {
+            "type": "integer",
+            "title": "Score"
+          },
+          "recommendation": {
+            "type": "string",
+            "title": "Recommendation"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "criteria": {
+            "$ref": "#/components/schemas/ReviewCriteria"
+          },
+          "raw_response": {
+            "type": "string",
+            "title": "Raw Response"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "paper_title",
+          "pdf_filename",
+          "pdf_path",
+          "reviewer_model",
+          "score",
+          "recommendation",
+          "created_at",
+          "criteria",
+          "raw_response"
+        ],
+        "title": "FullReview",
+        "description": "A stored review with its full criteria and the model's raw output."
+      },
+      "GpuList": {
+        "properties": {
+          "gpus": {
+            "items": {
+              "$ref": "#/components/schemas/GpuStats"
+            },
+            "type": "array",
+            "title": "Gpus"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "available": {
+            "type": "boolean",
+            "title": "Available"
+          },
+          "vendor": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "nvidia",
+                  "apple"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vendor"
+          }
+        },
+        "type": "object",
+        "required": [
+          "gpus",
+          "count",
+          "available",
+          "vendor"
+        ],
+        "title": "GpuList",
+        "description": "All GPUs on this machine."
+      },
+      "GpuProcess": {
+        "properties": {
+          "pid": {
+            "type": "integer",
+            "title": "Pid"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "memory_bytes": {
+            "type": "integer",
+            "title": "Memory Bytes"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "compute",
+              "graphics"
+            ],
+            "title": "Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "pid",
+          "name",
+          "memory_bytes",
+          "type"
+        ],
+        "title": "GpuProcess",
+        "description": "A process using a GPU."
+      },
+      "GpuStats": {
+        "properties": {
+          "index": {
+            "type": "integer",
+            "title": "Index"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "gpu_utilization": {
+            "type": "number",
+            "title": "Gpu Utilization"
+          },
+          "memory_utilization": {
+            "type": "number",
+            "title": "Memory Utilization"
+          },
+          "memory_used": {
+            "type": "integer",
+            "title": "Memory Used"
+          },
+          "memory_total": {
+            "type": "integer",
+            "title": "Memory Total"
+          },
+          "memory_free": {
+            "type": "integer",
+            "title": "Memory Free"
+          },
+          "temperature": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temperature"
+          },
+          "power_usage_watts": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Power Usage Watts"
+          },
+          "power_limit_watts": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Power Limit Watts"
+          },
+          "fan_speed_percent": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fan Speed Percent"
+          },
+          "processes": {
+            "items": {
+              "$ref": "#/components/schemas/GpuProcess"
+            },
+            "type": "array",
+            "title": "Processes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "index",
+          "name",
+          "gpu_utilization",
+          "memory_utilization",
+          "memory_used",
+          "memory_total",
+          "memory_free",
+          "temperature",
+          "power_usage_watts",
+          "power_limit_watts",
+          "fan_speed_percent",
+          "processes"
+        ],
+        "title": "GpuStats",
+        "description": "Current stats of one GPU."
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "Health": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "storage_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Storage Count"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "Health",
+        "description": "Service health. ``storage_count`` is set when healthy, ``error`` when not."
+      },
+      "InstalledModel": {
+        "properties": {
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "size": {
+            "type": "integer",
+            "title": "Size"
+          },
+          "modified_at": {
+            "type": "string",
+            "title": "Modified At"
+          },
+          "digest": {
+            "type": "string",
+            "title": "Digest"
+          }
+        },
+        "type": "object",
+        "required": [
+          "model",
+          "size",
+          "modified_at",
+          "digest"
+        ],
+        "title": "InstalledModel",
+        "description": "A model downloaded into the engine."
+      },
+      "InstalledModels": {
+        "properties": {
+          "models": {
+            "items": {
+              "$ref": "#/components/schemas/InstalledModel"
+            },
+            "type": "array",
+            "title": "Models"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "models",
+          "count"
+        ],
+        "title": "InstalledModels",
+        "description": "Models downloaded into the engine."
+      },
+      "ModelTags": {
+        "properties": {
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          }
+        },
+        "type": "object",
+        "required": [
+          "model",
+          "tags"
+        ],
+        "title": "ModelTags",
+        "description": "Downloadable size variants of a catalog model."
+      },
+      "Online": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "system": {
+            "type": "string",
+            "title": "System"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "system"
+        ],
+        "title": "Online",
+        "description": "Root liveness check."
+      },
+      "Question": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$",
+            "title": "Id"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "text",
+              "choice"
+            ],
+            "title": "Type"
+          },
+          "prompt": {
+            "type": "string",
+            "title": "Prompt",
+            "default": ""
+          },
+          "options": {
+            "items": {
+              "$ref": "#/components/schemas/ChoiceOption"
+            },
+            "type": "array",
+            "title": "Options"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "type"
+        ],
+        "title": "Question",
+        "description": "A single question of a reviewer form."
+      },
+      "Review": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "paper_title": {
+            "type": "string",
+            "title": "Paper Title"
+          },
+          "pdf_filename": {
+            "type": "string",
+            "title": "Pdf Filename"
+          },
+          "pdf_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pdf Path"
+          },
+          "reviewer_model": {
+            "type": "string",
+            "title": "Reviewer Model"
+          },
+          "score": {
+            "type": "integer",
+            "title": "Score"
+          },
+          "recommendation": {
+            "type": "string",
+            "title": "Recommendation"
+          },
+          "review_summary": {
+            "type": "string",
+            "title": "Review Summary"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "similarity_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Similarity Score"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "paper_title",
+          "pdf_filename",
+          "reviewer_model",
+          "score",
+          "recommendation",
+          "review_summary",
+          "created_at"
+        ],
+        "title": "Review",
+        "description": "Model for a stored review with metadata."
+      },
+      "ReviewCriteria": {
+        "properties": {
+          "novelty": {
+            "type": "string",
+            "title": "Novelty",
+            "default": ""
+          },
+          "methodology": {
+            "type": "string",
+            "title": "Methodology",
+            "default": ""
+          },
+          "results": {
+            "type": "string",
+            "title": "Results",
+            "default": ""
+          },
+          "clarity": {
+            "type": "string",
+            "title": "Clarity",
+            "default": ""
+          },
+          "impact": {
+            "type": "string",
+            "title": "Impact",
+            "default": ""
+          },
+          "limitations": {
+            "type": "string",
+            "title": "Limitations",
+            "default": ""
+          },
+          "strengths": {
+            "type": "string",
+            "title": "Strengths",
+            "default": ""
+          },
+          "score": {
+            "type": "integer",
+            "title": "Score",
+            "default": 0
+          },
+          "recommendation": {
+            "type": "string",
+            "title": "Recommendation",
+            "default": ""
+          },
+          "detailed_feedback": {
+            "type": "string",
+            "title": "Detailed Feedback",
+            "default": ""
+          },
+          "review_form_response": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Form Response"
+          },
+          "conference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conference"
+          },
+          "review_form_answers": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ]
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Form Answers"
+          }
+        },
+        "type": "object",
+        "title": "ReviewCriteria",
+        "description": "A review's assessment, as stored. Loosely typed so reviews saved by older versions still load."
+      },
+      "ReviewList": {
+        "properties": {
+          "reviews": {
+            "items": {
+              "$ref": "#/components/schemas/Review"
+            },
+            "type": "array",
+            "title": "Reviews"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reviews",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "ReviewList",
+        "description": "One page of stored reviews."
+      },
+      "ReviewStatistics": {
+        "properties": {
+          "total_reviews": {
+            "type": "integer",
+            "title": "Total Reviews"
+          },
+          "unique_papers": {
+            "type": "integer",
+            "title": "Unique Papers"
+          },
+          "unique_models": {
+            "type": "integer",
+            "title": "Unique Models"
+          },
+          "recommendations": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Recommendations"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_reviews",
+          "unique_papers",
+          "unique_models",
+          "recommendations"
+        ],
+        "title": "ReviewStatistics",
+        "description": "Aggregate counts over all stored reviews."
+      },
+      "SearchRequest": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "title": "Query"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit",
+            "default": 10
+          }
+        },
+        "type": "object",
+        "required": [
+          "query"
+        ],
+        "title": "SearchRequest",
+        "description": "Request model for semantic review search."
+      },
+      "SearchResults": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "title": "Query"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/Review"
+            },
+            "type": "array",
+            "title": "Results"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "query",
+          "results",
+          "count"
+        ],
+        "title": "SearchResults",
+        "description": "Reviews ranked by semantic similarity to a query."
+      },
+      "ServiceConfig": {
+        "properties": {
+          "max_score": {
+            "type": "integer",
+            "title": "Max Score"
+          }
+        },
+        "type": "object",
+        "required": [
+          "max_score"
+        ],
+        "title": "ServiceConfig",
+        "description": "Configuration values the frontend needs."
+      },
+      "SessionStatus": {
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "title": "Session Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "progress": {
+            "type": "integer",
+            "title": "Progress"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "paper_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paper Title"
+          }
+        },
+        "type": "object",
+        "required": [
+          "session_id",
+          "status",
+          "progress",
+          "message"
+        ],
+        "title": "SessionStatus",
+        "description": "Status model for a review session."
+      },
+      "UploadResult": {
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "title": "Session Id"
+          },
+          "filename": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Filename"
+          },
+          "review_form_filename": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Form Filename"
+          },
+          "conference_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conference Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "session_id",
+          "filename",
+          "review_form_filename",
+          "conference_id"
+        ],
+        "title": "UploadResult",
+        "description": "A paper uploaded and waiting for review."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "VllmServer": {
+        "properties": {
+          "gpu": {
+            "type": "integer",
+            "title": "Gpu"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "port": {
+            "type": "integer",
+            "title": "Port"
+          },
+          "inflight": {
+            "type": "integer",
+            "title": "Inflight"
+          },
+          "alive": {
+            "type": "boolean",
+            "title": "Alive"
+          }
+        },
+        "type": "object",
+        "required": [
+          "gpu",
+          "model",
+          "port",
+          "inflight",
+          "alive"
+        ],
+        "title": "VllmServer",
+        "description": "A running vLLM server."
+      }
+    }
+  }
+}

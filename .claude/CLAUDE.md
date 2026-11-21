@@ -5,15 +5,16 @@ LLM-powered research paper review system that runs open-source models locally (O
 ## Layout
 
 - `backend/`: Python package `sibyl` (FastAPI). Self-contained: own `pyproject.toml`, `uv.lock`, `ruff.toml`, `.pre-commit-config.yaml`, `Dockerfile`.
-  - `main.py`: the FastAPI app and `run_server()` (the `sibyl` command). Routers are mounted under `/api` and `/ws`.
-  - `routers/`: HTTP and WebSocket endpoints (`reviews`, `upload`, `ws`, `gpu`, `conferences`). `schemas/`: their pydantic request and response models. `state.py`: shared app state.
+  - `main.py`: the FastAPI app and `run_server()` (the `sibyl` command). Routers are mounted under `/api` and `/ws`. `openapi.py` exports the API schema without starting a server.
+  - `routers/`: HTTP and WebSocket endpoints (`reviews`, `upload`, `ws`, `gpu`, `conferences`). `schemas/`: their pydantic request and response models; `tests/schemas/test_responses.py` checks no model drops a field its producer returns. `state.py`: shared app state.
   - `services/`: the review pipeline and helpers (`reviewer`, `comparison`, `pdf_parser`, `figures`, `conferences`, `hardware`, `model_catalog`).
   - `inference/`: pluggable engines (`base.py`, `ollama_engine.py`, `vllm_engine.py`, `openai_engine.py`), picked with `SIBYL_ENGINE`.
   - `storage/`: review persistence.
   - `resources/`: review prompt and conference templates (`conferences/*.json`, one per venue).
   - `config.py`: settings from `SIBYL_*` env vars or `backend/.env`; document new ones in `backend/.env.example`.
 - `backend/tests/`: pytest, mirroring `src/sibyl/` (`tests/services/`, `tests/routers/`, …). `tests/inference/fake_vllm.py` stands in for a vLLM server.
-- `web/`: Next.js app (App Router) in `src/app/`, components in `src/components/` (shadcn primitives in `ui/`), API calls in `src/lib/api.ts`, Vitest tests in `src/__tests__/`.
+- `web/`: Next.js app (App Router) in `src/app/`, components in `src/components/` (shadcn primitives in `ui/`), hooks and context in `src/hooks/`, Vitest tests in `src/__tests__/`.
+- API contract: every backend route returns a pydantic model from `schemas/`. `web/openapi.json` and `web/src/lib/api/schema.d.ts` are generated from them; never edit either by hand. After changing a route or response model, run `npm run gen:api` in `web/` and commit both files (CI fails otherwise). The web app calls the backend only through `api` in `src/lib/api/index.ts`; `src/lib/types.ts` aliases the generated types.
 - `docker-compose.yml` (Ollama, one container per GPU) and `docker-compose.vllm.yml` (vLLM). `scripts/run-macos.sh` runs everything natively on Apple Silicon.
 - `docs/`: design notes and decisions. `tmp/`: scratch, ignored by git.
 
