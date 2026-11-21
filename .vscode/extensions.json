@@ -1,0 +1,13 @@
+{
+  "recommendations": [
+    "charliermarsh.ruff",
+    "astral-sh.ty",
+    "tamasfe.even-better-toml",
+    "biomejs.biome",
+    "bradlc.vscode-tailwindcss",
+    "ms-playwright.playwright",
+    "anthropic.claude-code"
+  ],
+  // ty is the language server; Pylance would duplicate diagnostics.
+  "unwantedRecommendations": ["ms-python.vscode-pylance", "ms-python.mypy-type-checker"]
+}

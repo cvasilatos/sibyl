@@ -1,0 +1,8 @@
+{
+  "extraKnownMarketplaces": {
+    "cv-plugins": { "source": { "source": "github", "repo": "cvasilatos/cv-plugins" } }
+  },
+  "enabledPlugins": {
+    "dev-kit@cv-plugins": true
+  }
+}
