@@ -4,7 +4,7 @@ LLM-powered research paper review system that runs open-source models locally (O
 
 ## Layout
 
-- `backend/`: Python package `sibyl` (FastAPI). Self-contained: own `pyproject.toml`, `uv.lock`, `ruff.toml`, `.pre-commit-config.yaml`, `Dockerfile`.
+- `backend/`: Python package `sibyl` (FastAPI). Self-contained: own `pyproject.toml`, `uv.lock`, `ruff.toml`, `Dockerfile`. Reviews are stored in `backend/sibyl_storage/` (`SIBYL_STORAGE_PATH`), wherever the server is started.
   - `main.py`: the FastAPI app and `run_server()` (the `sibyl` command). Routers are mounted under `/api` and `/ws`. `openapi.py` exports the API schema without starting a server.
   - `routers/`: HTTP and WebSocket endpoints (`reviews`, `upload`, `ws`, `gpu`, `conferences`). `schemas/`: their pydantic request and response models; `tests/schemas/test_responses.py` checks no model drops a field its producer returns. `state.py`: shared app state.
   - `services/`: the review pipeline and helpers (`reviewer`, `comparison`, `pdf_parser`, `figures`, `conferences`, `hardware`, `model_catalog`).
@@ -29,7 +29,7 @@ LLM-powered research paper review system that runs open-source models locally (O
 - Web (in `web/`): `npm install`; run with `npm run dev` (expects the backend on :8000).
 - Before finishing a web change: `npm run check && npm test && npm run build`.
 - CI: `.github/workflows/backend-ci.yml` and `frontend-ci.yml`.
-- Git hooks (pre-commit, config in `backend/`) run ruff, uv lock, ty and pytest. If a hook fails, fix the cause and commit again; never bypass with `--no-verify` unless the user asks.
+- Git hooks (`.pre-commit-config.yaml` at the repo root; install once with `uv run --directory backend pre-commit install`) run ruff, uv lock, ty and pytest on backend changes and `biome ci` on web changes. CI runs the same checks. If a hook fails, fix the cause and commit again; never bypass with `--no-verify` unless the user asks.
 
 ## Conventions
 

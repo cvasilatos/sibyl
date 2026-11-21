@@ -25,8 +25,8 @@ COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/package-lock.json ./package-lock.json
 RUN npm ci --omit=dev
 
+# No public/ folder: the app has no static assets (the favicon lives in src/app/).
 COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
 
 EXPOSE 3000
 

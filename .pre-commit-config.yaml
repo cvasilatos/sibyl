@@ -1,0 +1,40 @@
+# Install with: uv run --directory backend pre-commit install   (once per clone)
+# Backend hooks run on backend/ changes, the web hook on web/ changes.
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.1
+    hooks:
+      - id: ruff-check
+        files: ^backend/
+      - id: ruff-format
+        files: ^backend/
+
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    rev: 0.10.3
+    hooks:
+      - id: uv-lock
+        files: ^backend/(pyproject\.toml|uv\.lock)$
+        args: [--project, backend]
+
+  - repo: local
+    hooks:
+      - id: ty
+        name: ty check
+        entry: bash -c 'cd backend && env -u VIRTUAL_ENV uv run ty check'
+        language: system
+        files: ^backend/.*\.py$
+        pass_filenames: false
+
+      - id: pytest
+        name: pytest
+        entry: bash -c 'cd backend && env -u VIRTUAL_ENV uv run pytest --no-cov -q'
+        language: system
+        files: ^backend/.*\.py$
+        pass_filenames: false
+
+      - id: biome
+        name: biome check
+        entry: bash -c 'cd web && npx --no-install biome ci .'
+        language: system
+        files: ^web/.*\.(ts|tsx|js|mjs|json|css)$
+        pass_filenames: false

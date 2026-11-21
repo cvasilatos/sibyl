@@ -43,6 +43,12 @@ jobs:
       - name: Install dependencies
         run: uv sync --group dev --group test
 
+      - name: Lint, format and type check
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+          uv run ty check
+
       - name: OpenAPI schema is up to date
         run: |
           uv run python -m sibyl.openapi ../web/openapi.json

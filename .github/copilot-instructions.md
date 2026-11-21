@@ -85,11 +85,11 @@ Ruff is configured in `pyproject.toml` (`[tool.ruff]`): `line-length = 180`, tar
 ### Pre-commit Hooks
 
 ```bash
-cd backend
-uv run pre-commit run --all-files
+uv run --directory backend pre-commit install            # once per clone
+uv run --directory backend pre-commit run --all-files    # run every hook by hand
 ```
 
-Hooks run: `ruff-check`, `ruff-format`, `uv-lock` (checks `uv.lock` is up to date), `ty check`.
+Hooks (config at the repo root) run `ruff-check`, `ruff-format`, `uv-lock`, `ty check` and `pytest` on backend changes, and `biome ci` on web changes.
 
 ---
 
@@ -144,7 +144,7 @@ npm run check     # biome check --write (lint + format combined)
 
 ## No CI Workflows
 
-There are no GitHub Actions workflows in this repository. Validation is done locally via pre-commit hooks (backend only).
+GitHub Actions (`backend-ci.yml`, `frontend-ci.yml`) run lint, type checks, tests and the API-contract check. The same checks run locally as pre-commit hooks (`.pre-commit-config.yaml` at the repo root).
 
 ## Docker / Full Stack
 
@@ -162,7 +162,7 @@ Services: `ollama` (port 21434), `grobid` (8070), `backend` (8000), `web` (4000â
 
 - `MAX_SCORE = 5` is defined in `backend/src/sibyl/config.py` and enforced as a Pydantic validator on `ReviewCriteria.score`.
 - The `decimalog` dependency is sourced from a private Git repo (`github.com/cvasilatos/decimalog`); it is referenced in `uv.lock` and installed by `uv sync`.
-- Storage artifacts are saved to `sibyl_storage/` (gitignored) and logs to `logs/` (gitignored).
+- Storage artifacts are saved to `backend/sibyl_storage/` (gitignored; override with `SIBYL_STORAGE_PATH`) and logs to `logs/` (gitignored).
 - The frontend API URL is configured via `NEXT_PUBLIC_API_URL` env var (default: `http://localhost:8000`).
 
 ## Trust These Instructions
