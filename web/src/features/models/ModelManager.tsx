@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { NativeSelect } from "@/components/ui/native-select";
 import { LoadingBlock, Spinner } from "@/components/ui/spinner";
-import { useDownload } from "@/hooks/use-download";
+import { useDownload } from "@/features/models/download-context";
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
 import { formatBytes, formatDate } from "@/lib/format";

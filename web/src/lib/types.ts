@@ -1,7 +1,5 @@
 import type { Schemas } from "@/lib/api";
 
-export type AppTab = "review" | "library" | "models" | "gpu";
-
 // Backend models, generated from the OpenAPI schema (see src/lib/api/schema.d.ts). Do not redefine them here.
 export type ReviewCriteria = Schemas["ReviewCriteria"];
 export type ConferenceSummary = Schemas["ConferenceSummary"];
