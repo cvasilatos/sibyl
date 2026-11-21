@@ -8,8 +8,8 @@ import ResultsPanel from "@/components/ResultsPanel";
 import ReviewLibrary from "@/components/ReviewLibrary";
 import Tabs from "@/components/Tabs";
 import UploadArea from "@/components/UploadArea";
-import type { AppTab } from "@/lib/types";
 import { useReviewWorkflow } from "@/hooks/use-review-workflow";
+import type { AppTab } from "@/lib/types";
 
 const APP_TABS: AppTab[] = ["review", "library", "models", "gpu"];
 

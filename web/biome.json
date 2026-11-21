@@ -7,14 +7,7 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "includes": [
-      "**",
-      "!.next",
-      "!out",
-      "!build",
-      "!node_modules",
-      "!openapi.json"
-    ]
+    "includes": ["**", "!.next", "!out", "!build", "!node_modules", "!openapi.json"]
   },
   "formatter": {
     "enabled": true,

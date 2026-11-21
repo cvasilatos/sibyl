@@ -27,18 +27,14 @@ export const api = {
   getConference: (conferenceId: string, signal?: AbortSignal) =>
     unwrap(client.GET("/api/conferences/{conference_id}", { params: { path: { conference_id: conferenceId } }, signal })),
   listInstalledModels: () => unwrap(client.GET("/api/models")),
-  deleteModel: (modelName: string) =>
-    unwrap(client.DELETE("/api/models/{model_name}", { params: { path: { model_name: modelName } } })),
+  deleteModel: (modelName: string) => unwrap(client.DELETE("/api/models/{model_name}", { params: { path: { model_name: modelName } } })),
   listAvailableModels: () => unwrap(client.GET("/api/models/available")),
-  listModelTags: (modelName: string) =>
-    unwrap(client.GET("/api/models/available/{model_name}/tags", { params: { path: { model_name: modelName } } })),
+  listModelTags: (modelName: string) => unwrap(client.GET("/api/models/available/{model_name}/tags", { params: { path: { model_name: modelName } } })),
   listGpus: () => unwrap(client.GET("/api/gpu")),
   listReviews: (limit = 50) => unwrap(client.GET("/api/reviews", { params: { query: { limit } } })),
-  getReview: (reviewId: string, signal?: AbortSignal) =>
-    unwrap(client.GET("/api/reviews/{review_id}", { params: { path: { review_id: reviewId } }, signal })),
+  getReview: (reviewId: string, signal?: AbortSignal) => unwrap(client.GET("/api/reviews/{review_id}", { params: { path: { review_id: reviewId } }, signal })),
   getStatistics: () => unwrap(client.GET("/api/statistics")),
-  deleteReview: (reviewId: string) =>
-    unwrap(client.DELETE("/api/reviews/{review_id}", { params: { path: { review_id: reviewId } } })),
+  deleteReview: (reviewId: string) => unwrap(client.DELETE("/api/reviews/{review_id}", { params: { path: { review_id: reviewId } } })),
   deleteAllReviews: () => unwrap(client.DELETE("/api/reviews")),
   async downloadReviewPdf(reviewId: string): Promise<Blob> {
     const { data } = await client.GET("/api/reviews/{review_id}/pdf", {

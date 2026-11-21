@@ -266,11 +266,22 @@ export default function ReviewLibrary({
                       >
                         {downloading === review.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
                       </Button>
-                      <Button size="sm" variant="destructive" onClick={() => deleteReview(review.id)} disabled={deleting === review.id} aria-label={`Delete review for ${review.paper_title}`}>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => deleteReview(review.id)}
+                        disabled={deleting === review.id}
+                        aria-label={`Delete review for ${review.paper_title}`}
+                      >
                         {deleting === review.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                       </Button>
                     </div>
-                    <Button size="sm" variant="ghost" onClick={() => toggleExpand(review.id)} aria-label={`${expandedReview === review.id ? "Collapse" : "Expand"} review for ${review.paper_title}`}>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => toggleExpand(review.id)}
+                      aria-label={`${expandedReview === review.id ? "Collapse" : "Expand"} review for ${review.paper_title}`}
+                    >
                       {expandedReview === review.id ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
                     </Button>
                   </div>
@@ -296,11 +307,7 @@ export default function ReviewLibrary({
       {selectedPaperTitle && (
         <div className="fixed inset-0 z-50 flex w-full items-center justify-center">
           <button type="button" className="absolute inset-0 bg-black/50" aria-label="Close paper reviews dialog" onClick={() => setSelectedPaperTitle(null)} />
-          <div
-            role="dialog"
-            aria-modal="true"
-            className="relative z-10 bg-background rounded-lg shadow-xl max-w-lg w-full mx-4 p-6"
-          >
+          <div role="dialog" aria-modal="true" className="relative z-10 bg-background rounded-lg shadow-xl max-w-lg w-full mx-4 p-6">
             <div className="flex items-start justify-between mb-4 gap-4">
               <div>
                 <h2 className="font-semibold text-lg">Reviews for Paper</h2>
@@ -318,7 +325,9 @@ export default function ReviewLibrary({
                     <div className="flex items-center justify-between gap-2 flex-wrap">
                       <span className="text-sm font-medium">🤖 {r.reviewer_model}</span>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-primary">{r.score}/{maxScore}</span>
+                        <span className="text-sm font-bold text-primary">
+                          {r.score}/{maxScore}
+                        </span>
                         <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${recommendationClassName(r.recommendation)}`}>{r.recommendation}</span>
                       </div>
                     </div>

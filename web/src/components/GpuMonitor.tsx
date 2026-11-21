@@ -74,7 +74,11 @@ function GpuCard({ gpu }: { gpu: GpuStats }) {
             {gpu.processes.map((p, i) => (
               <div key={`${p.type}-${p.pid}-${i}`} className="flex items-center justify-between text-xs gap-2">
                 <span className="font-mono truncate flex-1">{p.name || `PID ${p.pid}`}</span>
-                <span className={`shrink-0 px-1 rounded ${p.type === "compute" ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300" : "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300"}`}>{p.type}</span>
+                <span
+                  className={`shrink-0 px-1 rounded ${p.type === "compute" ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300" : "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300"}`}
+                >
+                  {p.type}
+                </span>
                 <span className="font-mono shrink-0">{formatBytes(p.memory_bytes)}</span>
               </div>
             ))}
