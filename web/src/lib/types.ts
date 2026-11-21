@@ -26,5 +26,3 @@ export interface ReviewResults {
   paper_title: string;
   reviews: Review[];
 }
-
-export type GpuSummary = Pick<GpuStats, "index" | "name" | "gpu_utilization" | "memory_used" | "memory_total">;

@@ -1,7 +1,9 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { NativeSelect } from "@/components/ui/native-select";
+import { queries } from "@/lib/api/queries";
 import type { ConferenceSummary } from "@/lib/types";
 import ConferenceFormDialog from "./ConferenceFormDialog";
 import { useReview } from "./review-context";
@@ -14,7 +16,8 @@ function groupByArea(conferences: ConferenceSummary[]): [string, ConferenceSumma
 
 /** Picks a conference reviewer form, and previews it when picked. */
 export default function ConferenceSelect() {
-  const { conferences, selectedConferenceId, selectConference, isReviewing } = useReview();
+  const { selectedConferenceId, selectConference, isReviewing } = useReview();
+  const { data: conferences = [] } = useQuery(queries.conferences());
   const byArea = useMemo(() => groupByArea(conferences), [conferences]);
   const selected = conferences.find((c) => c.id === selectedConferenceId) ?? null;
   const [showForm, setShowForm] = useState(false);

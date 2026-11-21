@@ -1,19 +1,22 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import { FileText, FileUp, X } from "lucide-react";
 import { useRef } from "react";
 import { Button } from "@/components/ui/button";
+import { queries } from "@/lib/api/queries";
 import { useReview } from "./review-context";
 
 /** Upload of a custom TXT or Markdown reviewer form, as an alternative to a conference template. */
 export default function CustomFormPicker() {
-  const { selectedReviewForm, selectReviewForm, conferences, isReviewing } = useReview();
+  const { selectedReviewForm, selectReviewForm, isReviewing } = useReview();
+  const hasConferences = (useQuery(queries.conferences()).data?.length ?? 0) > 0;
   const inputRef = useRef<HTMLInputElement>(null);
 
   return (
     <div className="space-y-2">
       <label htmlFor="review-form-input" className="text-sm font-medium">
-        {conferences.length > 0 ? "Or Upload a Custom Form" : "Review Form (Optional)"}
+        {hasConferences ? "Or Upload a Custom Form" : "Review Form (Optional)"}
       </label>
       <input
         ref={inputRef}

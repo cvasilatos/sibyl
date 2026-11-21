@@ -1,27 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import UsageBar from "@/components/UsageBar";
-import { api } from "@/lib/api";
-import type { GpuSummary } from "@/lib/types";
+import { queries } from "@/lib/api/queries";
 
+/** Compact live load of each GPU, shown under the review form. */
 export default function GpuLoadSummary() {
-  const [gpus, setGpus] = useState<GpuSummary[]>([]);
-
-  const fetchGpus = useCallback(async () => {
-    try {
-      const data = await api.listGpus();
-      if (data.available) setGpus(data.gpus ?? []);
-    } catch {
-      // Supplementary info – silently ignore errors
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchGpus();
-    const interval = setInterval(fetchGpus, 3000);
-    return () => clearInterval(interval);
-  }, [fetchGpus]);
+  // Supplementary info: errors just hide the summary.
+  const { data } = useQuery({ ...queries.gpus(), refetchInterval: 3000 });
+  const gpus = data?.available ? data.gpus : [];
 
   if (gpus.length === 0) return null;
 

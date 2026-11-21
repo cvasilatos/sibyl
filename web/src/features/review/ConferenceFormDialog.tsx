@@ -1,9 +1,10 @@
+import { useQuery } from "@tanstack/react-query";
 import { Check, Copy, Download } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
-import { api } from "@/lib/api";
+import { queries } from "@/lib/api/queries";
 import { saveText } from "@/lib/download";
 import type { ConferenceSummary } from "@/lib/types";
 
@@ -14,22 +15,9 @@ type Props = {
 
 /** Modal showing the plain-text reviewer form of a conference template, as the model receives it. */
 export default function ConferenceFormDialog({ conference, onClose }: Props) {
-  const [formText, setFormText] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { data, error } = useQuery(queries.conference(conference.id));
+  const formText = data?.form_markdown ?? null;
   const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    setFormText(null);
-    setError(null);
-    api
-      .getConference(conference.id, controller.signal)
-      .then((data) => setFormText(data.form_markdown))
-      .catch((err: unknown) => {
-        if (!controller.signal.aborted) setError(err instanceof Error ? err.message : "Failed to load the form");
-      });
-    return () => controller.abort();
-  }, [conference.id]);
 
   const copy = async () => {
     if (!formText) return;
@@ -65,7 +53,7 @@ export default function ConferenceFormDialog({ conference, onClose }: Props) {
           </Button>
         </div>
         {error ? (
-          <p className="text-sm text-destructive">{error}</p>
+          <p className="text-sm text-destructive">{error.message || "Failed to load the form"}</p>
         ) : formText === null ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Spinner />

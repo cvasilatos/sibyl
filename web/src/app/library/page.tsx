@@ -11,7 +11,7 @@ function LibraryContent() {
     (reviewId: string | null) => router.replace(reviewId ? `/library?review=${encodeURIComponent(reviewId)}` : "/library", { scroll: false }),
     [router]
   );
-  return <ReviewLibrary initialExpandedReview={expandedReview} onReviewExpand={onReviewExpand} />;
+  return <ReviewLibrary expandedReviewId={expandedReview} onExpandedChange={onReviewExpand} />;
 }
 
 export default function LibraryPage() {

@@ -3,11 +3,13 @@
 import RecommendationBadge from "@/components/RecommendationBadge";
 import ReviewDetails from "@/components/ReviewDetails";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { useMaxScore } from "@/hooks/use-max-score";
 import { useReview } from "./review-context";
 
 /** The reviews of the last completed run, one card per reviewer model. */
 export default function ResultsPanel() {
-  const { results, maxScore } = useReview();
+  const { results } = useReview();
+  const maxScore = useMaxScore();
   if (!results) return null;
   return (
     <div className="space-y-6">

@@ -1,10 +1,11 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import { Upload } from "lucide-react";
-import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Spinner } from "@/components/ui/spinner";
+import { queries } from "@/lib/api/queries";
 import ConferenceSelect from "./ConferenceSelect";
 import CustomFormPicker from "./CustomFormPicker";
 import PaperDropzone from "./PaperDropzone";
@@ -13,12 +14,8 @@ import { useReview } from "./review-context";
 /** The paper dropzone (left) and the review options with the start button (right). */
 export default function ReviewForm() {
   const review = useReview();
-  const { reloadModels } = review;
-
-  // Models may have been installed on the models page since the list was loaded.
-  useEffect(() => {
-    reloadModels();
-  }, [reloadModels]);
+  // Observing the list here refetches it each time the form opens, to pick up models installed outside Sibyl.
+  useQuery(queries.installedModels());
 
   return (
     <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-[7fr_3fr]">
