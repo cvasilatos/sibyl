@@ -1,5 +1,6 @@
 import { FileText, FileUp, Loader2, Upload, X } from "lucide-react";
-import { type RefObject, useMemo } from "react";
+import { type RefObject, useCallback, useMemo, useState } from "react";
+import ConferenceFormDialog from "@/components/ConferenceFormDialog";
 import GpuLoadSummary from "@/components/GpuLoadSummary";
 import { Button } from "@/components/ui/button";
 import type { ConferenceSummary } from "@/lib/types";
@@ -59,6 +60,8 @@ export default function UploadArea({
     return [...groups.entries()];
   }, [conferences]);
   const selectedConference = conferences.find((c) => c.id === selectedConferenceId) ?? null;
+  const [showConferenceForm, setShowConferenceForm] = useState(false);
+  const closeConferenceForm = useCallback(() => setShowConferenceForm(false), []);
 
   return (
     <>
@@ -138,7 +141,10 @@ export default function UploadArea({
               <select
                 id="conference-select"
                 value={selectedConferenceId ?? ""}
-                onChange={(e) => onConferenceChange(e.target.value || null)}
+                onChange={(e) => {
+                  onConferenceChange(e.target.value || null);
+                  setShowConferenceForm(Boolean(e.target.value));
+                }}
                 className="w-full px-3 py-2 text-sm border border-input rounded-md bg-background"
                 disabled={isReviewing}
               >
@@ -157,9 +163,18 @@ export default function UploadArea({
                 {selectedConference
                   ? `${selectedConference.full_name}: the model answers all ${selectedConference.question_count} questions of the official reviewer form.${selectedConference.verified ? "" : " Form partly reconstructed from public guidelines."}`
                   : "Answer a top conference's official reviewer form, with its own score scales."}
+                {selectedConference && (
+                  <>
+                    {" "}
+                    <button type="button" className="text-primary underline underline-offset-2 hover:no-underline" onClick={() => setShowConferenceForm(true)}>
+                      View form
+                    </button>
+                  </>
+                )}
               </p>
             </div>
           )}
+          {showConferenceForm && selectedConference && <ConferenceFormDialog conference={selectedConference} onClose={closeConferenceForm} />}
 
           <div className="space-y-2">
             <label htmlFor="review-form-input" className="text-sm font-medium">

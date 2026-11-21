@@ -31,12 +31,12 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
 export const api = {
   getEngine: () => requestJson<EngineInfo>("/api/engine"),
   listConferences: () => requestJson<{ conferences: ConferenceSummary[]; count: number }>("/api/conferences"),
+  getConference: (conferenceId: string, signal?: AbortSignal) =>
+    requestJson<ConferenceSummary & { form_markdown: string }>(`/api/conferences/${encodeURIComponent(conferenceId)}`, { signal }),
   listInstalledModels: () => requestJson<ModelsResponse<InstalledModel>>("/api/models"),
   deleteModel: (modelName: string) => requestJson<{ message: string; model: string }>(`/api/models/${encodeURIComponent(modelName)}`, { method: "DELETE" }),
   listAvailableModels: () => requestJson<ModelsResponse<AvailableModel>>("/api/models/available"),
   listModelTags: (modelName: string) => requestJson<ModelTagsResponse>(`/api/models/available/${encodeURIComponent(modelName)}/tags`),
-  deleteModel: (modelName: string) =>
-    requestJson<{ message: string; model: string }>(`/api/models/${encodeURIComponent(modelName)}`, { method: "DELETE" }),
   listGpus: () => requestJson<GpuResponse>("/api/gpu"),
   listReviews: (limit = 50) => requestJson<ReviewsResponse>(`/api/reviews?limit=${limit}`),
   getReview: (reviewId: string, signal?: AbortSignal) => requestJson<FullReview>(`/api/reviews/${encodeURIComponent(reviewId)}`, { signal }),
