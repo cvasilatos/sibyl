@@ -148,6 +148,27 @@ export default function ModelManager() {
     );
   };
 
+  const removeModel = async (modelName: string) => {
+    setRemoving((prev) => new Set(prev).add(modelName));
+    try {
+      await api.deleteModel(modelName);
+      toast({ title: "Model Removed", description: `${modelName} has been removed.` });
+      await Promise.all([loadModels(), loadAvailableModels()]);
+    } catch (err) {
+      toast({
+        title: "Removal Failed",
+        description: err instanceof Error ? err.message : "Unknown error",
+        variant: "destructive",
+      });
+    } finally {
+      setRemoving((prev) => {
+        const next = new Set(prev);
+        next.delete(modelName);
+        return next;
+      });
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
