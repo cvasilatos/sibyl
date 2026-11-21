@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
-import { fetchMaxScore } from "@/lib/config";
 import { formatDate, recommendationClassName } from "@/lib/presentation";
 import type { FullReview, ReviewStatistics, StoredReview } from "@/lib/types";
 
@@ -62,7 +61,8 @@ export default function ReviewLibrary({
 
   useEffect(() => {
     loadReviews();
-    fetchMaxScore()
+    api
+      .getMaxScore()
       .then(setMaxScore)
       .catch((err) => {
         console.error("Failed to load max score:", err);
@@ -70,26 +70,26 @@ export default function ReviewLibrary({
       });
   }, [loadReviews]);
 
-  // Auto-fetch full review data when linked directly to an expanded review
+  // Follow the URL when it changes (back/forward, or a link to a review).
+  useEffect(() => setExpandedReview(initialExpandedReview), [initialExpandedReview]);
+
+  // Load the full review the first time it is expanded.
   useEffect(() => {
-    if (!initialExpandedReview) return;
+    if (!expandedReview || fullReviewData[expandedReview]) return;
+    const reviewId = expandedReview;
     const controller = new AbortController();
-    setLoadingFull(initialExpandedReview);
+    setLoadingFull(reviewId);
     api
-      .getReview(initialExpandedReview, controller.signal)
-      .then((data: FullReview) => {
-        setFullReviewData((prev) => ({ ...prev, [initialExpandedReview]: data }));
-      })
+      .getReview(reviewId, controller.signal)
+      .then((data) => setFullReviewData((prev) => ({ ...prev, [reviewId]: data })))
       .catch((err) => {
-        if (err.name === "AbortError") return;
+        if (controller.signal.aborted) return;
         setError(err instanceof Error ? err.message : "Failed to load review details");
         setExpandedReview(null);
       })
-      .finally(() => {
-        setLoadingFull(null);
-      });
+      .finally(() => setLoadingFull((current) => (current === reviewId ? null : current)));
     return () => controller.abort();
-  }, [initialExpandedReview]);
+  }, [expandedReview, fullReviewData]);
 
   const deleteReview = async (reviewId: string) => {
     if (!confirm("Are you sure you want to delete this review?")) {
@@ -145,28 +145,10 @@ export default function ReviewLibrary({
     }
   };
 
-  const toggleExpand = async (reviewId: string) => {
-    if (expandedReview === reviewId) {
-      setExpandedReview(null);
-      onReviewExpand?.(null);
-      return;
-    }
-
-    setExpandedReview(reviewId);
-    onReviewExpand?.(reviewId);
-
-    if (!fullReviewData[reviewId]) {
-      setLoadingFull(reviewId);
-      try {
-        const data = await api.getReview(reviewId);
-        setFullReviewData((prev) => ({ ...prev, [reviewId]: data }));
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load review details");
-        setExpandedReview(null);
-      } finally {
-        setLoadingFull(null);
-      }
-    }
+  const toggleExpand = (reviewId: string) => {
+    const next = expandedReview === reviewId ? null : reviewId;
+    setExpandedReview(next);
+    onReviewExpand?.(next);
   };
 
   return (

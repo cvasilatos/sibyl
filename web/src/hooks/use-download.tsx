@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, type ReactNode, useCallback, useContext, useState } from "react";
+import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from "react";
 import { getWebSocketUrl } from "@/lib/config";
 
 interface DownloadContextType {
@@ -20,7 +20,7 @@ export function DownloadProvider({ children }: { children: ReactNode }) {
 
   const clearError = useCallback(() => setError(null), []);
 
-  const startDownload = (modelName: string, onComplete: () => void, onError: (message: string) => void, onProgress?: (progress: number, message: string) => void) => {
+  const startDownload = useCallback((modelName: string, onComplete: () => void, onError: (message: string) => void, onProgress?: (progress: number, message: string) => void) => {
     setInstalling((prev) => [...prev, modelName]);
     setDownloadProgresses((prev) => ({ ...prev, [modelName]: 0 }));
     setError(null);
@@ -98,21 +98,11 @@ export function DownloadProvider({ children }: { children: ReactNode }) {
       removeModel();
       onError(err instanceof Error ? err.message : "Failed to start model installation");
     }
-  };
+  }, []);
 
-  return (
-    <DownloadContext.Provider
-      value={{
-        installing,
-        downloadProgresses,
-        error,
-        startDownload,
-        clearError,
-      }}
-    >
-      {children}
-    </DownloadContext.Provider>
-  );
+  const value = useMemo(() => ({ installing, downloadProgresses, error, startDownload, clearError }), [installing, downloadProgresses, error, startDownload, clearError]);
+
+  return <DownloadContext.Provider value={value}>{children}</DownloadContext.Provider>;
 }
 
 export function useDownload() {

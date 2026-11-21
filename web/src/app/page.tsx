@@ -69,7 +69,7 @@ function HomeContent() {
   const handleReviewExpand = useCallback(
     (reviewId: string | null) => {
       const query = reviewId ? `&review=${encodeURIComponent(reviewId)}` : "";
-      router.push(`/?tab=library${query}`);
+      router.replace(`/?tab=library${query}`, { scroll: false });
     },
     [router]
   );
@@ -118,7 +118,7 @@ function HomeContent() {
         {activeTab === "library" && <ReviewLibrary initialExpandedReview={reviewParam} onReviewExpand={handleReviewExpand} />}
         {activeTab === "models" && <ModelManager />}
         {activeTab === "gpu" && <GpuMonitor />}
-        {review.results && <ResultsPanel results={review.results} maxScore={review.maxScore} />}
+        {activeTab === "review" && review.results && <ResultsPanel results={review.results} maxScore={review.maxScore} />}
       </main>
 
       <footer className="border-t px-4 py-3 text-center">

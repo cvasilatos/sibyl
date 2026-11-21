@@ -22,6 +22,13 @@ async function unwrap<T>(request: Promise<Result<T>>): Promise<T> {
 }
 
 export const api = {
+  getConfig: () => unwrap(client.GET("/api/config")),
+  /** The top of the overall score scale, validated so the UI can divide by it. */
+  async getMaxScore(): Promise<number> {
+    const { max_score: maxScore } = await api.getConfig();
+    if (typeof maxScore !== "number" || maxScore <= 0) throw new Error("Invalid max_score in config response");
+    return maxScore;
+  },
   getEngine: () => unwrap(client.GET("/api/engine")),
   listConferences: () => unwrap(client.GET("/api/conferences")),
   getConference: (conferenceId: string, signal?: AbortSignal) =>

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
-import { fetchMaxScore, getWebSocketUrl } from "@/lib/config";
+import { getWebSocketUrl } from "@/lib/config";
 import type { AppTab, ConferenceSummary, GpuStats, ReviewResults } from "@/lib/types";
 
 interface ReviewSocketMessage {
@@ -74,7 +74,8 @@ export function useReviewWorkflow(activeTab: AppTab) {
       .listConferences()
       .then((data) => setConferences(data.conferences))
       .catch((error) => console.error("Failed to load conference templates:", error));
-    fetchMaxScore()
+    api
+      .getMaxScore()
       .then(setMaxScore)
       .catch((error) => {
         console.error("Failed to load max score:", error);

@@ -18,19 +18,3 @@ export function getWebSocketUrl(): string {
   const protocol = url.protocol === "https:" ? "wss:" : "ws:";
   return `${protocol}//${url.host}`;
 }
-
-/**
- * Fetch the maximum review score from the backend configuration endpoint.
- */
-export async function fetchMaxScore(): Promise<number> {
-  const response = await fetch(`${API_URL}/api/config`);
-  if (!response.ok) {
-    throw new Error("Failed to fetch config");
-  }
-  const data = await response.json();
-  const maxScore = data.max_score;
-  if (typeof maxScore !== "number" || maxScore <= 0) {
-    throw new Error("Invalid max_score in config response");
-  }
-  return maxScore;
-}

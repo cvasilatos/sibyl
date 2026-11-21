@@ -31,4 +31,21 @@ describe("api", () => {
     const request: Request = fetchMock.mock.calls[0]?.[0];
     expect(request.url).toContain("/api/models/available/Qwen%2FQwen3-8B/tags");
   });
+
+  describe("getMaxScore", () => {
+    it("returns max_score", async () => {
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ max_score: 5 })));
+      await expect(api.getMaxScore()).resolves.toBe(5);
+    });
+
+    it("throws when the request fails", async () => {
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("oops", { status: 500 })));
+      await expect(api.getMaxScore()).rejects.toThrow("Request failed with status 500");
+    });
+
+    it.each([["five"], [0], [-1]])("rejects an invalid max_score (%s)", async (maxScore) => {
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ max_score: maxScore })));
+      await expect(api.getMaxScore()).rejects.toThrow("Invalid max_score");
+    });
+  });
 });
