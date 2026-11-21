@@ -17,6 +17,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+KEEP_LOADED = "5m"
+
 
 def ollama_hosts_from_env() -> list[str]:
     """Return Ollama hosts from ``OLLAMA_HOSTS`` (comma separated, one per GPU) or ``OLLAMA_BASE_URL``."""
@@ -86,12 +88,14 @@ class OllamaEngine(InferenceEngine):
             prompt=request.prompt,
             stream=False,
             format=request.schema,
+            images=request.images or None,
             options={
                 "temperature": request.temperature,
                 "num_predict": request.max_tokens,
                 # Without this Ollama falls back to a small default context and silently drops most of the paper.
                 "num_ctx": request.context_length,
             },
-            keep_alive=self.keep_alive,
+            # Keep a model loaded between consecutive requests (e.g. one per figure) instead of reloading it each time.
+            keep_alive=KEEP_LOADED if request.keep_loaded else self.keep_alive,
         )
         return response.response or ""

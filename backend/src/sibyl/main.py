@@ -1,5 +1,7 @@
 """Sibyl: An LLM-powered research paper review system."""
 
+import asyncio
+import contextlib
 import logging
 from contextlib import asynccontextmanager
 from typing import cast
@@ -10,6 +12,7 @@ from decima.logger import CustomLogger
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from sibyl.figures import prefetch_vlm
 from sibyl.inference import create_engine
 from sibyl.routers import web_conferences, web_gpu, web_reviews, web_upload, web_ws
 
@@ -25,9 +28,16 @@ async def lifespan(app: FastAPI):  # noqa: ANN201, D103
     app.state.engine = create_engine()
     logger.info(f"Inference engine: {app.state.engine.label}")
 
+    # Download the figure-describing vision model in the background; the server is usable meanwhile.
+    vlm_task = asyncio.create_task(prefetch_vlm(app.state.engine))
+    vlm_task.add_done_callback(lambda t: t.cancelled() or t.exception() is None or logger.error(f"Vision model prefetch failed: {t.exception()}"))
+
     yield
 
     logger.info("Shutting down: Cleaning up...")
+    vlm_task.cancel()
+    with contextlib.suppress(asyncio.CancelledError):
+        await vlm_task
     await app.state.engine.aclose()
 
 

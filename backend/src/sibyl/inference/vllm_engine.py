@@ -396,7 +396,7 @@ class VLLMEngine(InferenceEngine):
 
     async def generate_json(self, request: GenerationRequest) -> str:  # noqa: D102
         async with self.pool.lease(request.slot, request.model, request.on_status) as base_url:
-            if request.on_status:
+            if request.on_status and not request.images:
                 await request.on_status(f"Generating review with {request.model}...")
             return await chat_json(base_url, request, timeout=self.timeout)
 

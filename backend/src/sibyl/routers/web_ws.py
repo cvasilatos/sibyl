@@ -8,6 +8,7 @@ from decima.logger import CustomLogger
 from fastapi import APIRouter, Query, WebSocket
 
 from sibyl.conferences import get_conference
+from sibyl.figures import FigureDescriber, vlm_model_for
 from sibyl.pdf_parser import PDFParser
 from sibyl.reviewer import PaperReview, ReviewSystem
 from sibyl.routers.web_state import review_sessions, storage
@@ -67,12 +68,22 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, model: str =
 
         await progress(30, f"Extracted {len(paper_text)} characters")
 
+        engine: InferenceEngine = websocket.app.state.engine
+
+        async def figure_status(message: str) -> None:
+            await progress(40, message)
+
+        # The reviewer is text-only: a vision model describes each figure image and the description replaces it.
+        describer = FigureDescriber(engine, vlm_model_for(engine.name))
+        paper_text, described = await describer.enrich(paper_text, metadata.get("images") or {}, slot=host, on_status=figure_status)
+        if described:
+            await progress(45, f"Described {described} figure(s) with a vision model")
+
         conference_id = session.get("conference_id")
         conference = get_conference(conference_id) if conference_id else None
         form_label = f" using the {conference.name} {conference.edition} reviewer form" if conference else ""
 
         try:
-            engine: InferenceEngine = websocket.app.state.engine
             reviewer = ReviewSystem(engine, model)
 
             await progress(50, f"Reviewing with {model}{form_label}...")
@@ -97,9 +108,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, model: str =
 
         await progress(90, "Saving to storage...")
 
-        review_id = await to_thread.run_sync(
-            lambda: storage.save_review(review=review, pdf_filename=session["filename"], pdf_path=session["pdf_path"], paper_text=paper_text)
-        )
+        review_id = await to_thread.run_sync(lambda: storage.save_review(review=review, pdf_filename=session["filename"], pdf_path=session["pdf_path"], paper_text=paper_text))
 
         reviews_dict = [
             {

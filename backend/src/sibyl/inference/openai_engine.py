@@ -19,9 +19,15 @@ logger = logging.getLogger(__name__)
 
 async def chat_json(base_url: str, request: GenerationRequest, api_key: str | None = None, timeout: float = 1800.0) -> str:  # noqa: ASYNC109
     """Call ``/v1/chat/completions`` with a JSON-schema ``response_format`` and return the message content."""
+    user_content: str | list[dict[str, Any]] = request.prompt
+    if request.images:
+        user_content = [
+            {"type": "text", "text": request.prompt},
+            *({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image}"}} for image in request.images),
+        ]
     payload = {
         "model": request.model,
-        "messages": [{"role": "system", "content": request.system}, {"role": "user", "content": request.prompt}],
+        "messages": [{"role": "system", "content": request.system}, {"role": "user", "content": user_content}],
         "temperature": request.temperature,
         "max_tokens": request.max_tokens,
         "response_format": {"type": "json_schema", "json_schema": {"name": "paper_review", "schema": request.schema, "strict": True}},

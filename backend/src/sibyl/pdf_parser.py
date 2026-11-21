@@ -100,7 +100,8 @@ class PDFParser:
         text, _, images = text_from_rendered(rendered)
         self.logger.info(f"Extracted {len(text)} characters and {len(images)} images from PDF")
 
-        return {"title": self.get_marker_title(text), "author": "author", "text": text}
+        # ``images`` maps Marker's figure placeholders (``![](_page_N_Figure_M.jpeg)``) to cropped PIL images.
+        return {"title": self.get_marker_title(text), "author": "author", "text": text, "images": images}
 
     def get_marker_title(self, markdown_text: str) -> str:
         """Return the first level-one or level-two heading in Markdown text."""

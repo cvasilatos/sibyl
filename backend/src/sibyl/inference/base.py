@@ -31,6 +31,10 @@ class GenerationRequest:
     context_length: int
     slot: int = AUTO_SLOT
     on_status: Callable[[str], Awaitable[None]] | None = field(default=None, repr=False)
+    images: list[str] = field(default_factory=list, repr=False)
+    """Base64-encoded JPEG images sent with the prompt (vision-language models only)."""
+    keep_loaded: bool = False
+    """Hint that more requests for the same model follow, so the engine should not unload it yet."""
 
 
 class InferenceEngine(ABC):
