@@ -3,7 +3,7 @@
 import pytest
 from fastapi import HTTPException
 
-from sibyl.routers.web_upload import MAX_REVIEW_FORM_BYTES, _decode_review_form
+from sibyl.routers.upload import MAX_REVIEW_FORM_BYTES, _decode_review_form
 
 
 @pytest.mark.parametrize("filename", ["review.txt", "review.md", "review.markdown", "REVIEW.MD"])

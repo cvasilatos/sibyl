@@ -1,8 +1,8 @@
 """Tests for the comparison module."""
 
-from sibyl.comparison import ReviewComparison
-from sibyl.reviewer import PaperReview
-from sibyl.web.model.llm_reply import LLMReply, Recommendation
+from sibyl.schemas.llm_reply import LLMReply, Recommendation
+from sibyl.services.comparison import ReviewComparison
+from sibyl.services.reviewer import PaperReview
 
 
 def create_mock_review(model_name: str, score: int, recommendation: Recommendation) -> PaperReview:

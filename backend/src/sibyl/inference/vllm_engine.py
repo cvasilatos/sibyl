@@ -24,9 +24,9 @@ from typing import TYPE_CHECKING, Any
 
 import httpx
 
-from sibyl.hardware import nvidia_gpu_count
 from sibyl.inference.base import AUTO_SLOT, GenerationRequest, InferenceEngine, env_float, env_int
 from sibyl.inference.openai_engine import chat_json
+from sibyl.services.hardware import nvidia_gpu_count
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Awaitable, Callable

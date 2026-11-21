@@ -7,9 +7,9 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from fastapi.testclient import TestClient
 
-from sibyl.conferences import ConferenceTemplate, list_conferences, load_conferences
 from sibyl.inference.ollama_engine import OllamaEngine
-from sibyl.reviewer import FORM_TEMPERATURE, ReviewSystem, conference_schema
+from sibyl.services.conferences import ConferenceTemplate, list_conferences, load_conferences
+from sibyl.services.reviewer import FORM_TEMPERATURE, ReviewSystem, conference_schema
 
 TEMPLATE = ConferenceTemplate.model_validate(
     {
@@ -113,7 +113,7 @@ def test_bundled_templates_are_valid():
 
 
 def test_list_conferences_is_sorted_by_area():
-    from sibyl.conferences import AREA_ORDER
+    from sibyl.services.conferences import AREA_ORDER
 
     ranks = [AREA_ORDER.index(c["area"]) if c["area"] in AREA_ORDER else len(AREA_ORDER) for c in list_conferences()]
     assert ranks == sorted(ranks)
@@ -124,8 +124,8 @@ def test_list_conferences_is_sorted_by_area():
 
 @pytest.fixture
 def client(monkeypatch):
-    from sibyl import conferences
     from sibyl.main import app
+    from sibyl.services import conferences
 
     monkeypatch.setattr(conferences, "load_conferences", lambda: {"testconf": TEMPLATE})
     app.state.engine = OllamaEngine(hosts=["http://ollama.test:11434"])
@@ -145,7 +145,7 @@ def test_conference_endpoints(client):
 
 
 def test_upload_with_conference(client):
-    from sibyl.routers.web_state import review_sessions
+    from sibyl.state import review_sessions
 
     files = {"file": ("paper.pdf", b"%PDF-1.4", "application/pdf")}
     response = client.post("/api/upload", files=files, data={"conference_id": "testconf"})
@@ -167,8 +167,8 @@ def test_engine_endpoint(client):
 
 def test_ws_review_session_with_conference(client, monkeypatch):
     """Full review flow over the WebSocket: upload with a conference, parse, generate, store."""
-    from sibyl.pdf_parser import PDFParser
-    from sibyl.routers import web_ws
+    from sibyl.routers import ws
+    from sibyl.services.pdf_parser import PDFParser
 
     seen_slots: list[int] = []
 
@@ -177,7 +177,7 @@ def test_ws_review_session_with_conference(client, monkeypatch):
         return {"title": "A Paper", "text": "paper body"}
 
     monkeypatch.setattr(PDFParser, "get_metadata", fake_metadata)
-    monkeypatch.setattr(web_ws.storage, "save_review", lambda **_kwargs: "review_123")
+    monkeypatch.setattr(ws.storage, "save_review", lambda **_kwargs: "review_123")
 
     reply = {"conference_review": {"summary": "Fine.", "soundness": 2, "decision": "reject"}, **NORMALIZED}
     ollama = AsyncMock()

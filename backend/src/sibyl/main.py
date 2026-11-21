@@ -12,9 +12,9 @@ from decima.logger import CustomLogger
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from sibyl.figures import prefetch_vlm
 from sibyl.inference import create_engine
-from sibyl.routers import web_conferences, web_gpu, web_reviews, web_upload, web_ws
+from sibyl.routers import conferences, gpu, reviews, upload, ws
+from sibyl.services.figures import prefetch_vlm
 
 CustomLogger.setup_logging("logs", "app", level="DEBUG", class_length=30)
 logger: CustomLogger = cast("CustomLogger", logging.getLogger("sibyl.main"))
@@ -56,11 +56,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(web_reviews.router, prefix="/api", tags=["Reviews"])
-app.include_router(web_upload.router, prefix="/api", tags=["Upload"])
-app.include_router(web_ws.router, prefix="/ws", tags=["WebSocket"])
-app.include_router(web_gpu.router, prefix="/api", tags=["GPU"])
-app.include_router(web_conferences.router, prefix="/api", tags=["Conferences"])
+app.include_router(reviews.router, prefix="/api", tags=["Reviews"])
+app.include_router(upload.router, prefix="/api", tags=["Upload"])
+app.include_router(ws.router, prefix="/ws", tags=["WebSocket"])
+app.include_router(gpu.router, prefix="/api", tags=["GPU"])
+app.include_router(conferences.router, prefix="/api", tags=["Conferences"])
 
 
 @app.get("/")

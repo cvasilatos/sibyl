@@ -3,7 +3,7 @@
 from typing import Any
 
 from sibyl.config import MAX_SCORE
-from sibyl.reviewer import PaperReview
+from sibyl.services.reviewer import PaperReview
 
 
 class ReviewComparison:

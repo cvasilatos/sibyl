@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, HTTPException
 
-from sibyl.conferences import get_conference, list_conferences
+from sibyl.services.conferences import get_conference, list_conferences
 
 router = APIRouter()
 

@@ -15,7 +15,7 @@ from marker.converters.pdf import PdfConverter
 from marker.models import create_model_dict
 from marker.output import text_from_rendered
 
-from sibyl.hardware import torch_device
+from sibyl.services.hardware import torch_device
 
 if TYPE_CHECKING:
     from pypdf._page import PageObject

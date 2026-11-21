@@ -11,11 +11,11 @@ import httpx
 import pytest
 from PIL import Image
 
-from sibyl import figures
-from sibyl.figures import NOT_SHOWN, FigureDescriber, find_caption, find_figures, prefetch_vlm, vlm_model_for
 from sibyl.inference import GenerationRequest
 from sibyl.inference.ollama_engine import KEEP_LOADED, OllamaEngine
 from sibyl.inference.openai_engine import chat_json
+from sibyl.services import figures
+from sibyl.services.figures import NOT_SHOWN, FigureDescriber, find_caption, find_figures, prefetch_vlm, vlm_model_for
 
 MARKDOWN = """# Paper
 

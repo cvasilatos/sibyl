@@ -14,9 +14,9 @@ from fastapi.responses import FileResponse
 
 from sibyl.config import MAX_SCORE
 from sibyl.inference import EngineOperationNotSupportedError
-from sibyl.routers.web_state import review_sessions, storage
-from sibyl.web.model.search_request import SearchRequest
-from sibyl.web.model.session_status import SessionStatus
+from sibyl.schemas.search_request import SearchRequest
+from sibyl.schemas.session_status import SessionStatus
+from sibyl.state import review_sessions, storage
 
 router = APIRouter()
 

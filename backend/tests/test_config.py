@@ -2,7 +2,7 @@
 
 import pytest
 
-from sibyl.config import LLMConfig, MAX_SCORE
+from sibyl.config import MAX_SCORE, LLMConfig
 
 
 def test_max_score_value():

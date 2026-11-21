@@ -13,12 +13,12 @@ from pydantic import BaseModel, Field
 
 from sibyl.config import MAX_SCORE
 from sibyl.inference.base import AUTO_SLOT, GenerationRequest, InferenceEngine, env_int
-from sibyl.web.model.llm_reply import NARRATIVE_FIELDS, SIBYL_FILLED_FIELDS, FormAwareLLMReply, LLMReply
+from sibyl.schemas.llm_reply import NARRATIVE_FIELDS, SIBYL_FILLED_FIELDS, FormAwareLLMReply, LLMReply
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
-    from sibyl.conferences import ConferenceTemplate
+    from sibyl.services.conferences import ConferenceTemplate
 
 TEMPERATURE: float = float(os.getenv("SIBYL_TEMPERATURE", os.getenv("OLLAMA_TEMPERATURE", "0.7")))
 FORM_TEMPERATURE: float = float(os.getenv("SIBYL_FORM_TEMPERATURE", os.getenv("OLLAMA_FORM_TEMPERATURE", "0.2")))

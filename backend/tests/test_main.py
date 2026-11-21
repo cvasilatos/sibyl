@@ -148,8 +148,8 @@ def test_session_not_found(client):
 
 def test_response_models():
     """Test that response models are properly defined."""
-    from sibyl.web.model.review_request import ReviewRequest
-    from sibyl.web.model.session_status import SessionStatus
+    from sibyl.schemas.review_request import ReviewRequest
+    from sibyl.schemas.session_status import SessionStatus
 
     request = ReviewRequest(model_name="llama3.2", max_pages=10)
     assert request.model_name == "llama3.2"
@@ -371,7 +371,7 @@ def test_search_endpoint(client):
     """Test the semantic search endpoint returns expected structure."""
     from unittest.mock import patch
 
-    from sibyl.routers.web_state import storage
+    from sibyl.state import storage
 
     with patch.object(storage, "search_reviews", return_value=[]):
         response = client.post("/api/search", json={"query": "machine learning", "limit": 5})

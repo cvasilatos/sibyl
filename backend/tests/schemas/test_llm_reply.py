@@ -3,7 +3,7 @@
 import pytest
 
 from sibyl.config import MAX_SCORE
-from sibyl.web.model.llm_reply import FormAwareLLMReply, LLMReply, Recommendation
+from sibyl.schemas.llm_reply import FormAwareLLMReply, LLMReply, Recommendation
 
 
 def _make_reply(**kwargs) -> LLMReply:

@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, HTTPException
 
-from sibyl import hardware
+from sibyl.services import hardware
 
 router = APIRouter()
 

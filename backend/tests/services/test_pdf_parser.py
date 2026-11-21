@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from sibyl.pdf_parser import PDFParser
+from sibyl.services.pdf_parser import PDFParser
 
 
 def test_pdf_parser_file_not_found():

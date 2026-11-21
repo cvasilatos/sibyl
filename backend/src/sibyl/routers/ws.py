@@ -7,11 +7,11 @@ from anyio import to_thread
 from decima.logger import CustomLogger
 from fastapi import APIRouter, Query, WebSocket
 
-from sibyl.conferences import get_conference
-from sibyl.figures import FigureDescriber, vlm_model_for
-from sibyl.pdf_parser import PDFParser
-from sibyl.reviewer import PaperReview, ReviewSystem
-from sibyl.routers.web_state import review_sessions, storage
+from sibyl.services.conferences import get_conference
+from sibyl.services.figures import FigureDescriber, vlm_model_for
+from sibyl.services.pdf_parser import PDFParser
+from sibyl.services.reviewer import PaperReview, ReviewSystem
+from sibyl.state import review_sessions, storage
 
 if TYPE_CHECKING:
     from sibyl.inference import InferenceEngine

@@ -8,8 +8,8 @@ from typing import Annotated, Any
 import aiofiles
 from fastapi import APIRouter, Form, HTTPException, UploadFile
 
-from sibyl.conferences import get_conference
-from sibyl.routers.web_state import review_sessions
+from sibyl.services.conferences import get_conference
+from sibyl.state import review_sessions
 
 router = APIRouter()
 

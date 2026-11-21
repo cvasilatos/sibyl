@@ -9,12 +9,12 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from sibyl import hardware
 from sibyl.inference import AUTO_SLOT, GenerationRequest, create_engine
 from sibyl.inference.ollama_engine import OllamaEngine
 from sibyl.inference.openai_engine import OpenAICompatibleEngine
 from sibyl.inference.vllm_engine import VLLMEngine, VLLMServerPool, select_download_files
-from sibyl.reviewer import CONTEXT_STEP, MIN_CONTEXT, context_window, fit_paper, strip_reasoning
+from sibyl.services import hardware
+from sibyl.services.reviewer import CONTEXT_STEP, MIN_CONTEXT, context_window, fit_paper, strip_reasoning
 
 FAKE_VLLM = [sys.executable, str(Path(__file__).with_name("fake_vllm.py"))]
 

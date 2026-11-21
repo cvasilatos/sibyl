@@ -6,10 +6,10 @@ from unittest.mock import patch
 
 import pytest
 
-from sibyl.reviewer import PaperReview
+from sibyl.schemas.llm_reply import LLMReply, Recommendation
+from sibyl.services.reviewer import PaperReview
 from sibyl.storage.engine import Engine
 from sibyl.storage.review import Review
-from sibyl.web.model.llm_reply import LLMReply, Recommendation
 
 MOCK_EMBEDDING = [0.1, 0.2, 0.3]
 

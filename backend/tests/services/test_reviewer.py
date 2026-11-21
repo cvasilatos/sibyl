@@ -2,8 +2,8 @@
 
 import pytest
 
-from sibyl.reviewer import PaperReview, ReviewCriteria
-from sibyl.web.model.llm_reply import LLMReply, Recommendation
+from sibyl.schemas.llm_reply import LLMReply, Recommendation
+from sibyl.services.reviewer import PaperReview, ReviewCriteria
 
 
 def test_review_criteria_creation():
@@ -152,7 +152,7 @@ def test_review_system_review_paper():
 
     from ollama import AsyncClient
 
-    from sibyl.reviewer import ReviewSystem
+    from sibyl.services.reviewer import ReviewSystem
 
     llm_reply_json = json.dumps(
         {
@@ -201,7 +201,7 @@ def test_review_system_empty_response_raises():
 
     from ollama import AsyncClient
 
-    from sibyl.reviewer import ReviewSystem
+    from sibyl.services.reviewer import ReviewSystem
 
     mock_response = MagicMock()
     mock_response.response = ""  # Empty response
@@ -225,7 +225,7 @@ def test_review_system_completes_custom_review_form():
 
     from ollama import AsyncClient
 
-    from sibyl.reviewer import FORM_TEMPERATURE, ReviewSystem
+    from sibyl.services.reviewer import FORM_TEMPERATURE, ReviewSystem
 
     response_data = {
         "review_form_response": "# Significance\n\nThe work is significant.",

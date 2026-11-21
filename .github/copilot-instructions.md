@@ -24,17 +24,16 @@ The full stack is run with Docker Compose (`docker-compose.yml` at repo root). F
 
 - `backend/pyproject.toml` – all project config: dependencies, Ruff rules, pytest settings, `ty` config
 - `backend/src/sibyl/` – all Python source code
-  - `main.py` – FastAPI app + CLI entry point (`sibyl` command)
+  - `main.py` – FastAPI app + server entry point (`sibyl` command)
   - `config.py` – `SibylConfig` and `LLMConfig` Pydantic models; `MAX_SCORE = 5`
-  - `cli.py` – Click CLI commands (`review`, `check-config`)
-  - `pdf_parser.py` – PDF text extraction (pypdf + optional GROBID)
-  - `reviewer.py` – Review generation using LLMs
-  - `comparison.py` – Multi-review comparison/consensus
-  - `llm/client/` – Ollama LLM client
-  - `routers/` – FastAPI route handlers (`web_gpu.py`, `web_reviews.py`, `web_upload.py`, `web_ws.py`)
+  - `state.py` – shared app state (review sessions, storage)
+  - `routers/` – FastAPI route handlers (`conferences.py`, `gpu.py`, `reviews.py`, `upload.py`, `ws.py`)
+  - `schemas/` – Pydantic models for HTTP request/response
+  - `services/` – review pipeline: `reviewer.py`, `comparison.py`, `pdf_parser.py`, `figures.py`, `conferences.py`, `hardware.py`, `model_catalog.py`
+  - `inference/` – pluggable engines (Ollama, vLLM, OpenAI-compatible)
   - `storage/` – Review storage engine
-  - `web/model/` – Pydantic models for HTTP request/response
-- `backend/tests/` – pytest test suite
+  - `resources/` – review prompt and conference templates
+- `backend/tests/` – pytest test suite, mirroring `src/sibyl/`
 - `backend/.env.example` – environment variable template (copy to `backend/.env`)
 
 ### Setup and Build (Always Follow This Order)
