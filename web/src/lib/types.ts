@@ -14,15 +14,12 @@ export type GpuProcess = Schemas["GpuProcess"];
 export type GpuStats = Schemas["GpuStats"];
 export type GpuResponse = Schemas["GpuList"];
 
-// Frontend-only types. Review and ReviewResults arrive over the review WebSocket, which OpenAPI doesn't describe.
-export interface Review {
-  paper_title: string;
-  reviewer_model: string;
-  criteria: ReviewCriteria;
-  raw_response: string;
-}
-
-export interface ReviewResults {
-  paper_title: string;
-  reviews: Review[];
-}
+// WebSocket messages. OpenAPI has no WebSocket routes; the backend adds these models to the schema (sibyl.schemas.ws).
+export type Review = Schemas["ReviewResult"];
+export type ReviewResults = Schemas["ReviewResults"];
+export type SocketError = Schemas["SocketError"];
+/** Anything sent on /ws/session/{id}. */
+export type ReviewSessionMessage = Schemas["ReviewProgress"] | Schemas["ReviewCompleted"] | SocketError;
+/** Anything sent on /ws/pull: engine progress lines, then status "success", or an error. */
+export type PullProgress = Schemas["PullProgress"];
+export type PullMessage = PullProgress | SocketError;

@@ -7,6 +7,8 @@ from anyio import to_thread
 from decima.logger import CustomLogger
 from fastapi import APIRouter, Query, WebSocket
 
+from sibyl.schemas.reviews import ReviewCriteria
+from sibyl.schemas.ws import PullProgress, ReviewCompleted, ReviewProgress, ReviewResult, ReviewResults, SocketError
 from sibyl.services.conferences import get_conference
 from sibyl.services.figures import FigureDescriber, vlm_model_for
 from sibyl.services.pdf_parser import PDFParser
@@ -30,11 +32,11 @@ async def pull_model(websocket: WebSocket, model_name: str = Query()) -> None:
         engine: InferenceEngine = websocket.app.state.engine
         async for part in engine.pull(model_name):
             logger.debug(f"Pulling model {model_name}: {part}")
-            await websocket.send_json(part)
+            await websocket.send_json(PullProgress.model_validate(part).model_dump())
 
     except Exception as e:
         logger.exception(f"Error during model pull for {model_name}")
-        await websocket.send_json({"status": "error", "message": str(e)})
+        await websocket.send_json(SocketError(message=str(e)).model_dump())
     finally:
         with contextlib.suppress(Exception):
             await websocket.close()
@@ -50,12 +52,12 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, model: str =
     session = review_sessions.get(session_id)
 
     if session is None:
-        await websocket.send_json({"status": "error", "message": "Session not found"})
+        await websocket.send_json(SocketError(message="Session not found").model_dump())
         await websocket.close(code=1008)
         return
 
     async def progress(value: int, message: str) -> None:
-        await websocket.send_json({"status": "progress", "progress": value, "message": message})
+        await websocket.send_json(ReviewProgress(progress=value, message=message).model_dump())
 
     try:
         await progress(10, "Extracting text from PDF...")
@@ -103,38 +105,28 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, model: str =
             logger.info(f"Generated review for paper '{paper_title}' with model {model}")
         except Exception as e:
             logger.exception(f"Error during review with model {model}")
-            await websocket.send_json({"status": "error", "message": f"Error reviewing with {model}: {e!s}"})
+            await websocket.send_json(SocketError(message=f"Error reviewing with {model}: {e!s}").model_dump())
             return
 
         await progress(90, "Saving to storage...")
 
         review_id = await to_thread.run_sync(lambda: storage.save_review(review=review, pdf_filename=session["filename"], pdf_path=session["pdf_path"], paper_text=paper_text))
 
-        reviews_dict = [
-            {
-                "paper_title": review.paper_title,
-                "reviewer_model": review.reviewer_model,
-                "criteria": review.criteria.model_dump(),
-                "raw_response": review.raw_response,
-            }
-        ]
-
-        await websocket.send_json(
-            {
-                "status": "completed",
-                "progress": 100,
-                "message": "Review complete!",
-                "review_id": review_id,
-                "results": {"paper_title": paper_title, "reviews": reviews_dict},
-            }
+        result = ReviewResult(
+            paper_title=review.paper_title,
+            reviewer_model=review.reviewer_model,
+            criteria=ReviewCriteria.model_validate(review.criteria.model_dump(mode="json")),
+            raw_response=review.raw_response,
         )
+        completed = ReviewCompleted(review_id=review_id, results=ReviewResults(paper_title=paper_title, reviews=[result]))
+        await websocket.send_json(completed.model_dump(mode="json"))
 
         session["status"] = "completed"
-        session["reviews"] = reviews_dict
+        session["reviews"] = [result.model_dump(mode="json")]
 
     except Exception as e:
         logger.exception("Review session failed")
-        await websocket.send_json({"status": "error", "message": str(e)})
+        await websocket.send_json(SocketError(message=str(e)).model_dump())
     finally:
         if session.get("status") != "completed" and "pdf_path" in session and await anyio.Path(session["pdf_path"]).exists():
             with contextlib.suppress(Exception):

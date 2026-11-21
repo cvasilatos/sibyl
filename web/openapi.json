@@ -1983,6 +1983,176 @@
         ],
         "title": "VllmServer",
         "description": "A running vLLM server."
+      },
+      "PullProgress": {
+        "additionalProperties": true,
+        "description": "A progress line from the engine while it downloads a model; the last one has status ``success``.\n\nEngines may add their own fields (Ollama sends ``digest``), which are passed through.",
+        "properties": {
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "completed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Completed"
+          },
+          "total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Total"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "PullProgress",
+        "type": "object"
+      },
+      "ReviewCompleted": {
+        "description": "Final message of a successful review.",
+        "properties": {
+          "status": {
+            "const": "completed",
+            "default": "completed",
+            "title": "Status",
+            "type": "string"
+          },
+          "progress": {
+            "default": 100,
+            "title": "Progress",
+            "type": "integer"
+          },
+          "message": {
+            "default": "Review complete!",
+            "title": "Message",
+            "type": "string"
+          },
+          "review_id": {
+            "title": "Review Id",
+            "type": "string"
+          },
+          "results": {
+            "$ref": "#/components/schemas/ReviewResults"
+          }
+        },
+        "required": [
+          "review_id",
+          "results"
+        ],
+        "title": "ReviewCompleted",
+        "type": "object"
+      },
+      "ReviewProgress": {
+        "description": "A step of a running review.",
+        "properties": {
+          "status": {
+            "const": "progress",
+            "default": "progress",
+            "title": "Status",
+            "type": "string"
+          },
+          "progress": {
+            "maximum": 100,
+            "minimum": 0,
+            "title": "Progress",
+            "type": "integer"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "progress",
+          "message"
+        ],
+        "title": "ReviewProgress",
+        "type": "object"
+      },
+      "ReviewResult": {
+        "description": "One model's review of the paper, as sent when the review completes.",
+        "properties": {
+          "paper_title": {
+            "title": "Paper Title",
+            "type": "string"
+          },
+          "reviewer_model": {
+            "title": "Reviewer Model",
+            "type": "string"
+          },
+          "criteria": {
+            "$ref": "#/components/schemas/ReviewCriteria"
+          },
+          "raw_response": {
+            "title": "Raw Response",
+            "type": "string"
+          }
+        },
+        "required": [
+          "paper_title",
+          "reviewer_model",
+          "criteria",
+          "raw_response"
+        ],
+        "title": "ReviewResult",
+        "type": "object"
+      },
+      "ReviewResults": {
+        "description": "The reviews produced by a review session.",
+        "properties": {
+          "paper_title": {
+            "title": "Paper Title",
+            "type": "string"
+          },
+          "reviews": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewResult"
+            },
+            "title": "Reviews",
+            "type": "array"
+          }
+        },
+        "required": [
+          "paper_title",
+          "reviews"
+        ],
+        "title": "ReviewResults",
+        "type": "object"
+      },
+      "SocketError": {
+        "description": "Final message when a WebSocket operation fails.",
+        "properties": {
+          "status": {
+            "const": "error",
+            "default": "error",
+            "title": "Status",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "title": "SocketError",
+        "type": "object"
       }
     }
   }

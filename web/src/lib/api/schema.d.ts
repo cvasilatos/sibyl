@@ -947,6 +947,106 @@ export interface components {
       /** Alive */
       alive: boolean;
     };
+    /**
+     * PullProgress
+     * @description A progress line from the engine while it downloads a model; the last one has status ``success``.
+     *
+     *     Engines may add their own fields (Ollama sends ``digest``), which are passed through.
+     */
+    PullProgress: {
+      /** Status */
+      status: string;
+      /**
+       * Completed
+       * @default null
+       */
+      completed: number | null;
+      /**
+       * Total
+       * @default null
+       */
+      total: number | null;
+    } & {
+      [key: string]: unknown;
+    };
+    /**
+     * ReviewCompleted
+     * @description Final message of a successful review.
+     */
+    ReviewCompleted: {
+      /**
+       * Status
+       * @default completed
+       * @constant
+       */
+      status: "completed";
+      /**
+       * Progress
+       * @default 100
+       */
+      progress: number;
+      /**
+       * Message
+       * @default Review complete!
+       */
+      message: string;
+      /** Review Id */
+      review_id: string;
+      results: components["schemas"]["ReviewResults"];
+    };
+    /**
+     * ReviewProgress
+     * @description A step of a running review.
+     */
+    ReviewProgress: {
+      /**
+       * Status
+       * @default progress
+       * @constant
+       */
+      status: "progress";
+      /** Progress */
+      progress: number;
+      /** Message */
+      message: string;
+    };
+    /**
+     * ReviewResult
+     * @description One model's review of the paper, as sent when the review completes.
+     */
+    ReviewResult: {
+      /** Paper Title */
+      paper_title: string;
+      /** Reviewer Model */
+      reviewer_model: string;
+      criteria: components["schemas"]["ReviewCriteria"];
+      /** Raw Response */
+      raw_response: string;
+    };
+    /**
+     * ReviewResults
+     * @description The reviews produced by a review session.
+     */
+    ReviewResults: {
+      /** Paper Title */
+      paper_title: string;
+      /** Reviews */
+      reviews: components["schemas"]["ReviewResult"][];
+    };
+    /**
+     * SocketError
+     * @description Final message when a WebSocket operation fails.
+     */
+    SocketError: {
+      /**
+       * Status
+       * @default error
+       * @constant
+       */
+      status: "error";
+      /** Message */
+      message: string;
+    };
   };
   responses: never;
   parameters: never;

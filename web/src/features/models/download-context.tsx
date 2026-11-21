@@ -5,14 +5,7 @@ import { createContext, type ReactNode, useCallback, useContext, useMemo, useSta
 import { toast } from "@/hooks/use-toast";
 import { invalidates } from "@/lib/api/queries";
 import { getWebSocketUrl } from "@/lib/config";
-
-/** A message on the model pull WebSocket: the engine's progress lines, then "success" or "error". */
-interface PullMessage {
-  status: string;
-  message?: string;
-  total?: number;
-  completed?: number;
-}
+import type { PullMessage, PullProgress, SocketError } from "@/lib/types";
 
 interface DownloadContextType {
   /** Models being installed, by full name (name:tag). */
@@ -75,17 +68,19 @@ export function DownloadProvider({ children }: { children: ReactNode }) {
           console.error("Error parsing pull message:", e);
           return;
         }
+        // PullProgress.status is any string, so checking for "error" does not narrow the union by itself.
         if (data.status === "error") {
-          finish(data.message ?? "Installation failed");
+          finish((data as SocketError).message || "Installation failed");
           ws.close();
           return;
         }
-        if (data.total && data.completed) {
-          progress = Math.round((data.completed / data.total) * 100);
+        const line = data as PullProgress;
+        if (line.total && line.completed) {
+          progress = Math.round((line.completed / line.total) * 100);
           setDownloadProgresses((prev) => ({ ...prev, [modelName]: progress }));
         }
-        progressToast.update({ id: progressToast.id, title: "Downloading Model", description: `${modelName}: ${progress}% - ${data.status}` });
-        if (data.status === "success") {
+        progressToast.update({ id: progressToast.id, title: "Downloading Model", description: `${modelName}: ${progress}% - ${line.status}` });
+        if (line.status === "success") {
           finish();
           ws.close();
         }

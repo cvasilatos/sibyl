@@ -4,17 +4,19 @@ import asyncio
 import contextlib
 import logging
 from contextlib import asynccontextmanager
-from typing import cast
+from typing import Any, cast
 
 import click
 import uvicorn
 from decima.logger import CustomLogger
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic.json_schema import models_json_schema
 
 from sibyl.inference import create_engine
 from sibyl.routers import conferences, gpu, reviews, upload, ws
 from sibyl.schemas.system import Online
+from sibyl.schemas.ws import WS_MESSAGES
 from sibyl.services.figures import prefetch_vlm
 
 CustomLogger.setup_logging("logs", "app", level="DEBUG", class_length=30)
@@ -42,7 +44,20 @@ async def lifespan(app: FastAPI):  # noqa: ANN201, D103
     await app.state.engine.aclose()
 
 
-app = FastAPI(
+class SibylAPI(FastAPI):
+    """FastAPI app whose OpenAPI schema also lists the WebSocket message models, which no HTTP route references."""
+
+    def openapi(self) -> dict[str, Any]:  # noqa: D102
+        if self.openapi_schema is None:
+            schema = super().openapi()
+            _, defs = models_json_schema([(model, "serialization") for model in WS_MESSAGES], ref_template="#/components/schemas/{model}")
+            components = schema.setdefault("components", {}).setdefault("schemas", {})
+            for name, definition in defs.get("$defs", {}).items():
+                components.setdefault(name, definition)  # models shared with HTTP routes (ReviewCriteria) keep FastAPI's version
+        return cast("dict[str, Any]", self.openapi_schema)
+
+
+app = SibylAPI(
     title="Sibyl Research Paper Review System",
     description="AI-powered research paper review using local LLMs",
     version="0.1.0",

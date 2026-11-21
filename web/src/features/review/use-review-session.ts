@@ -6,15 +6,7 @@ import { toast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
 import { invalidates } from "@/lib/api/queries";
 import { getWebSocketUrl } from "@/lib/config";
-import type { ReviewResults } from "@/lib/types";
-
-interface ReviewSocketMessage {
-  status: "progress" | "completed" | "error";
-  progress?: number;
-  message?: string;
-  review_id?: string;
-  results?: ReviewResults;
-}
+import type { ReviewResults, ReviewSessionMessage } from "@/lib/types";
 
 export interface ReviewRequest {
   file: File;
@@ -67,9 +59,9 @@ export function useReviewSession() {
         };
 
         socket.onmessage = (event) => {
-          let message: ReviewSocketMessage;
+          let message: ReviewSessionMessage;
           try {
-            message = JSON.parse(event.data) as ReviewSocketMessage;
+            message = JSON.parse(event.data) as ReviewSessionMessage;
           } catch {
             fail("The review service returned an invalid response.");
             socket.close();
@@ -80,19 +72,19 @@ export function useReviewSession() {
             progressToast.update({
               id: progressToast.id,
               title: "Review in Progress",
-              description: `${file.name}: ${message.progress ?? 0}% — ${message.message ?? "Working..."}`,
+              description: `${file.name}: ${message.progress}% — ${message.message}`,
               duration: Number.POSITIVE_INFINITY,
             });
-          } else if (message.status === "completed" && message.results) {
+          } else if (message.status === "completed") {
             finished = true;
             setIsReviewing(false);
             setResults(message.results);
             progressToast.dismiss();
-            toast({ title: "✅ Review Complete", description: `"${message.results.paper_title}" — ID: ${message.review_id ?? "N/A"}` });
+            toast({ title: "✅ Review Complete", description: `"${message.results.paper_title}" — ID: ${message.review_id}` });
             queryClient.invalidateQueries(invalidates.reviews);
             socket.close();
           } else if (message.status === "error") {
-            fail(message.message ?? "The review failed.");
+            fail(message.message || "The review failed.");
             socket.close();
           }
         };
