@@ -24,7 +24,7 @@ LLM-powered research paper review system that runs open-source models locally (O
 
 ## Commands
 
-- Backend (in `backend/`): `uv sync --all-groups` (pytest lives in the `test` group); run with `uv run sibyl`. Add dependencies with `uv add <pkg>`, never `pip install`.
+- Backend (in `backend/`): `uv sync --all-groups` (pytest lives in the `test` group); run with `uv run sibyl`. Add dependencies with `uv add <pkg>`, never `pip install`. The `decima` logging dependency is installed from `github.com/cvasilatos/decima` (a git source in `pyproject.toml`), so `uv sync` needs access to it.
 - Before finishing a backend change: `uv run ruff check . && uv run ruff format --check . && uv run ty check && uv run pytest`.
 - Web (in `web/`): `npm install`; run with `npm run dev` (expects the backend on :8000).
 - Before finishing a web change: `npm run check && npm test && npm run build`.
