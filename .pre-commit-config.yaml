@@ -20,14 +20,14 @@ repos:
     hooks:
       - id: ty
         name: ty check
-        entry: bash -c 'cd backend && env -u VIRTUAL_ENV uv run ty check'
+        entry: bash -c 'cd backend && env -u VIRTUAL_ENV uv run --all-groups ty check'
         language: system
         files: ^backend/.*\.py$
         pass_filenames: false
 
       - id: pytest
         name: pytest
-        entry: bash -c 'cd backend && env -u VIRTUAL_ENV uv run pytest --no-cov -q'
+        entry: bash -c 'cd backend && env -u VIRTUAL_ENV uv run --all-groups pytest --no-cov -q'
         language: system
         files: ^backend/.*\.py$
         pass_filenames: false
