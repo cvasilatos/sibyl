@@ -5,6 +5,7 @@ import json
 import socket
 import sys
 from pathlib import Path
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -19,8 +20,8 @@ from sibyl.services.reviewer import CONTEXT_STEP, MIN_CONTEXT, context_window, f
 FAKE_VLLM = [sys.executable, str(Path(__file__).with_name("fake_vllm.py"))]
 
 
-def _request(**overrides) -> GenerationRequest:
-    values = {"model": "m", "system": "s", "prompt": "p", "schema": {"type": "object"}, "temperature": 0.2, "max_tokens": 100, "context_length": 8192}
+def _request(**overrides: Any) -> GenerationRequest:
+    values: dict[str, Any] = {"model": "m", "system": "s", "prompt": "p", "schema": {"type": "object"}, "temperature": 0.2, "max_tokens": 100, "context_length": 8192}
     return GenerationRequest(**(values | overrides))
 
 
@@ -97,6 +98,7 @@ def test_ollama_generate_sets_context_length():
     engine.clients = [client]
 
     assert asyncio.run(engine.generate_json(_request(context_length=20480))) == "{}"
+    assert client.generate.await_args is not None
     kwargs = client.generate.await_args.kwargs
     assert kwargs["options"]["num_ctx"] == 20480
     assert kwargs["format"] == {"type": "object"}

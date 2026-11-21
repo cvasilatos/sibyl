@@ -94,7 +94,7 @@ def test_config_endpoint(client):
 
 def test_upload_pdf(client, sample_pdf):
     """Test uploading a PDF file."""
-    with open(sample_pdf, "rb") as f:
+    with Path(sample_pdf).open("rb") as f:
         response = client.post("/api/upload", files={"file": ("test.pdf", f, "application/pdf")})
 
     assert response.status_code == 200
@@ -240,7 +240,7 @@ def test_available_models_installed_variants(client):
     mock_httpx_client.__aexit__ = AsyncMock(return_value=None)
     mock_httpx_client.get = mock_get
 
-    # Mock Ollama client list() – llama3:7b installed
+    # Mock Ollama client list() - llama3:7b installed
     mock_model = MagicMock()
     mock_model.model = "llama3:7b"
     mock_list_response = MagicMock()
@@ -283,7 +283,7 @@ def test_available_models_installed_latest_is_not_marked(client):
     mock_httpx_client.__aexit__ = AsyncMock(return_value=None)
     mock_httpx_client.get = mock_get
 
-    # Mock Ollama client list() – mistral:latest installed
+    # Mock Ollama client list() - mistral:latest installed
     mock_model = MagicMock()
     mock_model.model = "mistral:latest"
     mock_list_response = MagicMock()

@@ -78,6 +78,7 @@ def test_review_with_conference_template():
 
     review = asyncio.run(ReviewSystem(engine, "m").review_paper("paper text", "Title", "m", conference=TEMPLATE))
 
+    assert client.generate.await_args is not None
     call = client.generate.await_args.kwargs
     assert "<conference_review_form>" in call["prompt"]
     assert "Be constructive." in call["prompt"]

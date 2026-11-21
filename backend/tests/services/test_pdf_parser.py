@@ -1,7 +1,8 @@
 """Tests for the PDF parser module."""
 
 import os
-from unittest.mock import MagicMock, patch
+from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -32,7 +33,7 @@ def test_pdf_parser_init_default_grobid_url_fallback(monkeypatch):
 def test_pdf_parser_init_stores_pdf_path():
     """Test PDFParser initialization stores the PDF path."""
     parser = PDFParser("/test/file.pdf")
-    assert parser._pdf_path == "/test/file.pdf"
+    assert parser._pdf_path == Path("/test/file.pdf")
 
 
 def test_get_marker_title_h1():

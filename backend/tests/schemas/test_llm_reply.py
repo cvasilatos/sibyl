@@ -1,6 +1,7 @@
 """Tests for the LLMReply and Recommendation models."""
 
 import pytest
+from pydantic import ValidationError
 
 from sibyl.config import MAX_SCORE
 from sibyl.schemas.llm_reply import FormAwareLLMReply, LLMReply, Recommendation
@@ -66,7 +67,7 @@ def test_llm_reply_basic_creation():
 def test_form_aware_reply_requires_completed_form():
     data = _make_reply().model_dump(exclude={"review_form_response"})
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValidationError, match="review_form_response"):
         FormAwareLLMReply(**data)
 
     reply = FormAwareLLMReply(**data, review_form_response="# Completed form\n\nAnswer")
@@ -90,18 +91,18 @@ def test_llm_reply_score_max_boundary():
 
 
 def test_llm_reply_score_too_low_raises():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValidationError, match="score"):
         _make_reply(score=0)
 
 
 def test_llm_reply_score_too_high_raises():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValidationError, match="score"):
         _make_reply(score=MAX_SCORE + 1)
 
 
 def test_llm_reply_invalid_recommendation_raises():
-    with pytest.raises(ValueError):
-        _make_reply(recommendation="Publish")  # type: ignore[arg-type]
+    with pytest.raises(ValidationError, match="recommendation"):
+        _make_reply(recommendation="Publish")
 
 
 # ---------------------------------------------------------------------------

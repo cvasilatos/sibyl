@@ -212,7 +212,6 @@ def test_delete_all_reviews_empty(storage):
     assert storage.count_reviews() == 0
 
 
-
 def test_count_reviews(storage, sample_review):
     """Test counting reviews."""
     assert storage.count_reviews() == 0

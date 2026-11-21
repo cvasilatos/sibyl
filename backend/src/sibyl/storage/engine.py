@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 import chromadb
 from chromadb.config import Settings
 
-from sibyl.config import MAX_SCORE
+from sibyl.config import MAX_SCORE, STORAGE_PATH
 from sibyl.services.reviewer import PaperReview
 from sibyl.storage.review import Review
 
@@ -91,11 +91,11 @@ def _local_embedder() -> Embedder:
 class Engine:
     """Vector database storage for reviews with semantic search using ChromaDB."""
 
-    def __init__(self, storage_path: str = "./sibyl_storage", embeddings: str | None = None) -> None:
+    def __init__(self, storage_path: str | Path = STORAGE_PATH, embeddings: str | None = None) -> None:
         """Initialize the storage system.
 
         Args:
-            storage_path: Path to the storage directory for ChromaDB and PDFs
+            storage_path: Path to the storage directory for ChromaDB and PDFs; defaults to ``SIBYL_STORAGE_PATH``
             embeddings: ``ollama`` or ``local``; defaults to :func:`embedding_backend`
 
         """
@@ -130,7 +130,7 @@ class Engine:
             self._embedder = _ollama_embedder() if self.embeddings == "ollama" else _local_embedder()
         return self._embedder(text)
 
-    def save_review(self, review: PaperReview, pdf_filename: str, pdf_path: str | None = None, paper_text: str | None = None) -> str:
+    def save_review(self, review: PaperReview, pdf_filename: str, pdf_path: str | Path | None = None, paper_text: str | None = None) -> str:
         """Save a review to the vector database.
 
         Args:

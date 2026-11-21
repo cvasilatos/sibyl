@@ -1,6 +1,9 @@
 """Tests for the reviewer module."""
 
+import json
+
 import pytest
+from pydantic import ValidationError
 
 from sibyl.schemas.llm_reply import LLMReply, Recommendation
 from sibyl.services.reviewer import PaperReview, ReviewCriteria
@@ -28,7 +31,7 @@ def test_review_criteria_creation():
 
 def test_review_criteria_score_validation():
     """Test score validation in review criteria - score above MAX_SCORE raises ValueError."""
-    with pytest.raises(ValueError):
+    with pytest.raises(ValidationError, match="score"):
         ReviewCriteria(
             novelty="Test",
             methodology="Test",
@@ -45,7 +48,7 @@ def test_review_criteria_score_validation():
 
 def test_review_criteria_score_minimum():
     """Test score validation - score below 1 raises ValueError."""
-    with pytest.raises(ValueError):
+    with pytest.raises(ValidationError, match="score"):
         ReviewCriteria(
             novelty="Test",
             methodology="Test",
@@ -131,9 +134,6 @@ def test_paper_review_raw_response_stored():
 # ---------------------------------------------------------------------------
 # ReviewSystem (async review_paper)
 # ---------------------------------------------------------------------------
-
-
-import json
 
 
 def _engine_with(mock_client):
@@ -246,6 +246,7 @@ def test_review_system_completes_custom_review_form():
         )
 
     review = asyncio.run(run())
+    assert mock_client.generate.await_args is not None
     call = mock_client.generate.await_args.kwargs
 
     assert review.criteria.review_form_response == response_data["review_form_response"]

@@ -18,3 +18,8 @@ lint.ignore = [
 ]
 lint.isort = { combine-as-imports = true }
 format = { quote-style = "double", indent-style = "space", skip-magic-trailing-comma = false }
+
+[lint.per-file-ignores]
+# Idioms of pytest code: bare asserts with literal expectations, fixtures as untyped/unused arguments, tests poking
+# at internals, imports inside tests (after monkeypatching the environment), and no docstrings or annotations required.
+"tests/**" = ["S101", "PLR2004", "ANN", "D", "SLF001", "ARG001", "PLC0415"]

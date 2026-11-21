@@ -11,7 +11,7 @@ class ReviewSession(TypedDict, total=False):
 
     status: str
     pdf_path: Path
-    filename: str | None
+    filename: str
     progress: int
     message: str
     paper_title: str

@@ -38,7 +38,7 @@ def _marker_models(device: str) -> dict:
 class PDFParser:
     """Extract text content from PDF research papers."""
 
-    def __init__(self, pdf_path: str) -> None:
+    def __init__(self, pdf_path: str | Path) -> None:
         """Initialize the PDF parser.
 
         Args:
@@ -46,7 +46,7 @@ class PDFParser:
 
         """
         self.logger: CustomLogger = cast("CustomLogger", logging.getLogger(f"{self.__class__.__module__}.{self.__class__.__name__}"))
-        self._pdf_path: str = pdf_path
+        self._pdf_path: Path = Path(pdf_path)
         self._grobid_url: str = os.getenv("GROBID_URL", "http://localhost:8070")
 
     def extract_text(self, max_pages: int | None = None) -> str:
@@ -61,7 +61,7 @@ class PDFParser:
         """
         text_content = []
 
-        with Path(self._pdf_path).open("rb") as file:
+        with self._pdf_path.open("rb") as file:
             pdf_reader = pypdf.PdfReader(file)
             total_pages: int = len(pdf_reader.pages)
             pages_to_process: int = min(total_pages, max_pages) if max_pages else total_pages
@@ -96,7 +96,7 @@ class PDFParser:
         device = torch_device(ollama_host)
         with _device_locks[device]:  # cached models are shared, so convert one PDF per device at a time
             converter = PdfConverter(artifact_dict=_marker_models(device))
-            rendered = converter(io.BytesIO(Path(self._pdf_path).read_bytes()))
+            rendered = converter(io.BytesIO(self._pdf_path.read_bytes()))
         text, _, images = text_from_rendered(rendered)
         self.logger.info(f"Extracted {len(text)} characters and {len(images)} images from PDF")
 

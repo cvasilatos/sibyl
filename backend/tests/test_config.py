@@ -1,6 +1,7 @@
 """Tests for the configuration module."""
 
 import pytest
+from pydantic import ValidationError
 
 from sibyl.config import MAX_SCORE, LLMConfig
 
@@ -39,7 +40,7 @@ def test_llm_config_custom_values():
 
 def test_llm_config_name_required():
     """Test that LLM configuration requires a name field."""
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError, match="name"):
         LLMConfig()  # type: ignore[call-arg]
 
 

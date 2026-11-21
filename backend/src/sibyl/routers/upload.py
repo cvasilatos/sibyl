@@ -62,7 +62,7 @@ async def upload_paper(file: UploadFile, review_form: UploadFile | None = None, 
     review_sessions[session_id] = {
         "status": "uploaded",
         "pdf_path": temp_path,
-        "filename": file.filename,
+        "filename": file.filename or "paper.pdf",  # the stored review needs a name even if the client sent none
         "review_form": review_form_content,
         "review_form_filename": review_form_filename,
         "conference_id": conference_id,
