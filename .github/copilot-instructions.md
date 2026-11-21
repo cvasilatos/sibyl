@@ -105,11 +105,13 @@ Hooks run: `ruff-check`, `ruff-format`, `uv-lock` (checks `uv.lock` is up to dat
 - `web/package.json` – scripts: `dev`, `build`, `start`, `lint`, `format`, `check`
 - `web/biome.json` – Biome linting/formatting config (line width 180, double quotes, space indent)
 - `web/tsconfig.json` – TypeScript config; path alias `@/*` → `./src/*`
-- `web/next.config.ts` – Next.js config (minimal)
-- `web/src/app/page.tsx` – main page component
-- `web/src/app/layout.tsx` – root layout
+- `web/next.config.ts` – Next.js config (redirects old `/?tab=` links)
+- `web/src/app/{review,library,models,gpu}/page.tsx` – one route per page
+- `web/src/app/layout.tsx` – root layout (header, nav, providers)
 - `web/src/lib/config.ts` – API URL config (`NEXT_PUBLIC_API_URL`, default `http://localhost:8000`)
-- `web/src/components/` – React components
+- `web/src/features/` – per-page components, hooks and context
+- `web/src/components/` – shared React components (`ui/` for primitives)
+- `web/src/lib/api/queries.ts` – TanStack Query options for every backend read
 - `web/.env.local.example` – env template; create `web/.env.local` with `NEXT_PUBLIC_API_URL=http://localhost:8000`
 
 ### Setup and Build

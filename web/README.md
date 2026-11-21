@@ -76,18 +76,24 @@ CI fails when either file is out of date. `src/lib/api/index.ts` wraps the gener
 web/
 ├── openapi.json               # GENERATED from the backend (npm run gen:api)
 ├── src/
-│   ├── app/                   # App Router: layout, page, global styles
-│   ├── components/            # feature components
-│   │   └── ui/                # shadcn/ui primitives
-│   ├── hooks/                 # React hooks and context (review workflow, downloads, toasts)
+│   ├── app/                   # App Router: root layout + providers, one route per page
+│   │   ├── review/  library/  models/  gpu/
+│   ├── features/              # one folder per page: its components, hooks and context
+│   │   ├── review/            # review form, session (WebSocket), results
+│   │   ├── library/           # stored reviews
+│   │   ├── models/            # model catalog, installs (WebSocket), installed models
+│   │   └── gpu/               # GPU monitor and load summary
+│   ├── components/            # components shared by features
+│   │   └── ui/                # shadcn/ui-style primitives
+│   ├── hooks/                 # shared hooks (toasts, score scale)
 │   ├── lib/
 │   │   ├── api/
 │   │   │   ├── index.ts       # typed `api` client
+│   │   │   ├── queries.ts     # TanStack Query options for every read
 │   │   │   └── schema.d.ts    # GENERATED types
-│   │   ├── types.ts           # aliases of generated types + frontend-only types
-│   │   └── ...                # config, formatting and text helpers
-│   └── __tests__/             # Vitest tests
-├── public/                    # Static assets
+│   │   ├── types.ts           # aliases of generated types
+│   │   └── ...                # config, formatting, download and text helpers
+│   └── __tests__/             # Vitest tests, mirroring src/ (helpers/ for render, fetch and WebSocket fakes)
 └── package.json
 ```
 

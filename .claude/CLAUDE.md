@@ -13,7 +13,11 @@ LLM-powered research paper review system that runs open-source models locally (O
   - `resources/`: review prompt and conference templates (`conferences/*.json`, one per venue).
   - `config.py`: settings from `SIBYL_*` env vars or `backend/.env`; document new ones in `backend/.env.example`.
 - `backend/tests/`: pytest, mirroring `src/sibyl/` (`tests/services/`, `tests/routers/`, …). `tests/inference/fake_vllm.py` stands in for a vLLM server.
-- `web/`: Next.js app (App Router) in `src/app/`, components in `src/components/` (shadcn primitives in `ui/`), hooks and context in `src/hooks/`, Vitest tests in `src/__tests__/`.
+- `web/`: Next.js app (App Router). One route per page in `src/app/` (`review`, `library`, `models`, `gpu`); the root layout holds the shell and `providers.tsx`.
+  - `src/features/<page>/`: that page's components, hooks and context. A feature imports from `components/`, `hooks/` and `lib/`, never from another feature; pages compose features.
+  - `src/components/`: components shared by features; shadcn-style primitives in `ui/` (dialog, alert, spinner, native select, …).
+  - Server data goes through TanStack Query: every read is defined once in `src/lib/api/queries.ts`, and changes invalidate the keys in `invalidates`. Don't fetch in `useEffect`.
+  - Vitest tests in `src/__tests__/`, mirroring `src/`; `helpers/` has `renderWithQuery`, `mockApi` (route-based fetch stub) and `FakeWebSocket`.
 - API contract: every backend route returns a pydantic model from `schemas/`. `web/openapi.json` and `web/src/lib/api/schema.d.ts` are generated from them; never edit either by hand. After changing a route or response model, run `npm run gen:api` in `web/` and commit both files (CI fails otherwise). The web app calls the backend only through `api` in `src/lib/api/index.ts`; `src/lib/types.ts` aliases the generated types.
 - `docker-compose.yml` (Ollama, one container per GPU) and `docker-compose.vllm.yml` (vLLM). `scripts/run-macos.sh` runs everything natively on Apple Silicon.
 - `docs/`: design notes and decisions. `tmp/`: scratch, ignored by git.
