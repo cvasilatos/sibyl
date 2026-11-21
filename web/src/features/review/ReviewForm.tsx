@@ -9,7 +9,7 @@ import { queries } from "@/lib/api/queries";
 import ConferenceSelect from "./ConferenceSelect";
 import CustomFormPicker from "./CustomFormPicker";
 import PaperDropzone from "./PaperDropzone";
-import { useReview } from "./review-context";
+import { useReview, VLM_DEFAULT, VLM_NONE } from "./review-context";
 
 /** The paper dropzone (left) and the review options with the start button (right). */
 export default function ReviewForm() {
@@ -35,6 +35,24 @@ export default function ReviewForm() {
               ))}
             </NativeSelect>
             <p className="text-xs text-muted-foreground">This will override the default model configured in your environment</p>
+          </div>
+        )}
+
+        {review.availableModels.length > 0 && (
+          <div className="space-y-2">
+            <label htmlFor="vlm-select" className="text-sm font-medium">
+              Vision Model for Figures
+            </label>
+            <NativeSelect id="vlm-select" value={review.selectedVlm} onChange={(e) => review.setSelectedVlm(e.target.value)} disabled={review.isReviewing}>
+              <option value={VLM_DEFAULT}>Server default</option>
+              <option value={VLM_NONE}>None (captions only)</option>
+              {review.availableModels.map((model) => (
+                <option key={model} value={model}>
+                  {model}
+                </option>
+              ))}
+            </NativeSelect>
+            <p className="text-xs text-muted-foreground">Describes each figure for the reviewer; pick a vision-language model</p>
           </div>
         )}
 

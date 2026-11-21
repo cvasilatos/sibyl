@@ -81,6 +81,14 @@ def test_vlm_model_for(monkeypatch):
     assert vlm_model_for("ollama") is None
 
 
+def test_vlm_model_for_prefers_the_requested_model(monkeypatch):
+    monkeypatch.setenv("SIBYL_VLM_MODEL", "gemma3:12b")
+    assert vlm_model_for("ollama", "llava:13b") == "llava:13b"
+    assert vlm_model_for("ollama", "none") is None
+    assert vlm_model_for("ollama", "") == "gemma3:12b"
+    assert vlm_model_for("ollama", None) == "gemma3:12b"
+
+
 def test_find_figures_skips_icons_and_reads_captions():
     found = find_figures(MARKDOWN, _images())
     assert [f.name for f in found] == ["_page_0_Figure_1.jpeg", "_page_2_Figure_3.jpeg"]

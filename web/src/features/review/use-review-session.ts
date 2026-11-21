@@ -13,6 +13,8 @@ export interface ReviewRequest {
   reviewForm: File | null;
   conferenceId: string | null;
   model: string;
+  /** Vision model that describes figures: "" for the server default, "none" to skip figures. */
+  vlm: string;
   /** GPU to run on, or null to let the backend pick. */
   gpuIndex: number | null;
 }
@@ -37,7 +39,7 @@ export function useReviewSession() {
   );
 
   const start = useCallback(
-    async ({ file, reviewForm, conferenceId, model, gpuIndex }: ReviewRequest) => {
+    async ({ file, reviewForm, conferenceId, model, vlm, gpuIndex }: ReviewRequest) => {
       setIsReviewing(true);
       setResults(null);
       try {
@@ -46,6 +48,7 @@ export function useReviewSession() {
         const hostIndex = gpuIndex !== null ? gpuIndex + 1 : 0;
         const progressToast = toast({ title: "Review in Progress", description: `Starting review of ${file.name}...`, duration: Number.POSITIVE_INFINITY });
         const params = new URLSearchParams({ model, host: String(hostIndex) });
+        if (vlm) params.set("vlm", vlm);
         const socket = new WebSocket(`${getWebSocketUrl()}/ws/session/${upload.session_id}?${params}`);
         socketRef.current = socket;
         let finished = false;

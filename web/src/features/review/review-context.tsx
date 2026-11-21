@@ -8,6 +8,9 @@ import { useReviewSession } from "./use-review-session";
 
 const REVIEW_FORM_EXTENSIONS = [".txt", ".md", ".markdown"];
 const REVIEW_FORM_MAX_BYTES = 64 * 1024;
+/** Vision-model choices besides installed models: use the server's configured default, or skip figure descriptions. */
+export const VLM_DEFAULT = "";
+export const VLM_NONE = "none";
 
 /** Why a custom review form file is rejected, or null when it is acceptable. */
 export function reviewFormProblem(file: File): string | null {
@@ -24,12 +27,14 @@ function useReviewState() {
   const [selectedReviewForm, setSelectedReviewForm] = useState<File | null>(null);
   const [selectedConferenceId, setSelectedConferenceId] = useState<string | null>(null);
   const [chosenModel, setSelectedModel] = useState("");
+  const [chosenVlm, setSelectedVlm] = useState(VLM_DEFAULT);
   const [chosenGpuIndex, setSelectedGpuIndex] = useState<number | null>(null);
 
   // A choice that is no longer offered (model removed, GPU gone) falls back to the first model / automatic GPU choice.
   const installed = useQuery(queries.installedModels()).data;
   const availableModels = useMemo(() => installed?.map((model) => model.model) ?? [], [installed]);
   const selectedModel = availableModels.includes(chosenModel) ? chosenModel : (availableModels[0] ?? "");
+  const selectedVlm = chosenVlm === VLM_DEFAULT || chosenVlm === VLM_NONE || availableModels.includes(chosenVlm) ? chosenVlm : VLM_DEFAULT;
   const gpus = useQuery(queries.gpus()).data;
   const availableGpus = useMemo(() => (gpus?.available ? gpus.gpus : []), [gpus]);
   const selectedGpuIndex = availableGpus.some((gpu) => gpu.index === chosenGpuIndex) ? chosenGpuIndex : null;
@@ -77,8 +82,8 @@ function useReviewState() {
       toast({ title: "Cannot Start Review", description: "Select a PDF and an installed model first.", variant: "destructive" });
       return;
     }
-    start({ file: selectedFile, reviewForm: selectedReviewForm, conferenceId: selectedConferenceId, model: selectedModel, gpuIndex: selectedGpuIndex });
-  }, [start, selectedFile, selectedReviewForm, selectedConferenceId, selectedModel, selectedGpuIndex]);
+    start({ file: selectedFile, reviewForm: selectedReviewForm, conferenceId: selectedConferenceId, model: selectedModel, vlm: selectedVlm, gpuIndex: selectedGpuIndex });
+  }, [start, selectedFile, selectedReviewForm, selectedConferenceId, selectedModel, selectedVlm, selectedGpuIndex]);
 
   return useMemo(
     () => ({
@@ -91,6 +96,8 @@ function useReviewState() {
       availableModels,
       selectedModel,
       setSelectedModel,
+      selectedVlm,
+      setSelectedVlm,
       availableGpus,
       selectedGpuIndex,
       setSelectedGpuIndex,
@@ -107,6 +114,7 @@ function useReviewState() {
       selectConference,
       availableModels,
       selectedModel,
+      selectedVlm,
       availableGpus,
       selectedGpuIndex,
       session.results,
@@ -120,7 +128,7 @@ type ReviewState = ReturnType<typeof useReviewState>;
 
 const ReviewContext = createContext<ReviewState | undefined>(undefined);
 
-/** Holds the review draft (paper, form, model, GPU) and the running session. Lives in the root layout so both survive page changes. */
+/** Holds the review draft (paper, form, models, GPU) and the running session. Lives in the root layout so both survive page changes. */
 export function ReviewProvider({ children }: { children: ReactNode }) {
   return <ReviewContext.Provider value={useReviewState()}>{children}</ReviewContext.Provider>;
 }

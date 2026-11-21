@@ -43,10 +43,11 @@ async def pull_model(websocket: WebSocket, model_name: str = Query()) -> None:
 
 
 @router.websocket("/session/{session_id}")
-async def websocket_endpoint(websocket: WebSocket, session_id: str, model: str = Query(...), host: int = Query(0)) -> None:
+async def websocket_endpoint(websocket: WebSocket, session_id: str, model: str = Query(...), host: int = Query(0), vlm: str | None = Query(None)) -> None:
     """WebSocket endpoint for real-time review progress updates.
 
     ``host`` is the review slot: 0 lets the engine choose, ``n`` targets GPU ``n - 1``.
+    ``vlm`` is the vision model that describes figures: omitted uses the server default, ``none`` skips the step.
     """
     await websocket.accept()
     session = review_sessions.get(session_id)
@@ -76,7 +77,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, model: str =
             await progress(40, message)
 
         # The reviewer is text-only: a vision model describes each figure image and the description replaces it.
-        describer = FigureDescriber(engine, vlm_model_for(engine.name))
+        describer = FigureDescriber(engine, vlm_model_for(engine.name, vlm))
         paper_text, described = await describer.enrich(paper_text, metadata.get("images") or {}, slot=host, on_status=figure_status)
         if described:
             await progress(45, f"Described {described} figure(s) with a vision model")

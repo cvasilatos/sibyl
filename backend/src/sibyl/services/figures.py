@@ -88,9 +88,13 @@ class Figure:
     image: Image
 
 
-def vlm_model_for(engine_name: str) -> str | None:
-    """Return the VLM to use: ``SIBYL_VLM_MODEL`` when set, else the engine default; ``None`` when disabled."""
-    value = os.getenv("SIBYL_VLM_MODEL")
+def vlm_model_for(engine_name: str, requested: str | None = None) -> str | None:
+    """Return the VLM to use; ``None`` when disabled.
+
+    ``requested`` (the user's choice for one review) wins when given: a model name, or ``none`` to skip figures.
+    Otherwise ``SIBYL_VLM_MODEL`` when set, else the engine default.
+    """
+    value = requested if requested and requested.strip() else os.getenv("SIBYL_VLM_MODEL")
     if value is None:
         return DEFAULT_VLM.get(engine_name)
     return None if value.strip().lower() in _DISABLED else value.strip()

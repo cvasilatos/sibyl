@@ -67,6 +67,7 @@ describe("review flow", () => {
     const { pdfInput } = renderReviewPage();
     await userEvent.selectOptions(await screen.findByLabelText("Select Model for Review"), "llama3:8b");
     await userEvent.selectOptions(await screen.findByLabelText("Select GPU"), "1");
+    await userEvent.selectOptions(await screen.findByLabelText("Vision Model for Figures"), "None (captions only)");
     await userEvent.upload(pdfInput, pdf());
     await userEvent.click(screen.getByRole("button", { name: /Start Review/ }));
 
@@ -75,6 +76,7 @@ describe("review flow", () => {
     expect(url.pathname).toBe("/ws/session/s1");
     expect(url.searchParams.get("model")).toBe("llama3:8b");
     expect(url.searchParams.get("host")).toBe("2"); // GPU 1 is host 2; 0 means any
+    expect(url.searchParams.get("vlm")).toBe("none");
     expect(api.calls("POST /api/upload")).toBe(1);
     expect(screen.getByRole("button", { name: /Reviewing/ })).toBeDisabled();
 
