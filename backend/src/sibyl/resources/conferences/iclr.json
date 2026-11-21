@@ -1,0 +1,182 @@
+{
+  "id": "iclr",
+  "name": "ICLR",
+  "full_name": "International Conference on Learning Representations",
+  "area": "Machine Learning",
+  "edition": "2026",
+  "source_urls": [
+    "https://iclr.cc/Conferences/2026/ReviewerGuide",
+    "https://iclr.cc/Conferences/2025/ReviewerGuide",
+    "https://api2.openreview.net/groups?id=ICLR.cc/2026/Conference",
+    "https://huggingface.co/datasets/insomnia7/iclr2026_stats",
+    "https://huggingface.co/datasets/3Liz22/iclr2026_real_reviews",
+    "https://arxiv.org/html/2511.15462"
+  ],
+  "verified": false,
+  "notes": "The official reviewer guide does not publish the form. Field order and scale labels are taken from public ICLR 2026 OpenReview reviews (HuggingFace mirrors of the review records). Rating uses the new 2026 scale {0,2,4,6,8,10}; the label for 0 was empty in the scraped data and 'strong reject' comes from secondary sources. Prompts are paraphrased from the reviewer guide. Omitted: code of conduct and LLM-usage disclosure.",
+  "guidelines": "Answer four key questions: what specific problem the paper tackles; whether the approach is well motivated and well placed in the literature; whether the paper supports its claims (are theoretical and empirical results correct and scientifically rigorous); and what the significance of the work is. Lack of state-of-the-art results alone is not grounds for rejection, and be open-minded about value to the wider ICLR community. Requested additional experiments should be limited in scope and validate existing results. Work published within two months of the deadline and arXiv-only papers need not be compared against. Be rigorous, constructive, and concise; raise points likely to affect the decision.",
+  "questions": [
+    {
+      "id": "summary",
+      "label": "Summary",
+      "type": "text",
+      "prompt": "Briefly summarize what the paper claims to contribute. Be positive and constructive."
+    },
+    {
+      "id": "soundness",
+      "label": "Soundness",
+      "type": "choice",
+      "prompt": "Please assign the paper a numerical rating on the following scale to indicate the soundness of the technical claims, experimental and research methodology and on whether the central claims of the paper are adequately supported with evidence.",
+      "options": [
+        {
+          "value": 4,
+          "label": "excellent"
+        },
+        {
+          "value": 3,
+          "label": "good"
+        },
+        {
+          "value": 2,
+          "label": "fair"
+        },
+        {
+          "value": 1,
+          "label": "poor"
+        }
+      ]
+    },
+    {
+      "id": "presentation",
+      "label": "Presentation",
+      "type": "choice",
+      "prompt": "Please assign the paper a numerical rating on the following scale to indicate the quality of the presentation. This should take into account the writing style and clarity, as well as contextualization relative to prior work.",
+      "options": [
+        {
+          "value": 4,
+          "label": "excellent"
+        },
+        {
+          "value": 3,
+          "label": "good"
+        },
+        {
+          "value": 2,
+          "label": "fair"
+        },
+        {
+          "value": 1,
+          "label": "poor"
+        }
+      ]
+    },
+    {
+      "id": "contribution",
+      "label": "Contribution",
+      "type": "choice",
+      "prompt": "Please assign the paper a numerical rating on the following scale to indicate the quality of the overall contribution this paper makes to the research area being studied. Are the questions being asked important? Does the paper bring a significant originality of ideas and/or execution? Are the results valuable to share with the broader ICLR community?",
+      "options": [
+        {
+          "value": 4,
+          "label": "excellent"
+        },
+        {
+          "value": 3,
+          "label": "good"
+        },
+        {
+          "value": 2,
+          "label": "fair"
+        },
+        {
+          "value": 1,
+          "label": "poor"
+        }
+      ]
+    },
+    {
+      "id": "strengths",
+      "label": "Strengths",
+      "type": "text",
+      "prompt": "List the strong points of the paper. Be as comprehensive as possible."
+    },
+    {
+      "id": "weaknesses",
+      "label": "Weaknesses",
+      "type": "text",
+      "prompt": "List the weak points of the paper. Be as comprehensive as possible, and give supporting arguments for your recommendation."
+    },
+    {
+      "id": "questions",
+      "label": "Questions",
+      "type": "text",
+      "prompt": "Ask questions you would like answered by the authors to help clarify your understanding of the paper and provide the additional evidence you need to be confident in your assessment. Additional feedback that is not part of your decision assessment may also be provided here."
+    },
+    {
+      "id": "ethics_concerns",
+      "label": "Ethics Concerns",
+      "type": "text",
+      "prompt": "Is there a potential violation of the ICLR Code of Ethics? If so, explain why; otherwise state that no ethics review is needed."
+    },
+    {
+      "id": "rating",
+      "label": "Rating",
+      "type": "choice",
+      "prompt": "Please provide an \"overall score\" for this submission.",
+      "options": [
+        {
+          "value": 10,
+          "label": "strong accept, should be highlighted at the conference"
+        },
+        {
+          "value": 8,
+          "label": "accept, good paper"
+        },
+        {
+          "value": 6,
+          "label": "marginally above the acceptance threshold"
+        },
+        {
+          "value": 4,
+          "label": "marginally below the acceptance threshold"
+        },
+        {
+          "value": 2,
+          "label": "reject"
+        },
+        {
+          "value": 0,
+          "label": "strong reject"
+        }
+      ]
+    },
+    {
+      "id": "confidence",
+      "label": "Confidence",
+      "type": "choice",
+      "prompt": "Please provide a \"confidence score\" for your assessment of this submission.",
+      "options": [
+        {
+          "value": 5,
+          "label": "You are absolutely certain about your assessment. You are very familiar with the related work and checked the math/other details carefully"
+        },
+        {
+          "value": 4,
+          "label": "You are confident in your assessment, but not absolutely certain. It is unlikely, but not impossible, that you did not understand some parts of the submission or that you are unfamiliar with some pieces of related work"
+        },
+        {
+          "value": 3,
+          "label": "You are fairly confident in your assessment. It is possible that you did not understand some parts of the submission or that you are unfamiliar with some pieces of related work. Math/other details were not carefully checked"
+        },
+        {
+          "value": 2,
+          "label": "You are willing to defend your assessment, but it is quite likely that you did not understand the central parts of the submission or that you are unfamiliar with some pieces of related work. Math/other details were not carefully checked"
+        },
+        {
+          "value": 1,
+          "label": "You are unable to assess this paper and have alerted the ACs to seek an opinion from different reviewers"
+        }
+      ]
+    }
+  ]
+}

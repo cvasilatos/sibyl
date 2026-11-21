@@ -282,7 +282,7 @@ export default function ReviewLibrary({
                         <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                       </div>
                     ) : fullReviewData[review.id] ? (
-                      <ReviewDetails criteria={fullReviewData[review.id].criteria} />
+                      <ReviewDetails review={fullReviewData[review.id]} maxScore={maxScore} />
                     ) : null}
                   </div>
                 )}

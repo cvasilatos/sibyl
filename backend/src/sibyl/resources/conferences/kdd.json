@@ -1,0 +1,192 @@
+{
+  "id": "kdd",
+  "name": "KDD",
+  "full_name": "ACM SIGKDD Conference on Knowledge Discovery and Data Mining",
+  "area": "Data Mining",
+  "edition": "2025",
+  "source_urls": [
+    "https://kdd2026.kdd.org/research-track-call-for-papers/",
+    "https://cseweb.ucsd.edu/~jmcauley/reviews/kdd25c.pdf",
+    "https://cseweb.ucsd.edu/~jmcauley/reviews/kdd25b.pdf",
+    "https://reviewpaper.ai/venues/kdd"
+  ],
+  "verified": false,
+  "notes": "Research Track form reconstructed from real KDD 2025 OpenReview review printouts (authentic field names and level texts) since no official page publishes it; KDD 2026 appears to use the same factors. Levels never observed in those reviews (all '1' levels, Relevance 2, Reproducibility 2) are labelled from a third-party reconstruction without the official description. KDD reviewers give no overall score (the AC decides). Omitted: 'Resubmission' field and generative-AI disclosure.",
+  "guidelines": "Evaluate technical merit, originality, potential impact, quality of execution, quality of presentation, related work, reproducibility of results, and ethics. Distinguish truly new ideas from combinations, adaptations or minor extensions of existing work. Each review should give authors concrete points they can respond to in the rebuttal. Reviews of accepted papers are made public on OpenReview, so write professionally.",
+  "questions": [
+    {
+      "id": "paper_summary",
+      "label": "Paper Summary",
+      "type": "text",
+      "prompt": "Summarize the paper's problem, approach, and main contributions in your own words."
+    },
+    {
+      "id": "paper_strengths",
+      "label": "Paper Strengths",
+      "type": "text",
+      "prompt": "Describe the strengths of the paper."
+    },
+    {
+      "id": "paper_weaknesses",
+      "label": "Paper Weaknesses",
+      "type": "text",
+      "prompt": "Describe the weaknesses of the paper."
+    },
+    {
+      "id": "questions_for_rebuttal",
+      "label": "Questions and Suggestions for Rebuttal",
+      "type": "text",
+      "prompt": "List questions and suggestions that the authors should address in the rebuttal."
+    },
+    {
+      "id": "relevance",
+      "label": "Relevance",
+      "type": "choice",
+      "prompt": "How relevant is the work to the Research track of KDD?",
+      "options": [
+        {
+          "value": 4,
+          "label": "High - The work is relevant to the Research track of KDD and is of broad interest to the community"
+        },
+        {
+          "value": 3,
+          "label": "Moderate - The work is somewhat relevant to the Research track of KDD and is of narrow interest to a sub-community"
+        },
+        {
+          "value": 2,
+          "label": "Low"
+        },
+        {
+          "value": 1,
+          "label": "Very Low"
+        }
+      ]
+    },
+    {
+      "id": "novelty",
+      "label": "Novelty",
+      "type": "choice",
+      "prompt": "How novel are the ideas and approaches?",
+      "options": [
+        {
+          "value": 4,
+          "label": "High - The paper offers groundbreaking and transformative ideas or approaches that substantially advance the field or open up entirely new areas of research. The level of innovation is high, leading to major advancements and potentially inspiring further research and development."
+        },
+        {
+          "value": 3,
+          "label": "Moderate - The paper introduces a new and interesting idea or approach that adds value to the field. The contribution is original and represents an advancement of existing knowledge, demonstrating solid innovation and creativity."
+        },
+        {
+          "value": 2,
+          "label": "Low - The ideas are relatively minor and largely incremental. The work builds heavily on existing research."
+        },
+        {
+          "value": 1,
+          "label": "Very Low"
+        }
+      ]
+    },
+    {
+      "id": "technical_quality",
+      "label": "Technical Quality",
+      "type": "choice",
+      "prompt": "How strong is the technical quality (methodology, analysis, support for conclusions)?",
+      "options": [
+        {
+          "value": 4,
+          "label": "High - The paper exhibits a high level of technical quality with a rigorous and well-executed methodology and analysis. The results are highly reliable, well-supported, and thorough. The work demonstrates technical excellence and sets a high standard for quality in the field."
+        },
+        {
+          "value": 3,
+          "label": "Moderate - The paper demonstrates solid technical quality with a sound methodology and thorough analysis. The results are reliable and well-supported. There may be minor issues, but they do not significantly undermine the overall quality. The work is competently executed and meets acceptable standards."
+        },
+        {
+          "value": 2,
+          "label": "Low - The paper has several technical weaknesses, such as minor methodological flaws, insufficient analysis, or unsupported conclusions. While the work shows some level of competence, it lacks thoroughness and precision. Improvements are necessary for it to be considered robust."
+        },
+        {
+          "value": 1,
+          "label": "Very Low - Major technical flaws that invalidate the main conclusions"
+        }
+      ]
+    },
+    {
+      "id": "presentation",
+      "label": "Presentation",
+      "type": "choice",
+      "prompt": "How well is the paper presented?",
+      "options": [
+        {
+          "value": 4,
+          "label": "High - The paper is well-organized and very clear. The writing is precise, engaging, and free of errors. Figures and tables are well-designed and seamlessly integrated into the text, enhancing the reader's comprehension. The presentation is polished and professional, making the paper a pleasure to read and understand."
+        },
+        {
+          "value": 3,
+          "label": "Moderate - The paper is organized and generally clear. The writing is mostly free of grammatical and typographical errors, making it easy to read. Figures and tables are effectively used to support the text. The presentation facilitates understanding and conveys the key points effectively."
+        },
+        {
+          "value": 2,
+          "label": "Low - The paper has noticeable issues with clarity and coherence. The writing may contain several grammatical and typographical errors. Figures and tables are present but may not be well-integrated or effectively used. The presentation allows for understanding but requires effort from the reader."
+        },
+        {
+          "value": 1,
+          "label": "Very Low"
+        }
+      ]
+    },
+    {
+      "id": "reproducibility",
+      "label": "Reproducibility",
+      "type": "choice",
+      "prompt": "How reproducible are the results?",
+      "options": [
+        {
+          "value": 4,
+          "label": "High - The paper offers a comprehensive and precise description of the methods, data, and procedures. Supplementary materials, including datasets and code, are complete, well-documented, and easily accessible. Reproducing the results would be straightforward and require minimal additional effort, ensuring high reproducibility."
+        },
+        {
+          "value": 3,
+          "label": "Moderate - The paper provides a clear and detailed description of the methods, data, and procedures used. Supplementary materials, such as datasets and code, are available and sufficiently documented. Reproducing the results would be feasible with the provided information, though some effort may still be required."
+        },
+        {
+          "value": 2,
+          "label": "Low"
+        },
+        {
+          "value": 1,
+          "label": "Very Low"
+        }
+      ]
+    },
+    {
+      "id": "reviewer_confidence",
+      "label": "Reviewer Confidence",
+      "type": "choice",
+      "prompt": "How confident are you in your assessment?",
+      "options": [
+        {
+          "value": 4,
+          "label": "High - The reviewer is an expert in the subject area and has extensive knowledge of the research methods and context of the paper. They are highly confident in their ability to provide an accurate and thorough assessment."
+        },
+        {
+          "value": 3,
+          "label": "Moderate - The reviewer has a good understanding of the subject area and is familiar with the research methods and context of the paper. They feel confident in their ability to accurately assess the quality and significance of the work."
+        },
+        {
+          "value": 2,
+          "label": "Low - The reviewer has some knowledge of the subject area and is somewhat familiar with the research methods and context of the paper. They understand the main points but may lack depth in certain areas."
+        },
+        {
+          "value": 1,
+          "label": "Very Low"
+        }
+      ]
+    },
+    {
+      "id": "ethics_concerns",
+      "label": "Ethics Concerns",
+      "type": "text",
+      "prompt": "Does the paper need an ethics review? If so, describe the ethical concerns; otherwise state that there are none."
+    }
+  ]
+}

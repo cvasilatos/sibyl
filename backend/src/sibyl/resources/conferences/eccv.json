@@ -1,0 +1,108 @@
+{
+  "id": "eccv",
+  "name": "ECCV",
+  "full_name": "European Conference on Computer Vision",
+  "area": "Computer Vision",
+  "edition": "2024",
+  "source_urls": [
+    "https://docs.google.com/presentation/d/1HE_Pwcdy_3eVCIdb1o1VjtwqX5KTvddukhRxZVAOnIY/htmlpresent",
+    "https://eccv2024.ecva.net/Conferences/2026/ReviewerGuide",
+    "https://eccv2024.ecva.net/Conferences/2026/ReviewerContributionTypes",
+    "https://docs.google.com/presentation/d/19xM-6GBNyW9t3RNF7A-2huH9wfybTMXxl2-csM_MNSs/htmlpresent"
+  ],
+  "verified": true,
+  "notes": "Form fields and scales from the official ECCV 2024 reviewer tutorial (program chairs). Rating and confidence levels are named, not numbered, on the form; numeric values are our mapping. ECCV 2026 keeps the same section structure (Summary, Strengths, Weaknesses, Rating and Justification, Additional Comments) and adds contribution types (Algorithms/General, Theory/Foundational, Applied/Systems, Datasets/Benchmarks, Concept & Feasibility), but its scales are not public. Omitted: guidelines acknowledgment, dataset-claim administrative field, confidential comments, helper disclosure, post-rebuttal final rating.",
+  "guidelines": "Judge each paper on its own merits; there is no quota. Assess the paper against its declared contribution type (e.g., do not penalize a theory paper for lacking SOTA results, or a dataset paper for limited method novelty). Be specific: back every judgment with detail and give specific references for claims of prior work. Be professional and constructive, refer to 'the paper' rather than 'you', and avoid common mistakes such as the novelty fallacy, blank assertions, and demanding things not required by policy (dataset release, SOTA results, theorems). Ask whether the paper presents sufficient knowledge advancement and whether any error invalidates it.",
+  "questions": [
+    {
+      "id": "summary",
+      "label": "Summary",
+      "type": "text",
+      "prompt": "Summarize the paper in 5-7 sentences in your own words: the problem, whether it is new and why it matters, the core solution and main contribution, and whether the experiments or theory support the claims."
+    },
+    {
+      "id": "strengths",
+      "label": "Strengths",
+      "type": "text",
+      "prompt": "Explain the value of the key ideas, validation, writing, and any data contribution, considering the paper's contribution type, and why each matters. What would a reader interested in the topic learn? Short bullet lists are not enough."
+    },
+    {
+      "id": "weaknesses",
+      "label": "Weaknesses",
+      "type": "text",
+      "prompt": "Identify the aspects that most need improvement and explain why they are weak, e.g., name prior work that already shows the contribution or describe why experiments fail to support the claims. Short bullet lists are not enough."
+    },
+    {
+      "id": "rating",
+      "label": "Paper Rating",
+      "type": "choice",
+      "prompt": "Please rate the paper (pre-rebuttal).",
+      "options": [
+        {
+          "value": 5,
+          "label": "Strong Accept: significant contribution validated by experiments or theory"
+        },
+        {
+          "value": 4,
+          "label": "Weak Accept: validated contributions that merit reading, with weaknesses that do not invalidate them"
+        },
+        {
+          "value": 3,
+          "label": "Borderline: strong reasons on both sides, no strong reasons either way, or limited familiarity with the topic"
+        },
+        {
+          "value": 2,
+          "label": "Weak Reject: weaknesses that prevent recommending the paper, but with valuable aspects or fixable problems"
+        },
+        {
+          "value": 1,
+          "label": "Strong Reject: problems that invalidate the contributions or make them inaccessible"
+        }
+      ]
+    },
+    {
+      "id": "confidence",
+      "label": "Recommendation Confidence",
+      "type": "choice",
+      "prompt": "How confident are you in your recommendation, based on your expertise and the care you gave the paper?",
+      "options": [
+        {
+          "value": 3,
+          "label": "Very Confident"
+        },
+        {
+          "value": 2,
+          "label": "Somewhat Confident"
+        },
+        {
+          "value": 1,
+          "label": "Not Confident"
+        }
+      ]
+    },
+    {
+      "id": "justification",
+      "label": "Justification of Rating",
+      "type": "text",
+      "prompt": "Explain the most important factors behind your rating and how you weighed strengths against weaknesses. Name the main concerns the rebuttal must address. If borderline, say what information would let you decide. Do not write 'see weaknesses above'."
+    },
+    {
+      "id": "limitations",
+      "label": "Limitations and Societal Impact",
+      "type": "text",
+      "prompt": "Have the authors adequately addressed limitations and potential negative societal impact? Note any important limitations the paper does not mention and suggest improvements."
+    },
+    {
+      "id": "ethics_concerns",
+      "label": "Ethics Concerns",
+      "type": "text",
+      "prompt": "Are there serious ethical, privacy, transparency, or fairness concerns (e.g., missing licenses, improperly sourced data)? Describe them; otherwise state that there are none."
+    },
+    {
+      "id": "additional_comments",
+      "label": "Additional Comments",
+      "type": "text",
+      "prompt": "Minor suggestions, questions, or corrections that can help the authors improve the paper but are not crucial to the overall recommendation."
+    }
+  ]
+}

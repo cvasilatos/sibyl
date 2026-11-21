@@ -1,0 +1,97 @@
+"""Ollama engine: easiest setup, runs on NVIDIA (CUDA) and Apple Silicon (Metal)."""
+
+from __future__ import annotations
+
+import logging
+import os
+from typing import TYPE_CHECKING, Any
+
+import httpx
+from ollama import AsyncClient
+
+from sibyl.inference.base import AUTO_SLOT, GenerationRequest, InferenceEngine
+from sibyl.services.model_catalog import ModelCatalog
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
+
+logger = logging.getLogger(__name__)
+
+
+def ollama_hosts_from_env() -> list[str]:
+    """Return Ollama hosts from ``OLLAMA_HOSTS`` (comma separated, one per GPU) or ``OLLAMA_BASE_URL``."""
+    hosts = [h.strip() for h in os.getenv("OLLAMA_HOSTS", "").split(",") if h.strip()]
+    return hosts or [os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")]
+
+
+class OllamaEngine(InferenceEngine):
+    """Run models through one or more Ollama servers (one server per GPU in multi-GPU setups)."""
+
+    name = "ollama"
+    label = "Ollama"
+    supports_downloads = True
+
+    def __init__(self, hosts: list[str] | None = None, keep_alive: str | None = None) -> None:
+        """Create clients for every configured Ollama host."""
+        self.hosts = hosts or ollama_hosts_from_env()
+        self.clients = [AsyncClient(host=host) for host in self.hosts]
+        # "0" unloads the model right after each review, freeing VRAM for PDF parsing on shared GPUs.
+        self.keep_alive = keep_alive if keep_alive is not None else os.getenv("OLLAMA_KEEP_ALIVE", "0")
+
+    @property
+    def admin(self) -> AsyncClient:
+        """Client used for model management (all hosts share one model store)."""
+        return self.clients[0]
+
+    def client_for_slot(self, slot: int) -> AsyncClient:
+        """Map a review slot (0 = auto, n = GPU n-1) to an Ollama host."""
+        if slot == AUTO_SLOT:
+            return self.clients[0]
+        index = slot - 1
+        if index >= len(self.clients):
+            logger.warning("Slot %s requested but only %s Ollama host(s) configured; using the first", slot, len(self.clients))
+            return self.clients[0]
+        return self.clients[index]
+
+    async def list_installed(self) -> list[dict[str, Any]]:  # noqa: D102
+        response = await self.admin.list()
+        return [
+            {
+                "model": m.model,
+                "size": m.size or 0,
+                "modified_at": m.modified_at.isoformat() if m.modified_at else "",
+                "digest": m.digest or m.model,
+            }
+            for m in response.models
+        ]
+
+    async def list_catalog(self) -> list[dict[str, Any]]:  # noqa: D102
+        installed = await self.admin.list()
+        return await ModelCatalog(client_factory=httpx.AsyncClient).list_available(installed)
+
+    async def list_variants(self, name: str) -> list[str]:  # noqa: D102
+        return await ModelCatalog(client_factory=httpx.AsyncClient).list_tags(name)
+
+    async def pull(self, model: str) -> AsyncIterator[dict[str, Any]]:  # noqa: D102
+        async for part in await self.admin.pull(model=model, stream=True):
+            yield part.model_dump() if hasattr(part, "model_dump") else dict(part)
+
+    async def delete(self, model: str) -> None:  # noqa: D102
+        await self.admin.delete(model=model)
+
+    async def generate_json(self, request: GenerationRequest) -> str:  # noqa: D102
+        response = await self.client_for_slot(request.slot).generate(
+            model=request.model,
+            system=request.system,
+            prompt=request.prompt,
+            stream=False,
+            format=request.schema,
+            options={
+                "temperature": request.temperature,
+                "num_predict": request.max_tokens,
+                # Without this Ollama falls back to a small default context and silently drops most of the paper.
+                "num_ctx": request.context_length,
+            },
+            keep_alive=self.keep_alive,
+        )
+        return response.response or ""

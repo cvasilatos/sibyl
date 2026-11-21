@@ -1,0 +1,61 @@
+# High-throughput variant for NVIDIA GPU servers: Sibyl downloads Hugging Face models and runs
+# `vllm serve` on demand, one process per GPU (no Ollama containers needed).
+#
+#   docker compose -f docker-compose.vllm.yml up -d --build
+#
+# Gated models (Llama, Gemma) need HF_TOKEN in backend/.env.
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        - INSTALL_VLLM=true
+    ports:
+      - "8000:8000"
+    env_file:
+      - backend/.env
+    environment:
+      - SIBYL_ENGINE=vllm
+      - SIBYL_EMBEDDINGS=local
+      - HF_HOME=/root/.cache/huggingface
+      # Leave VRAM for PDF parsing (Marker) on the same GPU; raise on large GPUs.
+      - SIBYL_VLLM_GPU_MEMORY_UTILIZATION=0.80
+    ipc: host # vLLM workers communicate through shared memory
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [ gpu ]
+    volumes:
+      - sibyl_storage:/app/sibyl_storage
+      - hf_cache:/root/.cache/huggingface
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=http://hydra.abudhabi.nyu.edu:8000
+    ports:
+      - "4000:3000"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  sibyl_storage:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /data/cv43/sibyl/sibyl_storage
+  hf_cache:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /data/cv43/sibyl/hf_cache

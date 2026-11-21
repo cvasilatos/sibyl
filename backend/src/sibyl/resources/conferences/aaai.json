@@ -1,0 +1,122 @@
+{
+  "id": "aaai",
+  "name": "AAAI",
+  "full_name": "AAAI Conference on Artificial Intelligence",
+  "area": "Machine Learning",
+  "edition": "2026",
+  "source_urls": [
+    "https://docs.google.com/document/u/0/d/1tqQGwtNUlALPSTqoTo5uTFx8vKuqpILNTne9jeBCOVI/mobilebasic",
+    "https://aaai.org/conference/aaai/aaai-26/review-process/",
+    "https://aaai.org/conference/aaai/aaai-27/main-technical-track-call/",
+    "https://reviewpaper.ai/venues/aaai"
+  ],
+  "verified": false,
+  "notes": "AAAI's OpenReview review form is not public (guest access refused for AAAI-25/26/27). Text fields follow the official AAAI-26 reviewer instructions' recommended structure (paper summary, review summary, specific feedback, questions, suggestions). The overall rating (1-8) and confidence (1-5) scales are a third-party reconstruction (reviewpaper.ai), not confirmed; officially AAAI only states that human reviews carry a rating, a confidence and a recommendation.",
+  "guidelines": "Keep the review impersonal and focused on the work (refer to 'the paper', not 'you' or 'the authors'), and ask 'how could this paper be better?' rather than 'what is wrong with it?'. Assess clarity, technical and experimental soundness, intellectual novelty, and relevance to the AAAI community; papers that open new territory are preferred over incremental advances. Check whether empirical results really support the claims, whether baselines, metrics and datasets are appropriate, whether limitations are stated, and whether results are replicable. Distinguish essential revisions from optional improvements and keep requests reasonable in time and resources; requests for more related work should cite specific works.",
+  "questions": [
+    {
+      "id": "paper_summary",
+      "label": "Paper Summary",
+      "type": "text",
+      "prompt": "Summarize the paper in 4-10 sentences: its main contribution, the core problem, the key idea, how it is implemented, and the conclusions it claims."
+    },
+    {
+      "id": "review_summary",
+      "label": "Review Summary",
+      "type": "text",
+      "prompt": "In 4-10 sentences, give your overall conclusion in the first sentence, followed by your assessment of the paper's clarity, technical and experimental soundness, intellectual novelty, and relevance, plus the most important high-level improvements."
+    },
+    {
+      "id": "strengths",
+      "label": "Strengths",
+      "type": "text",
+      "prompt": "List the specific strengths of the paper (story, technical presentation, novelty, evaluation), with supporting reasons."
+    },
+    {
+      "id": "weaknesses",
+      "label": "Weaknesses",
+      "type": "text",
+      "prompt": "List specific flaws with concrete suggestions: Is the problem and the limitation of the state of the art clear? Do the empirical results really support the claims? Is the technical approach sound and clearly described, with stated assumptions? Are baselines, metrics and datasets appropriate, is there error analysis, are limitations stated, and are the results replicable? Indicate which revisions are essential and which are optional."
+    },
+    {
+      "id": "questions_for_authors",
+      "label": "Questions for the Authors",
+      "type": "text",
+      "prompt": "List questions whose answers in the author feedback could change your assessment."
+    },
+    {
+      "id": "overall_evaluation",
+      "label": "Overall Evaluation",
+      "type": "choice",
+      "prompt": "Please provide your overall evaluation (rating) of this paper.",
+      "options": [
+        {
+          "value": 8,
+          "label": "Strong accept: top 5% of accepted papers"
+        },
+        {
+          "value": 7,
+          "label": "Accept: top 15% of accepted papers"
+        },
+        {
+          "value": 6,
+          "label": "Weak accept"
+        },
+        {
+          "value": 5,
+          "label": "Borderline accept"
+        },
+        {
+          "value": 4,
+          "label": "Borderline reject"
+        },
+        {
+          "value": 3,
+          "label": "Weak reject"
+        },
+        {
+          "value": 2,
+          "label": "Reject"
+        },
+        {
+          "value": 1,
+          "label": "Strong reject"
+        }
+      ]
+    },
+    {
+      "id": "confidence",
+      "label": "Confidence",
+      "type": "choice",
+      "prompt": "How confident are you in your assessment?",
+      "options": [
+        {
+          "value": 5,
+          "label": "Absolutely certain: very familiar with the related work and checked the details carefully"
+        },
+        {
+          "value": 4,
+          "label": "Confident, but not absolutely certain"
+        },
+        {
+          "value": 3,
+          "label": "Fairly confident"
+        },
+        {
+          "value": 2,
+          "label": "Willing to defend the assessment, but may have missed central parts or related work"
+        },
+        {
+          "value": 1,
+          "label": "Educated guess"
+        }
+      ]
+    },
+    {
+      "id": "ethics_concerns",
+      "label": "Ethics Concerns",
+      "type": "text",
+      "prompt": "Describe any ethical concerns (responsible research practices, potential harms) that should be considered; otherwise state that there are none."
+    }
+  ]
+}

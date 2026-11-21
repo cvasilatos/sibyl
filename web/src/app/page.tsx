@@ -93,6 +93,9 @@ function HomeContent() {
             selectedFile={review.selectedFile}
             selectedReviewForm={review.selectedReviewForm}
             onReviewFormChange={review.selectReviewForm}
+            conferences={review.conferences}
+            selectedConferenceId={review.selectedConferenceId}
+            onConferenceChange={review.selectConference}
             selectedModel={review.selectedModel}
             availableModels={review.availableModels}
             onModelChange={review.setSelectedModel}
@@ -119,7 +122,7 @@ function HomeContent() {
       </main>
 
       <footer className="border-t px-4 py-3 text-center">
-        <p className="text-xs text-muted-foreground">Powered by local LLMs via Ollama • Privacy-first • Zero-cost</p>
+        <p className="text-xs text-muted-foreground">Powered by local open-source LLMs • Privacy-first • Zero-cost</p>
       </footer>
     </div>
   );

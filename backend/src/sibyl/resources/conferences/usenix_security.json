@@ -1,0 +1,108 @@
+{
+  "id": "usenix_security",
+  "name": "USENIX Security",
+  "full_name": "USENIX Security Symposium",
+  "area": "Security",
+  "edition": "2026",
+  "source_urls": [
+    "https://www.usenix.org/sites/default/files/sec26_cfp_011226.pdf",
+    "https://www.usenix.org/node/299264"
+  ],
+  "verified": false,
+  "notes": "USENIX Security's HotCRP form is not public. The recommendation scale mirrors the official 2026 decision outcomes (Accept / Accept on Shepherd Approval / Reject; Major Revision was dropped for 2026); the form wording, field list, and reviewer expertise levels are reconstructed. Ethics and open-science questions reflect the 2026 CFP requirement that reviewers evaluate ethics and artifacts.",
+  "guidelines": "Evaluate the scientific contribution together with the submitted artifacts, which are used as part of the evaluation. Assess the ethics of every submission using the paper's mandatory Ethical Considerations appendix (stakeholder-based analysis), and check the Open Science appendix. Papers accepted on shepherd approval should need only changes unlikely to reduce enthusiasm (text changes, clarifications, explicit discussion of limitations). For rejected papers, try to identify the major changes that could move the paper toward a publishable state.",
+  "questions": [
+    {
+      "id": "paper_summary",
+      "label": "Paper Summary",
+      "type": "text",
+      "prompt": "Summarize the paper's problem, approach, and claimed contributions."
+    },
+    {
+      "id": "strengths",
+      "label": "Strengths",
+      "type": "text",
+      "prompt": "What are the paper's main strengths?"
+    },
+    {
+      "id": "weaknesses",
+      "label": "Weaknesses",
+      "type": "text",
+      "prompt": "What are the paper's main weaknesses?"
+    },
+    {
+      "id": "detailed_comments",
+      "label": "Detailed Comments for Authors",
+      "type": "text",
+      "prompt": "Provide detailed, constructive comments for the authors."
+    },
+    {
+      "id": "questions_for_authors",
+      "label": "Questions for Authors",
+      "type": "text",
+      "prompt": "List questions for the authors to address in the rebuttal."
+    },
+    {
+      "id": "required_changes",
+      "label": "Required Changes",
+      "type": "text",
+      "prompt": "If you recommend acceptance on shepherd approval, list the specific changes required. If you recommend rejection, identify the major changes that could move the paper toward a publishable state."
+    },
+    {
+      "id": "ethics_concerns",
+      "label": "Ethics Concerns",
+      "type": "text",
+      "prompt": "Evaluate the ethics of the submission, using the paper's Ethical Considerations section: are the stakeholders and potential harms adequately identified and mitigated? Describe any concerns; otherwise state that there are none."
+    },
+    {
+      "id": "open_science",
+      "label": "Open Science",
+      "type": "text",
+      "prompt": "Assess the paper's Open Science section and artifacts: are the artifacts needed to evaluate the contributions available, and are any exceptions adequately justified?"
+    },
+    {
+      "id": "recommendation",
+      "label": "Recommendation",
+      "type": "choice",
+      "prompt": "Your recommendation for this paper.",
+      "options": [
+        {
+          "value": 3,
+          "label": "Accept: the paper could be published as is, or the reviewers trust the authors to make any required edits"
+        },
+        {
+          "value": 2,
+          "label": "Accept on Shepherd Approval: sufficient contributions, but some changes are needed that are highly unlikely to reduce enthusiasm (e.g., text changes, clarifications, explicit discussion of limitations)"
+        },
+        {
+          "value": 1,
+          "label": "Reject: not currently appropriate for publication"
+        }
+      ]
+    },
+    {
+      "id": "reviewer_expertise",
+      "label": "Reviewer Expertise",
+      "type": "choice",
+      "prompt": "Your expertise in the paper's topic.",
+      "options": [
+        {
+          "value": 4,
+          "label": "Expert"
+        },
+        {
+          "value": 3,
+          "label": "Knowledgeable"
+        },
+        {
+          "value": 2,
+          "label": "Some familiarity"
+        },
+        {
+          "value": 1,
+          "label": "No familiarity"
+        }
+      ]
+    }
+  ]
+}

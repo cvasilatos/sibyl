@@ -2,16 +2,18 @@ import contextlib
 import logging
 from typing import TYPE_CHECKING, cast
 
-if TYPE_CHECKING:
-    from ollama import AsyncClient
-
 import anyio
+from anyio import to_thread
 from decima.logger import CustomLogger
 from fastapi import APIRouter, Query, WebSocket
 
+from sibyl.conferences import get_conference
 from sibyl.pdf_parser import PDFParser
 from sibyl.reviewer import PaperReview, ReviewSystem
 from sibyl.routers.web_state import review_sessions, storage
+
+if TYPE_CHECKING:
+    from sibyl.inference import InferenceEngine
 
 router = APIRouter()
 
@@ -20,19 +22,14 @@ logger: CustomLogger = cast("CustomLogger", logging.getLogger(__name__))
 
 @router.websocket("/pull")
 async def pull_model(websocket: WebSocket, model_name: str = Query()) -> None:
-    """WebSocket endpoint to pull a model from Ollama."""
+    """WebSocket endpoint streaming model download progress from the active engine."""
     await websocket.accept()
 
     try:
-        # If you stored them as a list: app.state.ollama_clients[0]
-        # If you stored them as a dict: app.state.ollama_clients["default"]
-        client: AsyncClient = websocket.app.state.ollama_clients[0]
-
-        async for part in await client.pull(model=model_name, stream=True):
-            logger.info(f"Pulling model {model_name}: {part}")
-            data = part.model_dump() if hasattr(part, "model_dump") else part.dict()
-
-            await websocket.send_json(data)
+        engine: InferenceEngine = websocket.app.state.engine
+        async for part in engine.pull(model_name):
+            logger.debug(f"Pulling model {model_name}: {part}")
+            await websocket.send_json(part)
 
     except Exception as e:
         logger.exception(f"Error during model pull for {model_name}")
@@ -43,8 +40,11 @@ async def pull_model(websocket: WebSocket, model_name: str = Query()) -> None:
 
 
 @router.websocket("/session/{session_id}")
-async def websocket_endpoint(websocket: WebSocket, session_id: str, model: str = Query(...), host: str = Query(...)) -> None:
-    """WebSocket endpoint for real-time review progress updates."""
+async def websocket_endpoint(websocket: WebSocket, session_id: str, model: str = Query(...), host: int = Query(0)) -> None:
+    """WebSocket endpoint for real-time review progress updates.
+
+    ``host`` is the review slot: 0 lets the engine choose, ``n`` targets GPU ``n - 1``.
+    """
     await websocket.accept()
     session = review_sessions.get(session_id)
 
@@ -53,56 +53,61 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, model: str =
         await websocket.close(code=1008)
         return
 
+    async def progress(value: int, message: str) -> None:
+        await websocket.send_json({"status": "progress", "progress": value, "message": message})
+
     try:
-        await websocket.send_json({"status": "progress", "progress": 10, "message": "Extracting text from PDF..."})
+        await progress(10, "Extracting text from PDF...")
 
         parser = PDFParser(session["pdf_path"])
-        metadata = parser.get_metadata(ollama_host=int(host))
+        # Marker is CPU/GPU heavy and synchronous: run it off the event loop so other requests stay responsive.
+        metadata = await to_thread.run_sync(parser.get_metadata, host)
         paper_text: str = metadata["text"]
         paper_title = (metadata or {}).get("title", "Unknown Paper")
 
-        await websocket.send_json({"status": "progress", "progress": 30, "message": f"Extracted {len(paper_text)} characters"})
+        await progress(30, f"Extracted {len(paper_text)} characters")
 
-        await websocket.send_json({"status": "progress", "progress": 40, "message": "Generating review..."})
+        conference_id = session.get("conference_id")
+        conference = get_conference(conference_id) if conference_id else None
+        form_label = f" using the {conference.name} {conference.edition} reviewer form" if conference else ""
 
         try:
-            for key, value in websocket.app.state.ollama_clients.items():
-                logger.debug(f"Ollama client key: {key}, host: {value}")
+            engine: InferenceEngine = websocket.app.state.engine
+            reviewer = ReviewSystem(engine, model)
 
-            client: AsyncClient = websocket.app.state.ollama_clients[int(host) - 1]
-            reviewer = ReviewSystem(client, model)
+            await progress(50, f"Reviewing with {model}{form_label}...")
 
-            await websocket.send_json({"status": "progress", "progress": 50, "message": f"Reviewing with {model}..."})
+            async def on_status(message: str) -> None:
+                await progress(60, message)
 
             review: PaperReview = await reviewer.review_paper(
                 paper_text,
                 paper_title,
                 model,
                 review_form=session.get("review_form"),
+                conference=conference,
+                slot=host,
+                on_status=on_status,
             )
-            logger.info(f"Generated review for paper '{paper_title}' with model {model}:\n{review.raw_response}")
+            logger.info(f"Generated review for paper '{paper_title}' with model {model}")
         except Exception as e:
             logger.exception(f"Error during review with model {model}")
             await websocket.send_json({"status": "error", "message": f"Error reviewing with {model}: {e!s}"})
             return
 
-        await websocket.send_json({"status": "progress", "progress": 90, "message": "Saving to storage..."})
+        await progress(90, "Saving to storage...")
 
-        review_id = storage.save_review(
-            review=review,
-            pdf_filename=session["filename"],
-            pdf_path=session["pdf_path"],
-            paper_text=paper_text,
+        review_id = await to_thread.run_sync(
+            lambda: storage.save_review(review=review, pdf_filename=session["filename"], pdf_path=session["pdf_path"], paper_text=paper_text)
         )
 
         reviews_dict = [
             {
-                "paper_title": r.paper_title,
-                "reviewer_model": r.reviewer_model,
-                "criteria": r.criteria.model_dump(),
-                "raw_response": r.raw_response,
+                "paper_title": review.paper_title,
+                "reviewer_model": review.reviewer_model,
+                "criteria": review.criteria.model_dump(),
+                "raw_response": review.raw_response,
             }
-            for r in [review]
         ]
 
         await websocket.send_json(
@@ -111,10 +116,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, model: str =
                 "progress": 100,
                 "message": "Review complete!",
                 "review_id": review_id,
-                "results": {
-                    "paper_title": paper_title,
-                    "reviews": reviews_dict,
-                },
+                "results": {"paper_title": paper_title, "reviews": reviews_dict},
             }
         )
 
@@ -122,6 +124,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, model: str =
         session["reviews"] = reviews_dict
 
     except Exception as e:
+        logger.exception("Review session failed")
         await websocket.send_json({"status": "error", "message": str(e)})
     finally:
         if session.get("status") != "completed" and "pdf_path" in session and await anyio.Path(session["pdf_path"]).exists():

@@ -1,7 +1,6 @@
 """Sibyl: An LLM-powered research paper review system."""
 
 import logging
-import os
 from contextlib import asynccontextmanager
 from typing import cast
 
@@ -11,10 +10,8 @@ from decima.logger import CustomLogger
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from sibyl.ollama_clients import _is_docker, base_ollama, docker_ollama
-from sibyl.routers import web_gpu, web_reviews, web_upload, web_ws
-
-OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+from sibyl.inference import create_engine
+from sibyl.routers import web_conferences, web_gpu, web_reviews, web_upload, web_ws
 
 CustomLogger.setup_logging("logs", "app", level="DEBUG", class_length=30)
 logger: CustomLogger = cast("CustomLogger", logging.getLogger("sibyl.main"))
@@ -25,15 +22,13 @@ logger.info("Starting Sibyl application...")
 async def lifespan(app: FastAPI):  # noqa: ANN201, D103
     logger.info("Starting up: Initializing resources...")
 
-    if _is_docker():
-        logger.info("Running in Docker environment. Using internal Ollama host.")
-        app.state.ollama_clients = docker_ollama
-    else:
-        app.state.ollama_clients = {0: base_ollama}
+    app.state.engine = create_engine()
+    logger.info(f"Inference engine: {app.state.engine.label}")
 
     yield
 
     logger.info("Shutting down: Cleaning up...")
+    await app.state.engine.aclose()
 
 
 app = FastAPI(
@@ -55,6 +50,7 @@ app.include_router(web_reviews.router, prefix="/api", tags=["Reviews"])
 app.include_router(web_upload.router, prefix="/api", tags=["Upload"])
 app.include_router(web_ws.router, prefix="/ws", tags=["WebSocket"])
 app.include_router(web_gpu.router, prefix="/api", tags=["GPU"])
+app.include_router(web_conferences.router, prefix="/api", tags=["Conferences"])
 
 
 @app.get("/")

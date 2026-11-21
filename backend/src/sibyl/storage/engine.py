@@ -1,19 +1,17 @@
 import json
 import logging
+import os
 import shutil
 import uuid
+from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
-
-from sibyl.ollama_clients import get_ollama_client
 
 if TYPE_CHECKING:
     from chromadb.api import ClientAPI
     from chromadb.api.models.Collection import Collection
     from decima.logger import CustomLogger
-    from ollama import AsyncClient, Client
-    from ollama._types import EmbeddingsResponse
 
 
 import chromadb
@@ -25,17 +23,80 @@ from sibyl.storage.review import Review
 
 # Maximum number of characters to include in a review summary preview
 _REVIEW_SUMMARY_MAX_LEN: int = 200
+
+_SECTION_LABELS = {
+    "novelty": "Novelty",
+    "methodology": "Methodology",
+    "results": "Results",
+    "clarity": "Clarity",
+    "impact": "Impact",
+    "strengths": "Strengths",
+    "limitations": "Limitations",
+    "detailed_feedback": "Detailed Feedback",
+}
+
+
+def _summary_source(criteria: dict) -> str:
+    """Return the text the library summary is cut from: the default review's feedback, or the completed form for form reviews."""
+    return str(criteria.get("detailed_feedback") or criteria.get("review_form_response") or "")
+
+
 _EMBEDDING_MODEL = "nomic-embed-text"
+
+Embedder = Callable[[str], list[float]]
+
+
+def embedding_backend() -> str:
+    """Return ``ollama`` or ``local`` (Chroma's bundled MiniLM, no server needed).
+
+    Defaults to Ollama embeddings when the Ollama engine is used, and local embeddings otherwise.
+    """
+    configured = os.getenv("SIBYL_EMBEDDINGS", "").strip().lower()
+    if configured in {"ollama", "local"}:
+        return configured
+    return "ollama" if os.getenv("SIBYL_ENGINE", "ollama").strip().lower() == "ollama" else "local"
+
+
+def _ollama_embedder() -> Embedder:
+    from ollama import Client, ResponseError  # noqa: PLC0415
+
+    from sibyl.inference.ollama_engine import ollama_hosts_from_env  # noqa: PLC0415
+
+    client = Client(host=ollama_hosts_from_env()[0])
+
+    def embed(text: str) -> list[float]:
+        try:
+            return list(client.embeddings(model=_EMBEDDING_MODEL, prompt=text[:5000], keep_alive=0).embedding)
+        except ResponseError as e:
+            if e.status_code != 404:  # noqa: PLR2004
+                raise
+            logging.getLogger(__name__).info(f"Embedding model {_EMBEDDING_MODEL} missing; pulling it once")
+            client.pull(_EMBEDDING_MODEL)
+            return list(client.embeddings(model=_EMBEDDING_MODEL, prompt=text[:5000], keep_alive=0).embedding)
+
+    return embed
+
+
+def _local_embedder() -> Embedder:
+    from chromadb.utils.embedding_functions import DefaultEmbeddingFunction  # noqa: PLC0415
+
+    function = DefaultEmbeddingFunction()
+
+    def embed(text: str) -> list[float]:
+        return [float(x) for x in function([text[:5000]])[0]]
+
+    return embed
 
 
 class Engine:
     """Vector database storage for reviews with semantic search using ChromaDB."""
 
-    def __init__(self, storage_path: str = "./sibyl_storage") -> None:
+    def __init__(self, storage_path: str = "./sibyl_storage", embeddings: str | None = None) -> None:
         """Initialize the storage system.
 
         Args:
             storage_path: Path to the storage directory for ChromaDB and PDFs
+            embeddings: ``ollama`` or ``local``; defaults to :func:`embedding_backend`
 
         """
         self.logger: CustomLogger = cast("CustomLogger", logging.getLogger(f"{self.__class__.__module__}.{self.__class__.__name__}"))
@@ -46,25 +107,28 @@ class Engine:
         self.pdf_storage: Path = self.storage_path / "pdfs"
         self.pdf_storage.mkdir(exist_ok=True)
 
-        self.logger.debug(f"Initializing at {storage_path}, ollama_url={'OLLAMA_BASE_URL'}")
+        self.embeddings = embeddings or embedding_backend()
+        self.logger.debug(f"Initializing at {storage_path}, embeddings={self.embeddings}")
 
         self.client: ClientAPI = chromadb.PersistentClient(
             path=str(self.storage_path / "chromadb"),
             settings=Settings(anonymized_telemetry=False),
         )
 
-        self._ollama_client: AsyncClient | Client = get_ollama_client()
+        self._embedder: Embedder | None = None
 
+        # Embedding dimensions differ between backends, so each backend has its own collection.
         self.collection: Collection = self.client.get_or_create_collection(
-            name="paper_reviews",
+            name="paper_reviews" if self.embeddings == "ollama" else "paper_reviews_local",
             metadata={"hnsw:space": "cosine"},
         )
         self.logger.info(f"Initialized with {self.collection.count()} existing reviews")
 
     def _generate_embedding(self, text: str) -> list[float]:
-        self.logger.debug(f"Generating embedding for text ({len(text)} chars), model: {_EMBEDDING_MODEL}")
-        response: EmbeddingsResponse = self._ollama_client.embeddings(model=_EMBEDDING_MODEL, prompt=text[:5000], keep_alive=0)
-        return list(response.embedding)
+        self.logger.debug(f"Generating {self.embeddings} embedding for text ({len(text)} chars)")
+        if self._embedder is None:
+            self._embedder = _ollama_embedder() if self.embeddings == "ollama" else _local_embedder()
+        return self._embedder(text)
 
     def save_review(self, review: PaperReview, pdf_filename: str, pdf_path: str | None = None, paper_text: str | None = None) -> str:
         """Save a review to the vector database.
@@ -89,25 +153,19 @@ class Engine:
             shutil.copy2(pdf_path, stored_pdf_path)
             stored_pdf_path = str(stored_pdf_path)
 
-        searchable_content = f"""
-        Title: {review.paper_title}
-        Reviewer: {review.reviewer_model}
-        Score: {review.criteria.score}/{MAX_SCORE}
-        Recommendation: {review.criteria.recommendation}
-
-        Novelty: {review.criteria.novelty}
-        Methodology: {review.criteria.methodology}
-        Results: {review.criteria.results}
-        Clarity: {review.criteria.clarity}
-        Impact: {review.criteria.impact}
-        Strengths: {review.criteria.strengths}
-        Limitations: {review.criteria.limitations}
-
-        Detailed Feedback: {review.criteria.detailed_feedback}
-        """
-
-        if review.criteria.review_form_response:
-            searchable_content += f"\n\nCompleted Review Form:\n{review.criteria.review_form_response}"
+        criteria = review.criteria
+        sections = [(label, getattr(criteria, field)) for field, label in _SECTION_LABELS.items()]
+        searchable_content = "\n".join(
+            [
+                f"Title: {review.paper_title}",
+                f"Reviewer: {review.reviewer_model}",
+                f"Score: {criteria.score}/{MAX_SCORE}",
+                f"Recommendation: {criteria.recommendation}",
+                *(f"{label}: {text}" for label, text in sections if text),
+            ]
+        )
+        if criteria.review_form_response:
+            searchable_content += f"\n\nCompleted Review Form:\n{criteria.review_form_response}"
 
         if paper_text:
             searchable_content += f"\n\nPaper Content: {paper_text}"
@@ -173,7 +231,7 @@ class Engine:
 
                 review_data = json.loads(str(metadata.get("review_json", "{}")))
 
-                feedback = str(review_data.get("criteria", {}).get("detailed_feedback", ""))
+                feedback = _summary_source(review_data.get("criteria", {}))
                 review_summary = feedback[:_REVIEW_SUMMARY_MAX_LEN] + ("..." if len(feedback) > _REVIEW_SUMMARY_MAX_LEN else "")
 
                 reviews.append(
@@ -228,7 +286,7 @@ class Engine:
 
                 review_data = json.loads(str(metadata.get("review_json", "{}")))
 
-                feedback = str(review_data.get("criteria", {}).get("detailed_feedback", ""))
+                feedback = _summary_source(review_data.get("criteria", {}))
                 review_summary = feedback[:_REVIEW_SUMMARY_MAX_LEN] + ("..." if len(feedback) > _REVIEW_SUMMARY_MAX_LEN else "")
 
                 reviews.append(

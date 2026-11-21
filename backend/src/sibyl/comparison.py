@@ -99,6 +99,9 @@ class ReviewComparison:
             lines.append(f"\n--- Review {i}: {review.reviewer_model} ---")
             lines.append(f"Score: {review.criteria.score}/{MAX_SCORE}")
             lines.append(f"Recommendation: {review.criteria.recommendation}")
+            if review.criteria.review_form_response:
+                lines.append(f"\n{review.criteria.review_form_response}")
+                continue
             lines.append(f"\nNovelty:\n{review.criteria.novelty}")
             lines.append(f"\nMethodology:\n{review.criteria.methodology}")
             lines.append(f"\nResults:\n{review.criteria.results}")

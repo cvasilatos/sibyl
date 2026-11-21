@@ -9,7 +9,10 @@ from sibyl.main import app
 
 @pytest.fixture
 def client():
-    """Create test client."""
+    """Create test client with an Ollama engine pointing at a fake host."""
+    from sibyl.inference.ollama_engine import OllamaEngine
+
+    app.state.engine = OllamaEngine(hosts=["http://ollama.test:11434"])
     return TestClient(app)
 
 
@@ -146,7 +149,6 @@ def test_session_not_found(client):
 def test_response_models():
     """Test that response models are properly defined."""
     from sibyl.web.model.review_request import ReviewRequest
-    from sibyl.web.model.review_response import ReviewResponse
     from sibyl.web.model.session_status import SessionStatus
 
     request = ReviewRequest(model_name="llama3.2", max_pages=10)
@@ -204,7 +206,7 @@ def test_get_model_tags_response_shape(client):
     mock_client.__aexit__ = AsyncMock(return_value=None)
     mock_client.get = AsyncMock(return_value=mock_response)
 
-    with patch("sibyl.routers.web_reviews.httpx.AsyncClient", return_value=mock_client):
+    with patch("sibyl.inference.ollama_engine.httpx.AsyncClient", return_value=mock_client):
         response = client.get(f"/api/models/available/{model_name}/tags")
 
     assert response.status_code == 200
@@ -220,7 +222,8 @@ def test_get_model_tags_response_shape(client):
 
 def test_available_models_installed_variants(client):
     """Test that list_available_models returns installed_variants and does not mark a base
-    model as installed when only a specific variant (e.g. :7b) is installed."""
+    model as installed when only a specific variant (e.g. :7b) is installed.
+    """
     from unittest.mock import AsyncMock, MagicMock, patch
 
     fake_library_html = '<a href="/library/llama3">llama3</a>'
@@ -244,9 +247,9 @@ def test_available_models_installed_variants(client):
     mock_list_response.models = [mock_model]
     mock_ollama = AsyncMock()
     mock_ollama.list = AsyncMock(return_value=mock_list_response)
-    client.app.state.ollama_clients = {0: mock_ollama}
+    client.app.state.engine.clients = [mock_ollama]
 
-    with patch("sibyl.routers.web_reviews.httpx.AsyncClient", return_value=mock_httpx_client):
+    with patch("sibyl.inference.ollama_engine.httpx.AsyncClient", return_value=mock_httpx_client):
         response = client.get("/api/models/available")
 
     assert response.status_code == 200
@@ -262,7 +265,8 @@ def test_available_models_installed_variants(client):
 
 def test_available_models_installed_latest_is_not_marked(client):
     """Test that a base model is NOT marked installed when only :latest variant is present.
-    The user should always be able to install variants regardless of whether :latest is installed."""
+    The user should always be able to install variants regardless of whether :latest is installed.
+    """
     from unittest.mock import AsyncMock, MagicMock, patch
 
     fake_library_html = '<a href="/library/mistral">mistral</a>'
@@ -286,9 +290,9 @@ def test_available_models_installed_latest_is_not_marked(client):
     mock_list_response.models = [mock_model]
     mock_ollama = AsyncMock()
     mock_ollama.list = AsyncMock(return_value=mock_list_response)
-    client.app.state.ollama_clients = {0: mock_ollama}
+    client.app.state.engine.clients = [mock_ollama]
 
-    with patch("sibyl.routers.web_reviews.httpx.AsyncClient", return_value=mock_httpx_client):
+    with patch("sibyl.inference.ollama_engine.httpx.AsyncClient", return_value=mock_httpx_client):
         response = client.get("/api/models/available")
 
     assert response.status_code == 200
@@ -421,7 +425,7 @@ def test_ws_pull_model_error_path(client):
 
     mock_ollama = AsyncMock()
     mock_ollama.pull = AsyncMock(side_effect=Exception("Ollama unavailable"))
-    client.app.state.ollama_clients = {0: mock_ollama}
+    client.app.state.engine.clients = [mock_ollama]
 
     with client.websocket_connect("/ws/pull?model_name=llama3") as ws:
         data = ws.receive_json()
@@ -462,7 +466,7 @@ def test_ws_pull_model_success_path(client):
 
     mock_ollama = AsyncMock()
     mock_ollama.pull = AsyncMock(return_value=FakeAsyncIter())
-    client.app.state.ollama_clients = {0: mock_ollama}
+    client.app.state.engine.clients = [mock_ollama]
 
     received = []
     with client.websocket_connect("/ws/pull?model_name=llama3") as ws:

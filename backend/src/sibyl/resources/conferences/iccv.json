@@ -1,0 +1,114 @@
+{
+  "id": "iccv",
+  "name": "ICCV",
+  "full_name": "IEEE/CVF International Conference on Computer Vision",
+  "area": "Computer Vision",
+  "edition": "2025",
+  "source_urls": [
+    "https://iccv.thecvf.com/Conferences/2025/ReviewerGuidelines",
+    "https://api2.openreview.net/groups?id=thecvf.com/ICCV/2025/Conference",
+    "https://cspaper.org/topic/69/iccv-2025-reviews-are-out-community-buzz-and-discussions",
+    "https://papercopilot.com/statistics/iccv-statistics/iccv-2025-statistics/"
+  ],
+  "verified": false,
+  "notes": "The ICCV 2025 OpenReview form is not public. OpenReview venue config confirms fields named final_recommendation and confidence_level. The 6-point recommendation scale is reported by third-party community sources (cspaper) and is consistent with observed score ranges; confidence wording and field order are reconstructed from the CVPR-family form. ICCV is biennial; 2025 is the latest edition.",
+  "guidelines": "Organize the main critique as strengths and weaknesses with explanation; one-phrase bullet lists are not a detailed review. Back up any claim that the work has been done before with specific references and how closely they relate, and give specific, constructive suggestions. Weigh novelty and impact alongside benchmark performance; do not reject solely for not beating the state of the art, for minor easily fixed flaws, or for missing comparisons to arXiv papers. There is no target acceptance rate. Do not request substantial new experiments for the rebuttal. Honest limitations and societal-impact discussions should be weighed positively, but their absence is not grounds for rejection. Refer to 'the paper' rather than 'you' or 'the authors', and keep the tone courteous.",
+  "questions": [
+    {
+      "id": "summary",
+      "label": "Summary",
+      "type": "text",
+      "prompt": "Summarize the paper in your own words: the key ideas, contributions, and their significance."
+    },
+    {
+      "id": "strengths",
+      "label": "Strengths",
+      "type": "text",
+      "prompt": "What about the paper provides value? Give specific, evidence-based strengths with explanation (bullet lists with one short phrase per bullet are not a detailed review)."
+    },
+    {
+      "id": "weaknesses",
+      "label": "Weaknesses",
+      "type": "text",
+      "prompt": "What detracts from the contributions? Give specific, evidence-based weaknesses with explanation; support any claim that the work has been done before with specific references, and suggest concrete improvements."
+    },
+    {
+      "id": "recommendation",
+      "label": "Recommendation",
+      "type": "choice",
+      "prompt": "Please provide your recommendation for this paper.",
+      "options": [
+        {
+          "value": 6,
+          "label": "Accept"
+        },
+        {
+          "value": 5,
+          "label": "Weak Accept"
+        },
+        {
+          "value": 4,
+          "label": "Borderline Accept"
+        },
+        {
+          "value": 3,
+          "label": "Borderline Reject"
+        },
+        {
+          "value": 2,
+          "label": "Weak Reject"
+        },
+        {
+          "value": 1,
+          "label": "Reject"
+        }
+      ]
+    },
+    {
+      "id": "justification",
+      "label": "Justification for Recommendation",
+      "type": "text",
+      "prompt": "Explain your rating, making clear which strengths and weaknesses are most significant, and state the main points the rebuttal should address."
+    },
+    {
+      "id": "confidence_level",
+      "label": "Confidence Level",
+      "type": "choice",
+      "prompt": "How confident are you in your recommendation?",
+      "options": [
+        {
+          "value": 5,
+          "label": "Very confident: absolutely certain about the assessment"
+        },
+        {
+          "value": 4,
+          "label": "Confident, but not absolutely certain"
+        },
+        {
+          "value": 3,
+          "label": "Fairly confident"
+        },
+        {
+          "value": 2,
+          "label": "Willing to defend the assessment, but may have misunderstood parts of the paper"
+        },
+        {
+          "value": 1,
+          "label": "Educated guess"
+        }
+      ]
+    },
+    {
+      "id": "data_assets",
+      "label": "Data Asset Attribution",
+      "type": "text",
+      "prompt": "Are the data assets used in the paper properly cited, and are any withdrawn datasets used? Comment on any issues."
+    },
+    {
+      "id": "ethics_concerns",
+      "label": "Ethics Concerns",
+      "type": "text",
+      "prompt": "Are there serious ethical, privacy, or fairness concerns that should be flagged to the Area Chair? Describe them; otherwise state that there are none."
+    }
+  ]
+}

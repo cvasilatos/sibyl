@@ -1,0 +1,263 @@
+{
+  "id": "acl_arr",
+  "name": "ACL ARR",
+  "full_name": "ACL Rolling Review (ACL / EMNLP / NAACL / EACL / AACL)",
+  "area": "Natural Language Processing",
+  "edition": "2026",
+  "source_urls": [
+    "https://aclrollingreview.org/reviewform"
+  ],
+  "verified": true,
+  "notes": "Official ARR review form (page footer 2026). Soundness and Excitement also allow half-points (e.g., 3.5); only the labelled integer levels are listed. Overall Assessment uses string values because its official labelled levels include half-points. Omitted: best-paper justification, author-identity knowledge/conjecture. Ethical concerns and 'needs ethics review' merged into one text field.",
+  "guidelines": "Write for both the authors and the area chairs: the summary should let ACs understand the paper and spot misunderstandings. Weaknesses should be concerns that would lead you to prioritize other papers, numbered so authors can respond individually; separate them from minor suggestions. Soundness concerns whether claims are sufficiently supported, independent of excitement; Findings recommendations depend mainly on soundness and reproducibility, while main-conference recommendations may additionally weigh novelty and impact. Check limitations, societal impact and ethics against the ACL Code of Ethics and the authors' Responsible NLP checklist.",
+  "questions": [
+    {
+      "id": "paper_summary",
+      "label": "Paper Summary",
+      "type": "text",
+      "prompt": "Describe what this paper is about. This should help action editors and area chairs to understand the topic of the work and highlight any possible misunderstandings."
+    },
+    {
+      "id": "summary_of_strengths",
+      "label": "Summary of Strengths",
+      "type": "text",
+      "prompt": "What are the major reasons to publish this paper at a selective *ACL venue? These could include novel and useful methodology, insightful empirical results or theoretical analysis, clear organization of related literature, or any other reason why interested readers of *ACL papers may find the paper useful."
+    },
+    {
+      "id": "summary_of_weaknesses",
+      "label": "Summary of Weaknesses",
+      "type": "text",
+      "prompt": "What are the concerns that you have about the paper that would cause you to favor prioritizing other high-quality papers that are also under consideration for publication? Please number them so the authors can respond to each individually."
+    },
+    {
+      "id": "comments_suggestions_typos",
+      "label": "Comments, Suggestions and Typos",
+      "type": "text",
+      "prompt": "If you have any comments to the authors about how they may improve their paper, other than addressing the concerns above, please list them here."
+    },
+    {
+      "id": "confidence",
+      "label": "Confidence",
+      "type": "choice",
+      "prompt": "How confident are you in your evaluation of this paper?",
+      "options": [
+        {
+          "value": 5,
+          "label": "Positive that my evaluation is correct. I read the paper very carefully and am familiar with related work."
+        },
+        {
+          "value": 4,
+          "label": "Quite sure. I tried to check the important points carefully. It's unlikely, though conceivable, that I missed something that should affect my ratings."
+        },
+        {
+          "value": 3,
+          "label": "Pretty sure, but there's a chance I missed something. Although I have a good feel for this area in general, I did not carefully check the paper's details, e.g., the math or experimental design."
+        },
+        {
+          "value": 2,
+          "label": "Willing to defend my evaluation, but it is fairly likely that I missed some details, didn't understand some central points, or can't be sure about the novelty of the work."
+        },
+        {
+          "value": 1,
+          "label": "Not my area, or paper is very hard to understand. My evaluation is just an educated guess."
+        }
+      ]
+    },
+    {
+      "id": "soundness",
+      "label": "Soundness",
+      "type": "choice",
+      "prompt": "Given that this is a short/long paper, is it sufficiently sound and thorough? Does it clearly state scientific claims and provide adequate support for them? For experimental papers: consider the depth and/or breadth of the research questions investigated, technical soundness of experiments, methodological validity of evaluation. For position papers, surveys: consider the current state of the field is adequately represented and main counter-arguments acknowledged. For resource papers: consider the data collection methodology, resulting data & the difference from existing resources are described in sufficient detail.",
+      "options": [
+        {
+          "value": 5,
+          "label": "Excellent: This study is one of the most thorough I have seen, given its type."
+        },
+        {
+          "value": 4,
+          "label": "Strong: This study provides sufficient support for all of its claims. Some extra experiments could be nice, but not essential."
+        },
+        {
+          "value": 3,
+          "label": "Acceptable: This study provides sufficient support for its main claims. Some minor points may need extra support or details."
+        },
+        {
+          "value": 2,
+          "label": "Poor: Some of the main claims are not sufficiently supported. There are major technical/methodological problems."
+        },
+        {
+          "value": 1,
+          "label": "Major Issues: This study is not yet sufficiently thorough to warrant publication or is not relevant to ACL."
+        }
+      ]
+    },
+    {
+      "id": "excitement",
+      "label": "Excitement",
+      "type": "choice",
+      "prompt": "How exciting is this paper for you? Excitement is subjective, and does not necessarily follow what is popular in the field. We may perceive papers as transformational/innovative/surprising, e.g. because they present conceptual breakthroughs or evidence challenging common assumptions/methods/datasets/metrics. We may be excited about the possible impact of the paper on some community (not necessarily large or our own), e.g. lowering barriers, reducing costs, enabling new applications. We may be excited for papers that are relevant, inspiring, or useful for our own research. These factors may combine in different ways for different reviewers.",
+      "options": [
+        {
+          "value": 5,
+          "label": "Highly Exciting: I would recommend this paper to others and/or attend its presentation in a conference."
+        },
+        {
+          "value": 4,
+          "label": "Exciting: I would mention this paper to others and/or make an effort to attend its presentation in a conference."
+        },
+        {
+          "value": 3,
+          "label": "Interesting: I might mention some points of this paper to others and/or attend its presentation in a conference if there's time."
+        },
+        {
+          "value": 2,
+          "label": "Potentially Interesting: this paper does not resonate with me, but it might with others in the *ACL community."
+        },
+        {
+          "value": 1,
+          "label": "Not Exciting: this paper does not resonate with me, and I don't think it would with others in the *ACL community (e.g. it is in no way related to computational processing of language)."
+        }
+      ]
+    },
+    {
+      "id": "overall_assessment",
+      "label": "Overall Assessment",
+      "type": "choice",
+      "prompt": "If this paper was committed to an *ACL conference, do you believe it should be accepted? If you recommend conference, Findings and or even award consideration, you can still suggest minor revisions (e.g. typos, non-core missing refs, etc.). Outstanding papers should be either fascinating, controversial, surprising, impressive, or potentially field-changing. Main conference papers should be of significant interest to the community. Findings papers should be sound and sufficiently reproducible.",
+      "options": [
+        {
+          "value": "5",
+          "label": "Consider for Award: I think this paper could be considered for an outstanding paper award at an *ACL conference (up to top 2.5% papers)."
+        },
+        {
+          "value": "4.5",
+          "label": "Borderline Award"
+        },
+        {
+          "value": "4",
+          "label": "Conference: I think this paper could be accepted to an *ACL conference."
+        },
+        {
+          "value": "3.5",
+          "label": "Borderline Conference"
+        },
+        {
+          "value": "3",
+          "label": "Findings: I think this paper could be accepted to the Findings of the ACL."
+        },
+        {
+          "value": "2.5",
+          "label": "Borderline Findings"
+        },
+        {
+          "value": "2",
+          "label": "Resubmit next cycle: I think this paper needs substantial revisions that can be completed by the next ARR cycle."
+        },
+        {
+          "value": "1.5",
+          "label": "Resubmit after next cycle: I think this paper needs substantial revisions that cannot be completed by the next ARR cycle."
+        },
+        {
+          "value": "1",
+          "label": "Do not resubmit: This paper has to be fully redone, or it is not relevant to the *ACL community (e.g. it is in no way related to computational processing of language)."
+        }
+      ]
+    },
+    {
+      "id": "limitations_and_societal_impact",
+      "label": "Limitations and Societal Impact",
+      "type": "text",
+      "prompt": "Have the authors adequately discussed the limitations and potential positive and negative societal impacts of their work? If not, please include constructive suggestions for improvement."
+    },
+    {
+      "id": "ethics_concerns",
+      "label": "Ethics Concerns",
+      "type": "text",
+      "prompt": "Please review the ACL Code of Ethics and the authors' Responsible NLP research checklist. Describe any ethical issues with the paper, whether the authors acknowledged or addressed them, and whether the paper should be sent to the ethics committee for review (and why). If there are none, say so."
+    },
+    {
+      "id": "reproducibility",
+      "label": "Reproducibility",
+      "type": "choice",
+      "prompt": "Are there enough details to reproduce the main results of this paper?",
+      "options": [
+        {
+          "value": 5,
+          "label": "They could easily reproduce the results."
+        },
+        {
+          "value": 4,
+          "label": "They could mostly reproduce the results, but there may be some variation because of sample variance or minor variations in their interpretation of the protocol or method."
+        },
+        {
+          "value": 3,
+          "label": "They could reproduce the results with some difficulty. The settings of parameters are underspecified or subjectively determined, and/or the training/evaluation data are not widely available."
+        },
+        {
+          "value": 2,
+          "label": "They would be hard pressed to reproduce the results: The contribution depends on data that are simply not available outside the author's institution or consortium and/or not enough details are provided."
+        },
+        {
+          "value": 1,
+          "label": "They would not be able to reproduce the results here no matter how hard they tried."
+        }
+      ]
+    },
+    {
+      "id": "datasets",
+      "label": "Datasets",
+      "type": "choice",
+      "prompt": "If the authors state (in anonymous fashion) that datasets will be released, how valuable will they be to others?",
+      "options": [
+        {
+          "value": 5,
+          "label": "Enabling: The newly released datasets should affect other people's choice of research or development projects to undertake."
+        },
+        {
+          "value": 4,
+          "label": "Useful: I would recommend the new datasets to other researchers or developers for their ongoing work."
+        },
+        {
+          "value": 3,
+          "label": "Potentially useful: Someone might find the new datasets useful for their work."
+        },
+        {
+          "value": 2,
+          "label": "Documentary: The new datasets will be useful to study or replicate the reported research, although for other purposes they may have limited interest or limited usability. (Still a positive rating)"
+        },
+        {
+          "value": 1,
+          "label": "No usable datasets submitted."
+        }
+      ]
+    },
+    {
+      "id": "software",
+      "label": "Software",
+      "type": "choice",
+      "prompt": "If the authors state (in anonymous fashion) that their software will be available, how valuable will it be to others?",
+      "options": [
+        {
+          "value": 5,
+          "label": "Enabling: The newly released software should affect other people's choice of research or development projects to undertake."
+        },
+        {
+          "value": 4,
+          "label": "Useful: I would recommend the new software to other researchers or developers for their ongoing work."
+        },
+        {
+          "value": 3,
+          "label": "Potentially useful: Someone might find the new software useful for their work."
+        },
+        {
+          "value": 2,
+          "label": "Documentary: The new software will be useful to study or replicate the reported research, although for other purposes they may have limited interest or limited usability. (Still a positive rating)"
+        },
+        {
+          "value": 1,
+          "label": "No usable software submitted."
+        }
+      ]
+    }
+  ]
+}

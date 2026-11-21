@@ -1,0 +1,167 @@
+{
+  "id": "ijcai",
+  "name": "IJCAI",
+  "full_name": "International Joint Conference on Artificial Intelligence",
+  "area": "Machine Learning",
+  "edition": "2022",
+  "source_urls": [
+    "https://www.ijcai-22.org/wp-content/uploads/2022/01/Review-form-IJCAI-ECAI-2022-2.pdf",
+    "https://2026.ijcai.org/?p=2180",
+    "https://2025.ijcai.org/call-for-papers-main-track/",
+    "https://2025.ijcai.org/reviewers-faq/",
+    "https://2026.ijcai.org/?p=2427"
+  ],
+  "verified": true,
+  "notes": "Most recent complete public official form is IJCAI-ECAI 2022; the reproducibility question is confirmed unchanged on the 2026 site and the 2025 CFP confirms the ethics flag, but 2023-2026 forms are not public. Overall assessment levels are unnumbered on the form; the 9..1 values are our mapping. Expertise/confidence levels likewise mapped 4..1. Confidential comments omitted.",
+  "guidelines": "Evaluate novelty and originality, technical soundness/correctness, significance and expected impact, relevance to AI, clarity of exposition, and credibility/reproducibility. Judge the current submission, not possible future versions; questions to the authors must not ask for new results. Lack of code, data or full proofs cannot be the key reason for rejection, and reviewers are not required to read supplementary material. Borderline ratings should be used sparingly.",
+  "questions": [
+    {
+      "id": "summary",
+      "label": "Summary",
+      "type": "text",
+      "prompt": "Please briefly summarize the main contributions of the paper in your own words. (Please do not include your evaluation of the paper here)."
+    },
+    {
+      "id": "strengths",
+      "label": "Strengths",
+      "type": "text",
+      "prompt": "What are the main strengths of the paper? Please focus on novelty (how novel are the concepts, problems addressed, and methods introduced), soundness (are the results technically sound), significance and expected impact (are the results interesting and noteworthy; will the AI community take them up), relevance to AI and to IJCAI, clarity of exposition, and credibility with regard to reproducibility."
+    },
+    {
+      "id": "weaknesses",
+      "label": "Opportunities for Improvement",
+      "type": "text",
+      "prompt": "What opportunities are there to improve the paper?"
+    },
+    {
+      "id": "questions_for_rebuttal",
+      "label": "Questions for the Rebuttal",
+      "type": "text",
+      "prompt": "What pressing questions do you have for the authors in the rebuttal? List and number only questions that (1) could directly influence your evaluation and (2) do not require new results, e.g., asking the authors to clarify or justify particular issues or important relationships to other work."
+    },
+    {
+      "id": "overall_assessment",
+      "label": "Overall Assessment",
+      "type": "choice",
+      "prompt": "Please provide your overall assessment of the paper.",
+      "options": [
+        {
+          "value": 9,
+          "label": "Award Quality: Truly groundbreaking work. This paper is likely to change our field. It should be considered for a best paper award. (Top 5% of accepted IJCAI papers.)"
+        },
+        {
+          "value": 8,
+          "label": "Strong Accept: Inspiring. An excellent paper. This paper changed my thinking on this topic. I will fight for acceptance. (Top 15% of accepted IJCAI papers.)"
+        },
+        {
+          "value": 7,
+          "label": "Clear Accept: Interesting. A very good submission. I learned a lot from this paper. I vote and argue for acceptance. (Top 50% of accepted IJCAI papers.)"
+        },
+        {
+          "value": 6,
+          "label": "Weak Accept: Useful. A good paper. The results and insights will benefit the field. I believe it should be accepted."
+        },
+        {
+          "value": 5,
+          "label": "Borderline Accept: Marginally above the acceptance threshold. Technically correct, but not particularly exciting or inspiring. Please use sparingly."
+        },
+        {
+          "value": 4,
+          "label": "Borderline Reject: Marginally below the acceptance threshold. The paper has merits but there are key weaknesses. It would benefit from another revision. Please use sparingly."
+        },
+        {
+          "value": 3,
+          "label": "Weak Reject: Not good enough. Limited contribution. Needs more work and/or revisions. I believe it should be rejected."
+        },
+        {
+          "value": 2,
+          "label": "Clear Reject: Unclear contribution. Needs to be reworked and/or major revision. I vote and will argue for rejection."
+        },
+        {
+          "value": 1,
+          "label": "Strong Reject: Contribution is flawed. I will strongly argue for rejection."
+        }
+      ]
+    },
+    {
+      "id": "justification",
+      "label": "Justification",
+      "type": "text",
+      "prompt": "Justify your score in a few lines, focusing on novelty, soundness, significance, expected impact, relevance to AI, clarity and reproducibility."
+    },
+    {
+      "id": "reproducibility",
+      "label": "Reproducibility",
+      "type": "choice",
+      "prompt": "Are the results (e.g., theorems, experimental results) in the paper easily reproducible?",
+      "options": [
+        {
+          "value": "convincing",
+          "label": "Convincing: I am convinced that the obtained results can be reproduced, possibly with some effort. Key resources (proofs, code, data) are available / will be available upon acceptance / good reasons are given why they are not"
+        },
+        {
+          "value": "credible",
+          "label": "Credible: I believe that the obtained results can, in principle, be reproduced. Even though key resources are unavailable at this point, the key details are sufficiently well described for an expert to confidently reproduce the main results"
+        },
+        {
+          "value": "irreproducible",
+          "label": "Irreproducible: It is not possible to reproduce the results from the description given in the paper"
+        }
+      ]
+    },
+    {
+      "id": "ethics_concerns",
+      "label": "Ethics Concerns",
+      "type": "text",
+      "prompt": "Does the paper raise ethical concerns that need to be considered before acceptance? If yes, summarize the ethical issues and how (or whether) the authors' Ethics Statement addresses them; otherwise state that there are none."
+    },
+    {
+      "id": "expertise",
+      "label": "Expertise",
+      "type": "choice",
+      "prompt": "How well does this paper align with your expertise?",
+      "options": [
+        {
+          "value": 4,
+          "label": "Expert: This paper is within my core research focus. I am deeply knowledgeable about all the topics covered by the paper"
+        },
+        {
+          "value": 3,
+          "label": "Knowledgeable: This paper overlaps with my core research focus. I am knowledgeable about most of the topics covered by the paper"
+        },
+        {
+          "value": 2,
+          "label": "Somewhat knowledgeable: This paper has little overlap with my core research focus. I am somewhat knowledgeable about some of the topics covered by the paper"
+        },
+        {
+          "value": 1,
+          "label": "Not knowledgeable: I have little knowledge about most of the topics covered by the paper"
+        }
+      ]
+    },
+    {
+      "id": "confidence",
+      "label": "Confidence",
+      "type": "choice",
+      "prompt": "How confident are you in your evaluation?",
+      "options": [
+        {
+          "value": 4,
+          "label": "Very confident: I have checked all points of the paper carefully. I am certain I did not miss any important aspects"
+        },
+        {
+          "value": 3,
+          "label": "Confident: I have tried to check the key points of the paper. It is unlikely, though conceivable, that I missed some important aspects"
+        },
+        {
+          "value": 2,
+          "label": "Somewhat confident: I was unable to carefully check some of the details (proof, novelty, experimental design) but I am able to defend my evaluation. It is quite likely that I missed some important aspects"
+        },
+        {
+          "value": 1,
+          "label": "Not confident: My evaluation is an educated guess"
+        }
+      ]
+    }
+  ]
+}

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "@/components/ui/use-toast";
 import { api } from "@/lib/api";
 import { fetchMaxScore, getWebSocketUrl } from "@/lib/config";
-import type { AppTab, GpuStats, ReviewResults } from "@/lib/types";
+import type { AppTab, ConferenceSummary, GpuStats, ReviewResults } from "@/lib/types";
 
 interface ReviewSocketMessage {
   status: "progress" | "completed" | "error";
@@ -17,6 +17,8 @@ interface ReviewSocketMessage {
 export function useReviewWorkflow(activeTab: AppTab) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedReviewForm, setSelectedReviewForm] = useState<File | null>(null);
+  const [conferences, setConferences] = useState<ConferenceSummary[]>([]);
+  const [selectedConferenceId, setSelectedConferenceId] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState("");
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [availableGpus, setAvailableGpus] = useState<Array<Pick<GpuStats, "index" | "name">>>([]);
@@ -68,6 +70,10 @@ export function useReviewWorkflow(activeTab: AppTab) {
   useEffect(() => {
     loadModels();
     loadGpus();
+    api
+      .listConferences()
+      .then((data) => setConferences(data.conferences))
+      .catch((error) => console.error("Failed to load conference templates:", error));
     fetchMaxScore()
       .then(setMaxScore)
       .catch((error) => {
@@ -117,6 +123,16 @@ export function useReviewWorkflow(activeTab: AppTab) {
       return;
     }
     setSelectedReviewForm(file);
+    setSelectedConferenceId(null);
+    setResults(null);
+  }, []);
+
+  const selectConference = useCallback((conferenceId: string | null) => {
+    setSelectedConferenceId(conferenceId);
+    if (conferenceId) {
+      setSelectedReviewForm(null);
+      if (reviewFormInputRef.current) reviewFormInputRef.current.value = "";
+    }
     setResults(null);
   }, []);
 
@@ -129,7 +145,7 @@ export function useReviewWorkflow(activeTab: AppTab) {
 
       setIsReviewing(true);
       try {
-        const upload = await api.uploadPaper(selectedFile, selectedReviewForm);
+        const upload = await api.uploadPaper(selectedFile, selectedReviewForm, selectedConferenceId);
         const hostIndex = gpuIndex !== null ? gpuIndex + 1 : 0;
         const filename = selectedFile.name;
         const progressToast = toast({
@@ -189,7 +205,7 @@ export function useReviewWorkflow(activeTab: AppTab) {
         toast({ title: "Upload Failed", description: error instanceof Error ? error.message : "An error occurred", variant: "destructive" });
       }
     },
-    [selectedFile, selectedModel, selectedReviewForm]
+    [selectedFile, selectedModel, selectedReviewForm, selectedConferenceId]
   );
 
   return {
@@ -197,6 +213,9 @@ export function useReviewWorkflow(activeTab: AppTab) {
     selectFile,
     selectedReviewForm,
     selectReviewForm,
+    conferences,
+    selectedConferenceId,
+    selectConference,
     selectedModel,
     setSelectedModel,
     availableModels,

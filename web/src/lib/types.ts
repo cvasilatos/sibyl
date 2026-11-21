@@ -12,6 +12,27 @@ export interface ReviewCriteria {
   recommendation: string;
   detailed_feedback: string;
   review_form_response?: string | null;
+  conference?: string | null;
+  review_form_answers?: Record<string, number | string> | null;
+}
+
+export interface ConferenceSummary {
+  id: string;
+  name: string;
+  full_name: string;
+  area: string;
+  edition: string;
+  verified: boolean;
+  source_urls: string[];
+  question_count: number;
+}
+
+export interface EngineInfo {
+  name: "ollama" | "vllm" | "openai" | string;
+  label: string;
+  supports_downloads: boolean;
+  platform: string;
+  machine: string;
 }
 
 export interface Review {

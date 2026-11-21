@@ -1,5 +1,5 @@
 import { API_URL } from "@/lib/config";
-import type { AvailableModel, FullReview, GpuResponse, InstalledModel, ReviewStatistics, ReviewsResponse } from "@/lib/types";
+import type { AvailableModel, ConferenceSummary, EngineInfo, FullReview, GpuResponse, InstalledModel, ReviewStatistics, ReviewsResponse } from "@/lib/types";
 
 interface ModelsResponse<T> {
   models: T[];
@@ -15,6 +15,7 @@ interface UploadResponse {
   session_id: string;
   filename: string;
   review_form_filename: string | null;
+  conference_id: string | null;
 }
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
@@ -28,7 +29,10 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  getEngine: () => requestJson<EngineInfo>("/api/engine"),
+  listConferences: () => requestJson<{ conferences: ConferenceSummary[]; count: number }>("/api/conferences"),
   listInstalledModels: () => requestJson<ModelsResponse<InstalledModel>>("/api/models"),
+  deleteModel: (modelName: string) => requestJson<{ message: string; model: string }>(`/api/models/${encodeURIComponent(modelName)}`, { method: "DELETE" }),
   listAvailableModels: () => requestJson<ModelsResponse<AvailableModel>>("/api/models/available"),
   listModelTags: (modelName: string) => requestJson<ModelTagsResponse>(`/api/models/available/${encodeURIComponent(modelName)}/tags`),
   listGpus: () => requestJson<GpuResponse>("/api/gpu"),
@@ -42,10 +46,11 @@ export const api = {
     if (!response.ok) throw new Error("Failed to download PDF");
     return response.blob();
   },
-  async uploadPaper(file: File, reviewForm?: File | null): Promise<UploadResponse> {
+  async uploadPaper(file: File, reviewForm?: File | null, conferenceId?: string | null): Promise<UploadResponse> {
     const formData = new FormData();
     formData.append("file", file);
     if (reviewForm) formData.append("review_form", reviewForm);
+    else if (conferenceId) formData.append("conference_id", conferenceId);
     return requestJson<UploadResponse>("/api/upload", { method: "POST", body: formData });
   },
 };

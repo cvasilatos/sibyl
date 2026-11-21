@@ -53,5 +53,6 @@
       "comments": false,
       "strings": true
     }
-  }
+  },
+  "python.terminal.useEnvFile": true
 }

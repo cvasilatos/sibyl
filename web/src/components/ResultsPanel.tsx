@@ -20,7 +20,7 @@ export default function ResultsPanel({ results, maxScore }: { results: ReviewRes
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <ReviewDetails criteria={review.criteria} />
+            <ReviewDetails review={review} maxScore={maxScore} />
           </CardContent>
         </Card>
       ))}

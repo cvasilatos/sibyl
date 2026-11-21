@@ -1,0 +1,202 @@
+{
+  "id": "neurips",
+  "name": "NeurIPS",
+  "full_name": "Conference on Neural Information Processing Systems",
+  "area": "Machine Learning",
+  "edition": "2025",
+  "source_urls": [
+    "https://neurips.cc/Conferences/2025/ReviewerGuidelines",
+    "https://neurips.cc/Conferences/2026/ReviewerGuidelines"
+  ],
+  "verified": true,
+  "notes": "Form fields and scales from the official NeurIPS 2025 reviewer guidelines. The 2026 guidelines keep the same four criteria (Quality, Clarity, Significance, Originality) but interpret them per author-selected contribution type (General, Theory, Use-Inspired, Concept & Feasibility, Negative Results); the 2026 page does not list the form scales. Code-of-conduct and responsible-reviewing acknowledgements omitted.",
+  "guidelines": "Judge each paper on its own merits rather than against a target acceptance rate. Assess quality (are claims correct and well supported), clarity (for an ML audience), significance, and originality (new insights, including from evaluating existing methods, count). Be specific and substantiate every criticism; vague or unsupported criticism is unhelpful. Honest discussion of limitations should be rewarded, not penalized, and 'no' answers on the paper checklist are usually not grounds for rejection.",
+  "questions": [
+    {
+      "id": "summary",
+      "label": "Summary",
+      "type": "text",
+      "prompt": "Briefly summarize the paper and its contributions in your own words. This is not the place to critique the paper; the authors should generally agree with a well-written summary. Do not paste the abstract."
+    },
+    {
+      "id": "strengths_and_weaknesses",
+      "label": "Strengths and Weaknesses",
+      "type": "text",
+      "prompt": "Provide a thorough assessment of the strengths and weaknesses of the paper, touching on each of the following dimensions: Quality, Clarity, Significance, and Originality."
+    },
+    {
+      "id": "quality",
+      "label": "Quality",
+      "type": "choice",
+      "prompt": "Rate the quality of the submission: is it technically sound, are claims well supported by theoretical analysis or experimental results, is it a complete piece of work, and are the authors honest about strengths and weaknesses?",
+      "options": [
+        {
+          "value": 4,
+          "label": "excellent"
+        },
+        {
+          "value": 3,
+          "label": "good"
+        },
+        {
+          "value": 2,
+          "label": "fair"
+        },
+        {
+          "value": 1,
+          "label": "poor"
+        }
+      ]
+    },
+    {
+      "id": "clarity",
+      "label": "Clarity",
+      "type": "choice",
+      "prompt": "Rate the clarity of the submission: is it clearly written and well organized, and does it adequately inform the reader (enough detail for an expert to reproduce the results)?",
+      "options": [
+        {
+          "value": 4,
+          "label": "excellent"
+        },
+        {
+          "value": 3,
+          "label": "good"
+        },
+        {
+          "value": 2,
+          "label": "fair"
+        },
+        {
+          "value": 1,
+          "label": "poor"
+        }
+      ]
+    },
+    {
+      "id": "significance",
+      "label": "Significance",
+      "type": "choice",
+      "prompt": "Rate the significance of the results: are they impactful for the community, likely to be used or built on, and do they address a difficult task in a demonstrably better way?",
+      "options": [
+        {
+          "value": 4,
+          "label": "excellent"
+        },
+        {
+          "value": 3,
+          "label": "good"
+        },
+        {
+          "value": 2,
+          "label": "fair"
+        },
+        {
+          "value": 1,
+          "label": "poor"
+        }
+      ]
+    },
+    {
+      "id": "originality",
+      "label": "Originality",
+      "type": "choice",
+      "prompt": "Rate the originality of the work: does it provide new insights, deepen understanding, or highlight important properties of existing methods? Is it clear how it differs from previous contributions, with relevant citations?",
+      "options": [
+        {
+          "value": 4,
+          "label": "excellent"
+        },
+        {
+          "value": 3,
+          "label": "good"
+        },
+        {
+          "value": 2,
+          "label": "fair"
+        },
+        {
+          "value": 1,
+          "label": "poor"
+        }
+      ]
+    },
+    {
+      "id": "questions",
+      "label": "Questions",
+      "type": "text",
+      "prompt": "Please list up and carefully describe questions and suggestions for the authors, which should focus on key points (ideally around 3-5) that are actionable with clear guidance. Think of the things where a response from the author can change your opinion, clarify a confusion or address a limitation. You are strongly encouraged to state the clear criteria under which your evaluation score could increase or decrease."
+    },
+    {
+      "id": "limitations",
+      "label": "Limitations",
+      "type": "text",
+      "prompt": "Have the authors adequately addressed the limitations and potential negative societal impact of their work? If so, simply leave \"yes\"; if not, please include constructive suggestions for improvement."
+    },
+    {
+      "id": "overall",
+      "label": "Overall",
+      "type": "choice",
+      "prompt": "Please provide an overall score for this submission.",
+      "options": [
+        {
+          "value": 6,
+          "label": "Strong Accept"
+        },
+        {
+          "value": 5,
+          "label": "Accept"
+        },
+        {
+          "value": 4,
+          "label": "Borderline accept (please use sparingly)"
+        },
+        {
+          "value": 3,
+          "label": "Borderline reject (please use sparingly)"
+        },
+        {
+          "value": 2,
+          "label": "Reject"
+        },
+        {
+          "value": 1,
+          "label": "Strong Reject"
+        }
+      ]
+    },
+    {
+      "id": "confidence",
+      "label": "Confidence",
+      "type": "choice",
+      "prompt": "Please provide a confidence score for your assessment of this submission.",
+      "options": [
+        {
+          "value": 5,
+          "label": "You are absolutely certain about your assessment. You are very familiar with the related work and checked the math/other details carefully"
+        },
+        {
+          "value": 4,
+          "label": "You are confident in your assessment, but not absolutely certain. It is unlikely, but not impossible, that you did not understand some parts of the submission or that you are unfamiliar with some pieces of related work"
+        },
+        {
+          "value": 3,
+          "label": "You are fairly confident in your assessment. It is possible that you did not understand some parts of the submission or that you are unfamiliar with some pieces of related work. Math/other details were not carefully checked"
+        },
+        {
+          "value": 2,
+          "label": "You are willing to defend your assessment, but it is quite likely that you did not understand the central parts of the submission or that you are unfamiliar with some pieces of related work. Math/other details were not carefully checked"
+        },
+        {
+          "value": 1,
+          "label": "Your assessment is an educated guess. The submission is not in your area or the submission was difficult to understand. Math/other details were not carefully checked"
+        }
+      ]
+    },
+    {
+      "id": "ethics_concerns",
+      "label": "Ethics Concerns",
+      "type": "text",
+      "prompt": "If there are ethical issues with this paper, please flag the paper for an ethics review and describe the concerns; otherwise state that no ethics review is needed."
+    }
+  ]
+}

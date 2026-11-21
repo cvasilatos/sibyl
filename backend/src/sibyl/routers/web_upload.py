@@ -3,11 +3,12 @@
 import tempfile
 import uuid
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any
 
 import aiofiles
-from fastapi import APIRouter, HTTPException, UploadFile
+from fastapi import APIRouter, Form, HTTPException, UploadFile
 
+from sibyl.conferences import get_conference
 from sibyl.routers.web_state import review_sessions
 
 router = APIRouter()
@@ -32,8 +33,15 @@ def _decode_review_form(filename: str, content: bytes) -> str:
 
 
 @router.post("/upload")
-async def upload_paper(file: UploadFile, review_form: UploadFile | None = None) -> dict[str, Any]:
-    """Upload a PDF paper and an optional UTF-8 text/Markdown review form."""
+async def upload_paper(file: UploadFile, review_form: UploadFile | None = None, conference_id: Annotated[str | None, Form()] = None) -> dict[str, Any]:
+    """Upload a PDF paper with either a conference template id or an optional UTF-8 text/Markdown review form."""
+    conference_id = conference_id or None
+    if conference_id is not None:
+        if review_form is not None:
+            raise HTTPException(status_code=400, detail="Choose either a conference template or a custom review form, not both")
+        if get_conference(conference_id) is None:
+            raise HTTPException(status_code=400, detail=f"Unknown conference template '{conference_id}'")
+
     content = await file.read()
 
     review_form_content: str | None = None
@@ -56,6 +64,7 @@ async def upload_paper(file: UploadFile, review_form: UploadFile | None = None) 
         "filename": file.filename,
         "review_form": review_form_content,
         "review_form_filename": review_form_filename,
+        "conference_id": conference_id,
         "progress": 0,
         "message": "File uploaded successfully",
     }
@@ -64,4 +73,5 @@ async def upload_paper(file: UploadFile, review_form: UploadFile | None = None) 
         "session_id": session_id,
         "filename": file.filename,
         "review_form_filename": review_form_filename,
+        "conference_id": conference_id,
     }

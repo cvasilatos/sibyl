@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, Loader2, RefreshCw, Search } from "lucide-react";
+import { Download, Loader2, RefreshCw, Search, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,7 +8,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { api } from "@/lib/api";
 import { useDownload } from "@/lib/download-context";
 import { formatBytes, formatDate } from "@/lib/presentation";
-import type { AvailableModel, InstalledModel } from "@/lib/types";
+import type { AvailableModel, EngineInfo, InstalledModel } from "@/lib/types";
 
 export default function ModelManager() {
   const [models, setModels] = useState<InstalledModel[]>([]);
@@ -20,6 +20,7 @@ export default function ModelManager() {
   const [fetchingTags, setFetchingTags] = useState<Set<string>>(new Set());
   const [selectedTags, setSelectedTags] = useState<Record<string, string>>({});
   const [expandedModel, setExpandedModel] = useState<string | null>(null);
+  const [engine, setEngine] = useState<EngineInfo | null>(null);
   const { toast } = useToast();
   const { installing, error, startDownload, clearError } = useDownload();
 
@@ -49,6 +50,10 @@ export default function ModelManager() {
   useEffect(() => {
     loadModels();
     loadAvailableModels();
+    api
+      .getEngine()
+      .then(setEngine)
+      .catch((err) => console.error("Failed to load engine info:", err));
   }, [loadAvailableModels, loadModels]);
 
   const filteredModels = useMemo(() => {
@@ -71,6 +76,24 @@ export default function ModelManager() {
       setModelTags((prev) => ({ ...prev, [modelName]: [] }));
     } finally {
       setFetchingTags((prev) => {
+        const next = new Set(prev);
+        next.delete(modelName);
+        return next;
+      });
+    }
+  };
+
+  const removeModel = async (modelName: string) => {
+    if (!window.confirm(`Delete ${modelName}? It will need to be downloaded again to use it.`)) return;
+    setRemoving((prev) => new Set(prev).add(modelName));
+    try {
+      await api.deleteModel(modelName);
+      toast({ title: "Model Removed", description: `${modelName} was deleted.` });
+      await Promise.all([loadModels(), loadAvailableModels()]);
+    } catch (err) {
+      toast({ title: "Removal Failed", description: err instanceof Error ? err.message : "Could not delete model", variant: "destructive" });
+    } finally {
+      setRemoving((prev) => {
         const next = new Set(prev);
         next.delete(modelName);
         return next;
@@ -130,8 +153,14 @@ export default function ModelManager() {
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle>🤖 Ollama Models</CardTitle>
-            <CardDescription>Manage your local Ollama models</CardDescription>
+            <CardTitle>🤖 {engine?.label ?? "Local"} Models</CardTitle>
+            <CardDescription>
+              {engine?.name === "vllm"
+                ? "Download models from Hugging Face; Sibyl starts vLLM on the selected GPU when a review needs it"
+                : engine && !engine.supports_downloads
+                  ? "Models are managed by your inference server; Sibyl lists what it serves"
+                  : "Manage your local models"}
+            </CardDescription>
           </div>
           <Button onClick={loadModels} disabled={loading} size="sm" variant="outline">
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
@@ -146,7 +175,7 @@ export default function ModelManager() {
         )}
 
         {/* Search and install models */}
-        <div className="space-y-2">
+        <div className={`space-y-2 ${engine && !engine.supports_downloads ? "hidden" : ""}`}>
           <h3 className="text-sm font-semibold">Browse & Install Models</h3>
 
           {/* Search box */}
@@ -182,6 +211,7 @@ export default function ModelManager() {
                       <p className="text-xs text-muted-foreground">{model.description}</p>
                       <p className="text-xs text-muted-foreground mt-1">{model.size}</p>
                       {hasInstalledVariants && <p className="text-xs text-green-600 mt-1">Installed: {model.installed_variants?.join(", ")}</p>}
+                      {model.installed && !hasInstalledVariants && <p className="text-xs text-green-600 mt-1">Installed</p>}
                     </div>
                     <Button onClick={() => handleInstallClick(model.name)} disabled={isInstallingModel} size="sm" variant="default">
                       {isInstallingModel ? (
@@ -223,10 +253,10 @@ export default function ModelManager() {
                         </div>
                       ) : (
                         <div className="flex items-center gap-2">
-                          <span className="text-xs text-muted-foreground">No size variants found.</span>
-                          <Button size="sm" onClick={() => doInstall(model.name)} disabled={isInstallingModel}>
+                          <span className="text-xs text-muted-foreground">{engine?.name === "vllm" ? model.name : "No size variants found."}</span>
+                          <Button size="sm" onClick={() => doInstall(model.name)} disabled={isInstallingModel || model.installed}>
                             <Download className="h-3 w-3 mr-1" />
-                            Install latest
+                            {engine?.name === "vllm" ? "Download" : "Install latest"}
                           </Button>
                         </div>
                       )}
@@ -258,12 +288,7 @@ export default function ModelManager() {
                       {formatBytes(model.size)} • Modified {formatDate(model.modified_at)}
                     </p>
                   </div>
-                  <Button
-                    onClick={() => removeModel(model.model)}
-                    disabled={removing.has(model.model)}
-                    size="sm"
-                    variant="destructive"
-                  >
+                  <Button onClick={() => removeModel(model.model)} disabled={removing.has(model.model)} size="sm" variant="destructive">
                     {removing.has(model.model) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                   </Button>
                 </div>

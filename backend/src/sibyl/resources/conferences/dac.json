@@ -1,0 +1,234 @@
+{
+  "id": "dac",
+  "name": "DAC",
+  "full_name": "Design Automation Conference",
+  "area": "Design Automation",
+  "edition": "2026",
+  "source_urls": [
+    "https://dac.com/2026/research-manuscript-submissions",
+    "https://dac.com/2027/program/research-manuscript-submissions",
+    "https://dac.com/2026/research-frequently-asked-questions",
+    "https://vlsicad.ucsd.edu/~abk/dacreviews.html"
+  ],
+  "verified": false,
+  "notes": "DAC does not publish its review form. Rating dimensions are modeled on the official DAC 2026/2027 manuscript selection criteria (technical quality, originality, significance of quantitative results, experimental evidence, writing); the 1-5 scales and their labels, and the expertise scale, are reconstructed (a 1-5 Overall Recommendation and Author/Committee comments follow A. Kahng's DAC reviewing guide, an unofficial source). No rebuttal phase.",
+  "guidelines": "Manuscripts are reviewed as finished work; preliminary submissions are at a disadvantage. Judge the quality of the technical contribution, originality, advances over previous approaches, and the significance of results described by measurable quantitative criteria (e.g., runtime, optimality, automation of manual effort). Experimental evidence on industry-strength designs or widely accepted benchmarks is highly desirable; a good discussion of limitations is expected. Back up criticisms (name the prior work when saying 'not novel'), pair negative verdicts with concrete suggestions, and make a clear call rather than rating everything as average.",
+  "questions": [
+    {
+      "id": "summary",
+      "label": "Summary",
+      "type": "text",
+      "prompt": "Summarize the manuscript's problem, approach, and claimed contributions."
+    },
+    {
+      "id": "strengths",
+      "label": "Strengths",
+      "type": "text",
+      "prompt": "What are the main strengths of the manuscript?"
+    },
+    {
+      "id": "weaknesses",
+      "label": "Weaknesses",
+      "type": "text",
+      "prompt": "What are the main weaknesses? Are the claims validated? Name specific prior work where novelty is questioned."
+    },
+    {
+      "id": "author_comments",
+      "label": "Comments to Authors",
+      "type": "text",
+      "prompt": "Detailed, constructive comments for the authors, including concrete suggestions for improvement and discussion of limitations."
+    },
+    {
+      "id": "technical_quality",
+      "label": "Technical Quality",
+      "type": "choice",
+      "prompt": "Quality of the technical contribution (design, solution, methodology).",
+      "options": [
+        {
+          "value": 5,
+          "label": "Excellent"
+        },
+        {
+          "value": 4,
+          "label": "Good"
+        },
+        {
+          "value": 3,
+          "label": "Fair"
+        },
+        {
+          "value": 2,
+          "label": "Weak"
+        },
+        {
+          "value": 1,
+          "label": "Poor"
+        }
+      ]
+    },
+    {
+      "id": "originality",
+      "label": "Originality",
+      "type": "choice",
+      "prompt": "Originality of the concepts used and described, and advances over previous approaches.",
+      "options": [
+        {
+          "value": 5,
+          "label": "Excellent"
+        },
+        {
+          "value": 4,
+          "label": "Good"
+        },
+        {
+          "value": 3,
+          "label": "Fair"
+        },
+        {
+          "value": 2,
+          "label": "Weak"
+        },
+        {
+          "value": 1,
+          "label": "Poor"
+        }
+      ]
+    },
+    {
+      "id": "significance",
+      "label": "Significance of Results",
+      "type": "choice",
+      "prompt": "Significance of the results, described by measurable quantitative criteria.",
+      "options": [
+        {
+          "value": 5,
+          "label": "Excellent"
+        },
+        {
+          "value": 4,
+          "label": "Good"
+        },
+        {
+          "value": 3,
+          "label": "Fair"
+        },
+        {
+          "value": 2,
+          "label": "Weak"
+        },
+        {
+          "value": 1,
+          "label": "Poor"
+        }
+      ]
+    },
+    {
+      "id": "experimental_evidence",
+      "label": "Experimental Evidence",
+      "type": "choice",
+      "prompt": "Degree of experimental evidence supporting the claims (industry-strength designs or widely accepted benchmarks).",
+      "options": [
+        {
+          "value": 5,
+          "label": "Excellent"
+        },
+        {
+          "value": 4,
+          "label": "Good"
+        },
+        {
+          "value": 3,
+          "label": "Fair"
+        },
+        {
+          "value": 2,
+          "label": "Weak"
+        },
+        {
+          "value": 1,
+          "label": "Poor"
+        }
+      ]
+    },
+    {
+      "id": "presentation",
+      "label": "Presentation",
+      "type": "choice",
+      "prompt": "Quality of writing, use of English, organization, and clarity of presentation.",
+      "options": [
+        {
+          "value": 5,
+          "label": "Excellent"
+        },
+        {
+          "value": 4,
+          "label": "Good"
+        },
+        {
+          "value": 3,
+          "label": "Fair"
+        },
+        {
+          "value": 2,
+          "label": "Weak"
+        },
+        {
+          "value": 1,
+          "label": "Poor"
+        }
+      ]
+    },
+    {
+      "id": "overall_recommendation",
+      "label": "Overall Recommendation",
+      "type": "choice",
+      "prompt": "Your overall recommendation for this manuscript.",
+      "options": [
+        {
+          "value": 5,
+          "label": "Strong accept"
+        },
+        {
+          "value": 4,
+          "label": "Accept"
+        },
+        {
+          "value": 3,
+          "label": "Borderline"
+        },
+        {
+          "value": 2,
+          "label": "Reject"
+        },
+        {
+          "value": 1,
+          "label": "Strong reject"
+        }
+      ]
+    },
+    {
+      "id": "reviewer_expertise",
+      "label": "Reviewer Expertise",
+      "type": "choice",
+      "prompt": "Your expertise in the manuscript's topic.",
+      "options": [
+        {
+          "value": 4,
+          "label": "Expert"
+        },
+        {
+          "value": 3,
+          "label": "Knowledgeable"
+        },
+        {
+          "value": 2,
+          "label": "Some familiarity"
+        },
+        {
+          "value": 1,
+          "label": "No familiarity"
+        }
+      ]
+    }
+  ]
+}

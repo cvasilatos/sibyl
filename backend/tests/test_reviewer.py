@@ -136,6 +136,15 @@ def test_paper_review_raw_response_stored():
 import json
 
 
+def _engine_with(mock_client):
+    """Ollama engine whose single host is a mocked AsyncClient."""
+    from sibyl.inference.ollama_engine import OllamaEngine
+
+    engine = OllamaEngine(hosts=["http://ollama.test:11434"])
+    engine.clients = [mock_client]
+    return engine
+
+
 def test_review_system_review_paper():
     """Test ReviewSystem.review_paper with a mocked Ollama client."""
     import asyncio
@@ -166,7 +175,7 @@ def test_review_system_review_paper():
     mock_client = AsyncMock(spec=AsyncClient)
     mock_client.generate = AsyncMock(return_value=mock_response)
 
-    reviewer = ReviewSystem(mock_client, "test-model")
+    reviewer = ReviewSystem(_engine_with(mock_client), "test-model")
 
     async def run():
         return await reviewer.review_paper("paper text content", "Test Paper Title", "test-model")
@@ -178,6 +187,11 @@ def test_review_system_review_paper():
     assert review.criteria.score == 4
     assert review.criteria.recommendation == Recommendation.ACCEPT
     assert review.raw_response == llm_reply_json
+    call = mock_client.generate.await_args
+    assert call is not None
+    schema = call.kwargs["format"]
+    assert "detailed_feedback" in schema["required"]
+    assert "review_form_response" not in schema["properties"]
 
 
 def test_review_system_empty_response_raises():
@@ -195,7 +209,7 @@ def test_review_system_empty_response_raises():
     mock_client = AsyncMock(spec=AsyncClient)
     mock_client.generate = AsyncMock(return_value=mock_response)
 
-    reviewer = ReviewSystem(mock_client, "test-model")
+    reviewer = ReviewSystem(_engine_with(mock_client), "test-model")
 
     async def run():
         return await reviewer.review_paper("paper text", "Title", "test-model")
@@ -214,22 +228,14 @@ def test_review_system_completes_custom_review_form():
     from sibyl.reviewer import FORM_TEMPERATURE, ReviewSystem
 
     response_data = {
-        "novelty": "Novel",
-        "methodology": "Sound",
-        "results": "Supported",
-        "clarity": "Clear",
-        "impact": "High",
-        "limitations": "Small sample",
-        "strengths": "Strong design",
+        "review_form_response": "# Significance\n\nThe work is significant.",
         "score": 4,
         "recommendation": "Accept",
-        "detailed_feedback": "Good work",
-        "review_form_response": "# Significance\n\nThe work is significant.",
     }
     mock_response = MagicMock(response=json.dumps(response_data))
     mock_client = AsyncMock(spec=AsyncClient)
     mock_client.generate = AsyncMock(return_value=mock_response)
-    reviewer = ReviewSystem(mock_client, "test-model")
+    reviewer = ReviewSystem(_engine_with(mock_client), "test-model")
 
     async def run():
         return await reviewer.review_paper(
@@ -247,4 +253,6 @@ def test_review_system_completes_custom_review_form():
     assert "<research_paper>\npaper text" in call["prompt"]
     assert call["system"]
     assert call["options"]["temperature"] == FORM_TEMPERATURE
-    assert "review_form_response" in call["format"]["required"]
+    assert call["format"]["required"] == ["review_form_response", "score", "recommendation"]
+    assert "novelty" not in call["format"]["properties"]
+    assert review.criteria.novelty == ""

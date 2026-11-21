@@ -1,9 +1,12 @@
 """PDF parsing utilities for extracting text from research papers."""
 
+import functools
 import io
 import logging
 import os
 import re
+import threading
+from collections import defaultdict
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
@@ -12,12 +15,24 @@ from marker.converters.pdf import PdfConverter
 from marker.models import create_model_dict
 from marker.output import text_from_rendered
 
+from sibyl.hardware import torch_device
+
 if TYPE_CHECKING:
     from pypdf._page import PageObject
 
 import pypdf
 
 logger: CustomLogger = cast("CustomLogger", logging.getLogger(__name__))
+
+
+_device_locks: defaultdict[str, threading.Lock] = defaultdict(threading.Lock)
+
+
+@functools.cache
+def _marker_models(device: str) -> dict:
+    """Load Marker's layout/OCR models once per device instead of on every review."""
+    logger.info(f"Loading Marker models on {device}")
+    return create_model_dict(device=device)
 
 
 class PDFParser:
@@ -63,7 +78,7 @@ class PDFParser:
         """Extract metadata from the PDF.
 
         Args:
-            ollama_host: The Ollama host number to use for GPU device assignment
+            ollama_host: Review slot (0 = auto, n = GPU n-1); selects CUDA, Apple MPS, or CPU
 
         Returns:
             Dictionary containing PDF metadata
@@ -78,18 +93,12 @@ class PDFParser:
             Dictionary containing PDF metadata from GROBID, or None if extraction fails
 
         """
-        artifact_dict = create_model_dict(device=f"cuda:{ollama_host - 1}")
-        converter = PdfConverter(
-            artifact_dict=artifact_dict,
-        )
-        rendered = converter(io.BytesIO(Path(self._pdf_path).read_bytes()))
-        self.logger.error("PDF rendered successfully, extracting text and images for metadata analysis...")
+        device = torch_device(ollama_host)
+        with _device_locks[device]:  # cached models are shared, so convert one PDF per device at a time
+            converter = PdfConverter(artifact_dict=_marker_models(device))
+            rendered = converter(io.BytesIO(Path(self._pdf_path).read_bytes()))
         text, _, images = text_from_rendered(rendered)
-
-        self.logger.critical(f"Images: {images}")
-
-        self.logger.error(f"Extracted text from PDF: {text}...")  # Log first 200 characters of extracted text
-        self.logger.error(f"Extracted images from PDF: {len(images)} images found")
+        self.logger.info(f"Extracted {len(text)} characters and {len(images)} images from PDF")
 
         return {"title": self.get_marker_title(text), "author": "author", "text": text}
 

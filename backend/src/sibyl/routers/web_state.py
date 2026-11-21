@@ -15,6 +15,9 @@ class ReviewSession(TypedDict, total=False):
     progress: int
     message: str
     paper_title: str
+    review_form: str | None
+    review_form_filename: str | None
+    conference_id: str | None
     reviews: list[dict[str, Any]]
 
 

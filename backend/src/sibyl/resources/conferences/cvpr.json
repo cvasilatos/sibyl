@@ -1,0 +1,111 @@
+{
+  "id": "cvpr",
+  "name": "CVPR",
+  "full_name": "IEEE/CVF Conference on Computer Vision and Pattern Recognition",
+  "area": "Computer Vision",
+  "edition": "2026",
+  "source_urls": [
+    "https://cvpr.thecvf.com/Conferences/2026/ReviewerGuidelines",
+    "https://cvpr.thecvf.com/Conferences/2026/ReviewerTrainingMaterial",
+    "https://cvpr.thecvf.com/Conferences/2027/ReviewerGuidelines",
+    "https://api2.openreview.net/groups?id=thecvf.com/CVPR/2026/Conference",
+    "https://reviewpaper.ai/venues/cvpr"
+  ],
+  "verified": false,
+  "notes": "The CVPR OpenReview form is not public. OpenReview venue config confirms fields named preliminary_recommendation and confidence_level for 2026. Recommendation labels (Strong Accept, Weak Accept, Borderline, Weak Reject, Reject) come from the official 2026 reviewer training material; their numeric values and the confidence wording are reconstructed (third-party, reviewpaper.ai). Field order follows the training material and a third-party reconstruction of the 2024-25 form. Post-rebuttal final rating omitted.",
+  "guidelines": "Organize the main critique as strengths and weaknesses with explanation; one-phrase bullet lists are not a detailed review. Back up any claim that the work has been done before with specific references and how closely they relate, and give specific, constructive suggestions. Weigh novelty and impact alongside benchmark performance; do not reject solely for not beating the state of the art, for minor easily fixed flaws, or for missing comparisons to arXiv papers. Do not request substantial new experiments for the rebuttal. Honest limitations and societal-impact discussions should be weighed positively, but their absence is not grounds for rejection. Refer to 'the paper' rather than 'you' or 'the authors', and keep the tone courteous.",
+  "questions": [
+    {
+      "id": "summary",
+      "label": "Summary",
+      "type": "text",
+      "prompt": "Concisely summarize (2-4 sentences, in your own words) what the paper does and claims: the key ideas, contributions, and their significance."
+    },
+    {
+      "id": "strengths",
+      "label": "Strengths",
+      "type": "text",
+      "prompt": "What about the paper provides value: interesting ideas that are experimentally validated, new tools, impressive results, insightful analysis? Give specific, evidence-based points and explain why they matter."
+    },
+    {
+      "id": "weaknesses",
+      "label": "Weaknesses",
+      "type": "text",
+      "prompt": "What detracts from the contributions? Does the paper lack controlled experiments to validate its contributions, are there misleading claims or technical errors, is it possible to understand and reproduce the method? Give specific, evidence-based concerns with references where you claim prior work, and constructive suggestions."
+    },
+    {
+      "id": "preliminary_recommendation",
+      "label": "Preliminary Recommendation",
+      "type": "choice",
+      "prompt": "Please provide your preliminary recommendation for this paper.",
+      "options": [
+        {
+          "value": 5,
+          "label": "Strong Accept"
+        },
+        {
+          "value": 4,
+          "label": "Weak Accept"
+        },
+        {
+          "value": 3,
+          "label": "Borderline"
+        },
+        {
+          "value": 2,
+          "label": "Weak Reject"
+        },
+        {
+          "value": 1,
+          "label": "Reject"
+        }
+      ]
+    },
+    {
+      "id": "justification",
+      "label": "Justification for Recommendation and Suggestions for Rebuttal",
+      "type": "text",
+      "prompt": "Carefully explain why the paper should or should not be accepted, making clear which strengths and weaknesses you consider most significant and how they connect to your rating. State the main concerns the rebuttal should address."
+    },
+    {
+      "id": "confidence_level",
+      "label": "Confidence Level",
+      "type": "choice",
+      "prompt": "How confident are you in your recommendation?",
+      "options": [
+        {
+          "value": 5,
+          "label": "Very confident: absolutely certain about the assessment"
+        },
+        {
+          "value": 4,
+          "label": "Confident, but not absolutely certain"
+        },
+        {
+          "value": 3,
+          "label": "Fairly confident"
+        },
+        {
+          "value": 2,
+          "label": "Willing to defend the assessment, but may have misunderstood parts of the paper"
+        },
+        {
+          "value": 1,
+          "label": "Educated guess"
+        }
+      ]
+    },
+    {
+      "id": "data_assets",
+      "label": "Data Asset Attribution",
+      "type": "text",
+      "prompt": "Are the data assets (datasets, code, models) used in the paper properly cited? Does the paper use any withdrawn dataset? Comment on any issues; if a new dataset is claimed as a contribution, note whether it will be publicly released."
+    },
+    {
+      "id": "ethics_concerns",
+      "label": "Ethics Concerns",
+      "type": "text",
+      "prompt": "Are there serious ethical, privacy, or fairness concerns that should be flagged to the Area Chair? Describe them; otherwise state that there are none."
+    }
+  ]
+}

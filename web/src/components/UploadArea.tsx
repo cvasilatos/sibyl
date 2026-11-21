@@ -1,12 +1,16 @@
 import { FileText, FileUp, Loader2, Upload, X } from "lucide-react";
-import type { RefObject } from "react";
+import { type RefObject, useMemo } from "react";
 import GpuLoadSummary from "@/components/GpuLoadSummary";
 import { Button } from "@/components/ui/button";
+import type { ConferenceSummary } from "@/lib/types";
 
 type Props = {
   selectedFile: File | null;
   selectedReviewForm: File | null;
   onReviewFormChange: (file: File | null) => void;
+  conferences: ConferenceSummary[];
+  selectedConferenceId: string | null;
+  onConferenceChange: (conferenceId: string | null) => void;
   selectedModel: string;
   availableModels: string[];
   onModelChange: (model: string) => void;
@@ -29,6 +33,9 @@ export default function UploadArea({
   selectedFile,
   selectedReviewForm,
   onReviewFormChange,
+  conferences,
+  selectedConferenceId,
+  onConferenceChange,
   selectedModel,
   availableModels,
   onModelChange,
@@ -46,6 +53,13 @@ export default function UploadArea({
   startReview,
   isReviewing,
 }: Props) {
+  const conferencesByArea = useMemo(() => {
+    const groups = new Map<string, ConferenceSummary[]>();
+    for (const conference of conferences) groups.set(conference.area, [...(groups.get(conference.area) ?? []), conference]);
+    return [...groups.entries()];
+  }, [conferences]);
+  const selectedConference = conferences.find((c) => c.id === selectedConferenceId) ?? null;
+
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-[7fr_3fr] gap-4 items-start">
@@ -116,9 +130,40 @@ export default function UploadArea({
             </div>
           )}
 
+          {conferences.length > 0 && (
+            <div className="space-y-2">
+              <label htmlFor="conference-select" className="text-sm font-medium">
+                Conference Review Template
+              </label>
+              <select
+                id="conference-select"
+                value={selectedConferenceId ?? ""}
+                onChange={(e) => onConferenceChange(e.target.value || null)}
+                className="w-full px-3 py-2 text-sm border border-input rounded-md bg-background"
+                disabled={isReviewing}
+              >
+                <option value="">Generic Sibyl review</option>
+                {conferencesByArea.map(([area, items]) => (
+                  <optgroup key={area} label={area}>
+                    {items.map((conference) => (
+                      <option key={conference.id} value={conference.id}>
+                        {conference.name} {conference.edition}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+              <p className="text-xs text-muted-foreground">
+                {selectedConference
+                  ? `${selectedConference.full_name}: the model answers all ${selectedConference.question_count} questions of the official reviewer form.${selectedConference.verified ? "" : " Form partly reconstructed from public guidelines."}`
+                  : "Answer a top conference's official reviewer form, with its own score scales."}
+              </p>
+            </div>
+          )}
+
           <div className="space-y-2">
             <label htmlFor="review-form-input" className="text-sm font-medium">
-              Review Form (Optional)
+              {conferences.length > 0 ? "Or Upload a Custom Form" : "Review Form (Optional)"}
             </label>
             <input
               ref={reviewFormInputRef}

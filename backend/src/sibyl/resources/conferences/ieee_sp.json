@@ -1,0 +1,105 @@
+{
+  "id": "ieee_sp",
+  "name": "IEEE S&P",
+  "full_name": "IEEE Symposium on Security and Privacy (Oakland)",
+  "area": "Security",
+  "edition": "2027",
+  "source_urls": [
+    "https://sp2027.ieee-security.org/cfpapers.html",
+    "https://sp2026.ieee-security.org/cfpapers.html",
+    "https://www.ieee-security.org/TC/Reports/2021/Oakland_PC_Report_2021.pdf"
+  ],
+  "verified": false,
+  "notes": "S&P's HotCRP review form is not public. Overall merit 1-5 labels (Reject, Weak Reject, Weak Accept, Accept, Strong Accept) are confirmed only from the S&P 2021 PC chairs' report; reviewer expertise levels and the text-field list are reconstructed from typical S&P HotCRP forms. Process details (Accept/Reject only, rebuttal focused on factual errors and reviewer questions, public meta-reviews) are from the 2026/2027 CFPs.",
+  "guidelines": "Papers must make novel research contributions to security or privacy (theory, design, implementation, analysis, verification, or empirical evaluation); theoretical work must make a convincing case for relevance to practice. SoK papers must provide a new viewpoint or a comprehensive taxonomy and support or challenge long-held beliefs with evidence; plain surveys do not qualify. Papers are reviewed as submitted (no conditional acceptance), so judge the submitted work plus only material you explicitly request in the rebuttal. Failure to responsibly disclose vulnerabilities and unaddressed ethical issues may be grounds for rejection.",
+  "questions": [
+    {
+      "id": "paper_summary",
+      "label": "Paper Summary",
+      "type": "text",
+      "prompt": "Summarize the paper's problem, approach, and claimed contributions."
+    },
+    {
+      "id": "strengths",
+      "label": "Strengths",
+      "type": "text",
+      "prompt": "What are the paper's main strengths?"
+    },
+    {
+      "id": "weaknesses",
+      "label": "Weaknesses",
+      "type": "text",
+      "prompt": "What are the paper's main weaknesses?"
+    },
+    {
+      "id": "detailed_comments",
+      "label": "Detailed Comments for Authors",
+      "type": "text",
+      "prompt": "Provide detailed, constructive comments for the authors, including suggestions for improvement."
+    },
+    {
+      "id": "questions_for_authors",
+      "label": "Questions for Authors",
+      "type": "text",
+      "prompt": "List concrete questions for the authors to answer in the rebuttal (focused on factual issues and clarifications that could change your evaluation)."
+    },
+    {
+      "id": "ethics_concerns",
+      "label": "Ethics Concerns",
+      "type": "text",
+      "prompt": "Does the paper raise ethical concerns (e.g., human subjects, vulnerability disclosure, potential harms) that should be referred to the Research Ethics Committee? Describe them; otherwise state that there are none."
+    },
+    {
+      "id": "overall_merit",
+      "label": "Overall Merit",
+      "type": "choice",
+      "prompt": "Overall merit of the paper.",
+      "options": [
+        {
+          "value": 5,
+          "label": "Strong Accept"
+        },
+        {
+          "value": 4,
+          "label": "Accept"
+        },
+        {
+          "value": 3,
+          "label": "Weak Accept"
+        },
+        {
+          "value": 2,
+          "label": "Weak Reject"
+        },
+        {
+          "value": 1,
+          "label": "Reject"
+        }
+      ]
+    },
+    {
+      "id": "reviewer_expertise",
+      "label": "Reviewer Expertise",
+      "type": "choice",
+      "prompt": "Your expertise in the paper's topic.",
+      "options": [
+        {
+          "value": 4,
+          "label": "Expert"
+        },
+        {
+          "value": 3,
+          "label": "Knowledgeable"
+        },
+        {
+          "value": 2,
+          "label": "Some familiarity"
+        },
+        {
+          "value": 1,
+          "label": "No familiarity"
+        }
+      ]
+    }
+  ]
+}

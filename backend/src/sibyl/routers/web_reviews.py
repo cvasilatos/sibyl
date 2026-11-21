@@ -1,11 +1,11 @@
 import logging
+import platform
 from typing import TYPE_CHECKING, cast
 
 from decima import CustomLogger
 
 if TYPE_CHECKING:
-    from ollama import AsyncClient, ListResponse
-
+    from sibyl.inference import InferenceEngine
     from sibyl.storage.review import Review
 
 import httpx
@@ -13,8 +13,8 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse
 
 from sibyl.config import MAX_SCORE
+from sibyl.inference import EngineOperationNotSupportedError
 from sibyl.routers.web_state import review_sessions, storage
-from sibyl.services.model_catalog import ModelCatalog
 from sibyl.web.model.search_request import SearchRequest
 from sibyl.web.model.session_status import SessionStatus
 
@@ -44,7 +44,6 @@ async def health_check() -> dict:
     try:
         return {
             "status": "healthy",
-            "ollama_base_url": "OLLAMA_BASE_URL",
             "storage_count": storage.count_reviews(),
         }
     except Exception as e:
@@ -111,24 +110,32 @@ async def get_statistics() -> dict:
     return storage.get_statistics()
 
 
+@router.get("/engine")
+async def engine_info(request: Request) -> dict:
+    """Describe the active inference engine and platform."""
+    engine: InferenceEngine = request.app.state.engine
+    return {**engine.info(), "platform": platform.system().lower(), "machine": platform.machine()}
+
+
 @router.get("/models")
 async def list_models(request: Request) -> dict:
-    """List models currently available in Ollama using the pre-instantiated client."""
-    client: AsyncClient = request.app.state.ollama_clients[0]
-    response: ListResponse = await client.list()
-
-    return {
-        "models": response.models,
-        "count": len(response.models),
-    }
+    """List models installed in the active inference engine."""
+    engine: InferenceEngine = request.app.state.engine
+    try:
+        models = await engine.list_installed()
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Could not reach the {engine.label} backend: {e}") from e
+    return {"models": models, "count": len(models)}
 
 
 @router.delete("/models/{model_name:path}")
 async def delete_model(model_name: str, request: Request) -> dict:
-    """Delete a model from Ollama."""
-    client: AsyncClient = request.app.state.ollama_clients[0]
+    """Delete a downloaded model."""
+    engine: InferenceEngine = request.app.state.engine
     try:
-        await client.delete(model=model_name)
+        await engine.delete(model_name)
+    except EngineOperationNotSupportedError as e:
+        raise HTTPException(status_code=501, detail=str(e)) from e
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to delete model: {e}") from e
     return {"message": f"Model '{model_name}' deleted successfully", "model": model_name}
@@ -136,22 +143,22 @@ async def delete_model(model_name: str, request: Request) -> dict:
 
 @router.get("/models/available")
 async def list_available_models(request: Request) -> dict:
-    """List models available from the Ollama library."""
+    """List models that can be downloaded through the active engine."""
+    engine: InferenceEngine = request.app.state.engine
     try:
-        client: AsyncClient = request.app.state.ollama_clients[0]
-        installed: ListResponse = await client.list()
-        available_models = await ModelCatalog(client_factory=httpx.AsyncClient).list_available(installed)
+        available_models = await engine.list_catalog()
     except httpx.HTTPError as e:
         raise HTTPException(status_code=502, detail=f"Failed to fetch model catalog: {e}") from e
 
     return {"models": available_models, "count": len(available_models)}
 
 
-@router.get("/models/available/{model_name}/tags")
-async def get_model_tags(model_name: str) -> dict:
-    """Fetch numerical size tags (e.g. 1.5b, 7b, 70b) for a specific Ollama library model."""
+@router.get("/models/available/{model_name:path}/tags")
+async def get_model_tags(model_name: str, request: Request) -> dict:
+    """Fetch downloadable size variants (e.g. 1.5b, 7b, 70b) for a catalog model."""
+    engine: InferenceEngine = request.app.state.engine
     try:
-        tags = await ModelCatalog(client_factory=httpx.AsyncClient).list_tags(model_name)
+        tags = await engine.list_variants(model_name)
     except httpx.HTTPError as e:
         raise HTTPException(status_code=502, detail=f"Failed to fetch model tags: {e}") from e
 

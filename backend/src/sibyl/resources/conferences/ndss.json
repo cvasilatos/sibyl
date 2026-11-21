@@ -1,0 +1,132 @@
+{
+  "id": "ndss",
+  "name": "NDSS",
+  "full_name": "Network and Distributed System Security Symposium",
+  "area": "Security",
+  "edition": "2027",
+  "source_urls": [
+    "https://www.ndss-symposium.org/ndss2027/submissions/call-for-papers/",
+    "https://www.ndss-symposium.org/wp-content/uploads/NDSS-2025-FullStatistics.pdf"
+  ],
+  "verified": false,
+  "notes": "NDSS's HotCRP form is not public. NDSS 2025 statistics confirm a 1-5 overall score plus Writing Quality and Reviewer Confidence fields, but not their labels; all labels here are reconstructed. Text fields follow the 2027 CFP's stated review goals (concrete improvement steps, separating opinion from demonstrable weaknesses, citations for novelty claims).",
+  "guidelines": "Reviews should provide concrete steps for improving the work, separate reviewer opinion from demonstrable technical weaknesses, and provide clear citations to prior work whenever novelty claims are raised. The aim is to help authors, including those of rejected papers, improve their work as much as possible. Major revisions are for promising papers that need additional work (new implementations, experiments, or proofs) defined as concrete revision tasks.",
+  "questions": [
+    {
+      "id": "paper_summary",
+      "label": "Paper Summary",
+      "type": "text",
+      "prompt": "Summarize the paper's problem, approach, and claimed contributions."
+    },
+    {
+      "id": "strengths",
+      "label": "Strengths",
+      "type": "text",
+      "prompt": "What are the paper's main strengths?"
+    },
+    {
+      "id": "weaknesses",
+      "label": "Weaknesses",
+      "type": "text",
+      "prompt": "What are the paper's main weaknesses? Separate demonstrable technical weaknesses from matters of opinion, and cite specific prior work for any novelty concerns."
+    },
+    {
+      "id": "improvement_steps",
+      "label": "Concrete Steps for Improvement",
+      "type": "text",
+      "prompt": "Provide concrete steps the authors can take to improve the work (for a major revision, list well-defined revision tasks)."
+    },
+    {
+      "id": "questions_for_authors",
+      "label": "Questions for Authors",
+      "type": "text",
+      "prompt": "List questions for the authors to address in the rebuttal."
+    },
+    {
+      "id": "ethics_concerns",
+      "label": "Ethics Concerns",
+      "type": "text",
+      "prompt": "Does the paper raise ethical concerns that should be referred to the Ethics Review Board? Describe them; otherwise state that there are none."
+    },
+    {
+      "id": "overall_merit",
+      "label": "Overall Merit",
+      "type": "choice",
+      "prompt": "Overall merit of the paper.",
+      "options": [
+        {
+          "value": 5,
+          "label": "Strong accept"
+        },
+        {
+          "value": 4,
+          "label": "Accept"
+        },
+        {
+          "value": 3,
+          "label": "Weak accept"
+        },
+        {
+          "value": 2,
+          "label": "Weak reject"
+        },
+        {
+          "value": 1,
+          "label": "Reject"
+        }
+      ]
+    },
+    {
+      "id": "writing_quality",
+      "label": "Writing Quality",
+      "type": "choice",
+      "prompt": "Quality of the writing and presentation.",
+      "options": [
+        {
+          "value": 5,
+          "label": "Excellent"
+        },
+        {
+          "value": 4,
+          "label": "Good"
+        },
+        {
+          "value": 3,
+          "label": "Adequate"
+        },
+        {
+          "value": 2,
+          "label": "Needs improvement"
+        },
+        {
+          "value": 1,
+          "label": "Poor"
+        }
+      ]
+    },
+    {
+      "id": "reviewer_confidence",
+      "label": "Reviewer Confidence",
+      "type": "choice",
+      "prompt": "Your confidence in this review.",
+      "options": [
+        {
+          "value": 4,
+          "label": "Expert"
+        },
+        {
+          "value": 3,
+          "label": "Knowledgeable"
+        },
+        {
+          "value": 2,
+          "label": "Some familiarity"
+        },
+        {
+          "value": 1,
+          "label": "No familiarity"
+        }
+      ]
+    }
+  ]
+}

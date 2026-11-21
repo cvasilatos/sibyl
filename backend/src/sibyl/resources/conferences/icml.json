@@ -1,0 +1,202 @@
+{
+  "id": "icml",
+  "name": "ICML",
+  "full_name": "International Conference on Machine Learning",
+  "area": "Machine Learning",
+  "edition": "2026",
+  "source_urls": [
+    "https://icml.cc/Conferences/2026/ReviewerInstructions",
+    "https://icml.cc/Conferences/2025/ReviewerInstructions"
+  ],
+  "verified": true,
+  "notes": "Main-track form from the official ICML 2026 reviewer instructions. Scale level names are official; the long confidence descriptions follow the standard ICML/NeurIPS wording (the 2026 page abbreviates them). Omitted: LLM-policy compliance, code-of-conduct acknowledgement, ethics-expertise area selector, and the post-rebuttal Final Justification.",
+  "guidelines": "Read with empathy and be professional and constructive; substantiate every strength and weakness and focus on major issues over minor ones. Check whether claims are substantiated: proofs, whether experiments actually test the hypotheses, and whether empirical claims follow from the results. Place the work in the context of prior literature, but treat work made public within about four months of the deadline as concurrent. Be open-minded about broad definitions of significance and originality; for application-driven papers judge methods by fit to the problem and accept well-documented non-standard datasets.",
+  "questions": [
+    {
+      "id": "summary",
+      "label": "Summary",
+      "type": "text",
+      "prompt": "Briefly summarize the paper and its contributions, in your own words. This is not the place to critique the paper."
+    },
+    {
+      "id": "strengths_and_weaknesses",
+      "label": "Strengths and Weaknesses",
+      "type": "text",
+      "prompt": "Please provide a thorough assessment of the strengths and weaknesses of the paper, touching on soundness, presentation, significance, and originality. Be open-minded with respect to broad definitions of significance and originality. Justify any 'fair' or 'poor' rating below here."
+    },
+    {
+      "id": "soundness",
+      "label": "Soundness",
+      "type": "choice",
+      "prompt": "Rate the technical soundness of the submission: are the central claims adequately supported with evidence?",
+      "options": [
+        {
+          "value": 4,
+          "label": "excellent"
+        },
+        {
+          "value": 3,
+          "label": "good"
+        },
+        {
+          "value": 2,
+          "label": "fair"
+        },
+        {
+          "value": 1,
+          "label": "poor"
+        }
+      ]
+    },
+    {
+      "id": "presentation",
+      "label": "Presentation",
+      "type": "choice",
+      "prompt": "Rate the quality of the presentation: clarity of writing, structure, and contextualization relative to prior work.",
+      "options": [
+        {
+          "value": 4,
+          "label": "excellent"
+        },
+        {
+          "value": 3,
+          "label": "good"
+        },
+        {
+          "value": 2,
+          "label": "fair"
+        },
+        {
+          "value": 1,
+          "label": "poor"
+        }
+      ]
+    },
+    {
+      "id": "significance",
+      "label": "Significance",
+      "type": "choice",
+      "prompt": "Rate the significance of the overall contribution.",
+      "options": [
+        {
+          "value": 4,
+          "label": "excellent"
+        },
+        {
+          "value": 3,
+          "label": "good"
+        },
+        {
+          "value": 2,
+          "label": "fair"
+        },
+        {
+          "value": 1,
+          "label": "poor"
+        }
+      ]
+    },
+    {
+      "id": "originality",
+      "label": "Originality",
+      "type": "choice",
+      "prompt": "Rate the originality of the work.",
+      "options": [
+        {
+          "value": 4,
+          "label": "excellent"
+        },
+        {
+          "value": 3,
+          "label": "good"
+        },
+        {
+          "value": 2,
+          "label": "fair"
+        },
+        {
+          "value": 1,
+          "label": "poor"
+        }
+      ]
+    },
+    {
+      "id": "questions_for_authors",
+      "label": "Key Questions for Authors",
+      "type": "text",
+      "prompt": "Please list about 3-5 important questions (numbered) for the authors, and explain how possible answers would change your evaluation of the paper."
+    },
+    {
+      "id": "limitations",
+      "label": "Limitations",
+      "type": "text",
+      "prompt": "Have the authors adequately addressed the limitations and potential negative societal impact of their work? If so, say \"yes\"; if not, please include constructive suggestions for improvement."
+    },
+    {
+      "id": "overall_recommendation",
+      "label": "Overall Recommendation",
+      "type": "choice",
+      "prompt": "Please provide your overall recommendation for this submission.",
+      "options": [
+        {
+          "value": 6,
+          "label": "Strong Accept"
+        },
+        {
+          "value": 5,
+          "label": "Accept"
+        },
+        {
+          "value": 4,
+          "label": "Weak accept (please use sparingly)"
+        },
+        {
+          "value": 3,
+          "label": "Weak reject (please use sparingly)"
+        },
+        {
+          "value": 2,
+          "label": "Reject"
+        },
+        {
+          "value": 1,
+          "label": "Strong Reject"
+        }
+      ]
+    },
+    {
+      "id": "confidence",
+      "label": "Confidence",
+      "type": "choice",
+      "prompt": "Please provide a confidence score for your assessment of this submission.",
+      "options": [
+        {
+          "value": 5,
+          "label": "You are absolutely certain about your assessment. You are very familiar with the related work and checked the math/other details carefully"
+        },
+        {
+          "value": 4,
+          "label": "You are confident in your assessment, but not absolutely certain. It is unlikely, but not impossible, that you did not understand some parts of the submission or that you are unfamiliar with some pieces of related work"
+        },
+        {
+          "value": 3,
+          "label": "You are fairly confident in your assessment. It is possible that you did not understand some parts of the submission or that you are unfamiliar with some pieces of related work. Math/other details were not carefully checked"
+        },
+        {
+          "value": 2,
+          "label": "You are willing to defend your assessment, but it is quite likely that you did not understand the central parts of the submission or that you are unfamiliar with some pieces of related work. Math/other details were not carefully checked"
+        },
+        {
+          "value": 1,
+          "label": "Your assessment is an educated guess. The submission is not in your area or the submission was difficult to understand. Math/other details were not carefully checked"
+        }
+      ]
+    },
+    {
+      "id": "ethics_concerns",
+      "label": "Ethics Concerns",
+      "type": "text",
+      "prompt": "Should this paper be flagged for ethics review (e.g., discrimination/bias/fairness, inappropriate applications and impact, responsible research practice, privacy and security, legal compliance, research integrity)? If so, explain the concerns in detail; otherwise state that no ethics review is needed."
+    }
+  ]
+}

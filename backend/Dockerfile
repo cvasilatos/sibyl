@@ -23,6 +23,12 @@ RUN uv build
 
 RUN python -c "from marker.models import create_model_dict; create_model_dict()"
 
+# Optional vLLM engine (SIBYL_ENGINE=vllm). Installed as an isolated uv tool so its pinned torch/CUDA
+# versions never conflict with Marker's. Build with: --build-arg INSTALL_VLLM=true
+ARG INSTALL_VLLM=false
+ARG VLLM_VERSION=0.11.0
+RUN if [ "$INSTALL_VLLM" = "true" ]; then uv tool install "vllm==${VLLM_VERSION}"; fi
+
 
 EXPOSE 8000
 
