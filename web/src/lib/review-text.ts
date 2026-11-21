@@ -1,3 +1,4 @@
+import { saveText } from "@/lib/download";
 import type { Review } from "@/lib/types";
 
 type ReviewLike = Pick<Review, "paper_title" | "reviewer_model" | "criteria">;
@@ -36,13 +37,5 @@ export function reviewFileName(review: ReviewLike): string {
 }
 
 export function downloadReviewText(review: ReviewLike, maxScore?: number): void {
-  const blob = new Blob([reviewToText(review, maxScore)], { type: "text/plain;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = reviewFileName(review);
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  saveText(reviewToText(review, maxScore), reviewFileName(review));
 }

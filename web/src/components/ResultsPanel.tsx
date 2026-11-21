@@ -1,6 +1,6 @@
+import RecommendationBadge from "@/components/RecommendationBadge";
 import ReviewDetails from "@/components/ReviewDetails";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { recommendationClassName } from "@/lib/presentation";
 import type { ReviewResults } from "@/lib/types";
 
 export default function ResultsPanel({ results, maxScore }: { results: ReviewResults; maxScore: number }) {
@@ -15,7 +15,7 @@ export default function ResultsPanel({ results, maxScore }: { results: ReviewRes
                 <span className="text-3xl font-bold text-primary">
                   {review.criteria.score}/{maxScore}
                 </span>
-                <span className={`px-3 py-1 rounded-full text-sm font-semibold ${recommendationClassName(review.criteria.recommendation)}`}>{review.criteria.recommendation}</span>
+                <RecommendationBadge recommendation={review.criteria.recommendation} size="md" />
               </div>
             </div>
           </CardHeader>

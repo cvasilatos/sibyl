@@ -1,13 +1,19 @@
 "use client";
 
-import { ChevronDown, ChevronUp, Download, Loader2, RefreshCw, Search, Trash2, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Download, RefreshCw, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import RecommendationBadge from "@/components/RecommendationBadge";
 import ReviewDetails from "@/components/ReviewDetails";
+import SearchInput from "@/components/SearchInput";
+import { ErrorAlert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { LoadingBlock, Spinner } from "@/components/ui/spinner";
 import { toast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
-import { formatDate, recommendationClassName } from "@/lib/presentation";
+import { saveBlob } from "@/lib/download";
+import { formatDate } from "@/lib/format";
 import type { FullReview, ReviewStatistics, StoredReview } from "@/lib/types";
 
 export default function ReviewLibrary({
@@ -129,15 +135,7 @@ export default function ReviewLibrary({
     setDownloading(reviewId);
     setError(null);
     try {
-      const blob = await api.downloadReviewPdf(reviewId);
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      saveBlob(await api.downloadReviewPdf(reviewId), filename);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to download PDF");
     } finally {
@@ -161,21 +159,17 @@ export default function ReviewLibrary({
           </div>
           <div className="flex items-center gap-2">
             <Button onClick={deleteAllReviews} disabled={deletingAll || loading || reviews.length === 0} size="sm" variant="destructive">
-              {deletingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              {deletingAll ? <Spinner label="Deleting" /> : <Trash2 className="h-4 w-4" />}
               Delete All
             </Button>
-            <Button onClick={loadReviews} disabled={loading} size="sm" variant="outline">
+            <Button onClick={loadReviews} disabled={loading} size="sm" variant="outline" aria-label="Refresh reviews">
               <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             </Button>
           </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {error && (
-          <div className="p-3 bg-destructive/10 border border-destructive rounded-md">
-            <p className="text-sm text-destructive">{error}</p>
-          </div>
-        )}
+        <ErrorAlert>{error}</ErrorAlert>
 
         {/* Statistics */}
         {stats && (
@@ -192,23 +186,12 @@ export default function ReviewLibrary({
         )}
 
         {/* Search input */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-          <input
-            type="text"
-            placeholder="Search reviews by title, model, recommendation…"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-sm rounded-md border border-input bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-          />
-        </div>
+        <SearchInput value={searchQuery} onChange={setSearchQuery} placeholder="Search reviews by title, model, recommendation…" />
 
         {/* Reviews list */}
         <div className="space-y-2">
           {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
+            <LoadingBlock />
           ) : filteredReviews.length === 0 ? (
             <p className="text-sm text-muted-foreground py-8 text-center">
               {searchQuery.trim() ? "No reviews match your search." : "No reviews yet. Upload a paper to get started!"}
@@ -232,7 +215,7 @@ export default function ReviewLibrary({
                       <span className="text-sm font-semibold text-primary">
                         {review.score}/{maxScore}
                       </span>
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${recommendationClassName(review.recommendation)}`}>{review.recommendation}</span>
+                      <RecommendationBadge recommendation={review.recommendation} />
                     </div>
                     <p className="text-xs text-muted-foreground line-clamp-2">{review.review_summary}</p>
                   </div>
@@ -246,7 +229,7 @@ export default function ReviewLibrary({
                         title={review.pdf_path ? "Download PDF" : "PDF not available"}
                         aria-label={`Download ${review.pdf_filename}`}
                       >
-                        {downloading === review.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                        {downloading === review.id ? <Spinner label="Downloading" /> : <Download className="h-4 w-4" />}
                       </Button>
                       <Button
                         size="sm"
@@ -255,7 +238,7 @@ export default function ReviewLibrary({
                         disabled={deleting === review.id}
                         aria-label={`Delete review for ${review.paper_title}`}
                       >
-                        {deleting === review.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                        {deleting === review.id ? <Spinner label="Deleting" /> : <Trash2 className="h-4 w-4" />}
                       </Button>
                     </div>
                     <Button
@@ -271,9 +254,7 @@ export default function ReviewLibrary({
                 {expandedReview === review.id && (
                   <div className="px-4 pb-4 space-y-3 border-t border-border pt-4">
                     {loadingFull === review.id ? (
-                      <div className="flex items-center justify-center py-4">
-                        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                      </div>
+                      <LoadingBlock className="py-4" />
                     ) : fullReviewData[review.id] ? (
                       <ReviewDetails review={fullReviewData[review.id]} maxScore={maxScore} />
                     ) : null}
@@ -285,41 +266,32 @@ export default function ReviewLibrary({
         </div>
       </CardContent>
 
-      {/* Paper reviews panel */}
-      {selectedPaperTitle && (
-        <div className="fixed inset-0 z-50 flex w-full items-center justify-center">
-          <button type="button" className="absolute inset-0 bg-black/50" aria-label="Close paper reviews dialog" onClick={() => setSelectedPaperTitle(null)} />
-          <div role="dialog" aria-modal="true" className="relative z-10 bg-background rounded-lg shadow-xl max-w-lg w-full mx-4 p-6">
-            <div className="flex items-start justify-between mb-4 gap-4">
-              <div>
-                <h2 className="font-semibold text-lg">Reviews for Paper</h2>
-                <p className="text-sm text-muted-foreground mt-1">{selectedPaperTitle}</p>
-              </div>
-              <Button size="sm" variant="outline" onClick={() => setSelectedPaperTitle(null)}>
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="space-y-3 max-h-[60vh] overflow-y-auto">
-              {reviews
-                .filter((r) => r.paper_title === selectedPaperTitle)
-                .map((r) => (
-                  <div key={r.id} className="p-3 bg-muted rounded-md space-y-2">
-                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <span className="text-sm font-medium">🤖 {r.reviewer_model}</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-primary">
-                          {r.score}/{maxScore}
-                        </span>
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${recommendationClassName(r.recommendation)}`}>{r.recommendation}</span>
-                      </div>
+      <Dialog open={selectedPaperTitle !== null} onOpenChange={(open) => !open && setSelectedPaperTitle(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reviews for Paper</DialogTitle>
+            <DialogDescription>{selectedPaperTitle}</DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] space-y-3 overflow-y-auto">
+            {reviews
+              .filter((r) => r.paper_title === selectedPaperTitle)
+              .map((r) => (
+                <div key={r.id} className="space-y-2 rounded-md bg-muted p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-sm font-medium">🤖 {r.reviewer_model}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-primary">
+                        {r.score}/{maxScore}
+                      </span>
+                      <RecommendationBadge recommendation={r.recommendation} />
                     </div>
-                    <p className="text-xs text-muted-foreground font-mono break-all">ID: {r.id}</p>
                   </div>
-                ))}
-            </div>
+                  <p className="break-all font-mono text-xs text-muted-foreground">ID: {r.id}</p>
+                </div>
+              ))}
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

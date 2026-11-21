@@ -1,16 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import UsageBar from "@/components/UsageBar";
 import { api } from "@/lib/api";
 import type { GpuSummary } from "@/lib/types";
-
-function MiniBar({ value, color }: { value: number; color: string }) {
-  return (
-    <div className="flex-1 bg-muted rounded-full h-1.5 overflow-hidden">
-      <div className={`h-1.5 rounded-full transition-all duration-500 ${color}`} style={{ width: `${Math.min(100, Math.max(0, value))}%` }} />
-    </div>
-  );
-}
 
 export default function GpuLoadSummary() {
   const [gpus, setGpus] = useState<GpuSummary[]>([]);
@@ -44,12 +37,12 @@ export default function GpuLoadSummary() {
             </p>
             <div className="flex items-center gap-2">
               <span className="text-xs text-muted-foreground w-8 shrink-0">Core</span>
-              <MiniBar value={gpu.gpu_utilization} color="bg-blue-500" />
+              <UsageBar size="sm" value={gpu.gpu_utilization} color="bg-blue-500" />
               <span className="text-xs font-mono w-8 text-right shrink-0">{gpu.gpu_utilization}%</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xs text-muted-foreground w-8 shrink-0">VRAM</span>
-              <MiniBar value={memPct} color="bg-green-500" />
+              <UsageBar size="sm" value={memPct} color="bg-green-500" />
               <span className="text-xs font-mono w-8 text-right shrink-0">{memPct.toFixed(0)}%</span>
             </div>
           </div>

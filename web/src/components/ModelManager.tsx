@@ -1,13 +1,17 @@
 "use client";
 
-import { Download, Loader2, RefreshCw, Search, Trash2 } from "lucide-react";
+import { Download, RefreshCw, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import SearchInput from "@/components/SearchInput";
+import { ErrorAlert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { NativeSelect } from "@/components/ui/native-select";
+import { LoadingBlock, Spinner } from "@/components/ui/spinner";
 import { useDownload } from "@/hooks/use-download";
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
-import { formatBytes, formatDate } from "@/lib/presentation";
+import { formatBytes, formatDate } from "@/lib/format";
 import type { AvailableModel, EngineInfo, InstalledModel } from "@/lib/types";
 
 export default function ModelManager() {
@@ -162,36 +166,19 @@ export default function ModelManager() {
                   : "Manage your local models"}
             </CardDescription>
           </div>
-          <Button onClick={loadModels} disabled={loading} size="sm" variant="outline">
+          <Button onClick={loadModels} disabled={loading} size="sm" variant="outline" aria-label="Refresh models">
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           </Button>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {error && (
-          <div className="p-3 bg-destructive/10 border border-destructive rounded-md">
-            <p className="text-sm text-destructive">{error}</p>
-          </div>
-        )}
+        <ErrorAlert>{error}</ErrorAlert>
 
         {/* Search and install models */}
         <div className={`space-y-2 ${engine && !engine.supports_downloads ? "hidden" : ""}`}>
           <h3 className="text-sm font-semibold">Browse & Install Models</h3>
 
-          {/* Search box */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Search models by name or description..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-3 py-2 text-sm border border-input rounded-md bg-background"
-            />
-          </div>
-
-          {/* Progress bar for active download */}
-          {/* Moved to global layout */}
+          <SearchInput value={searchQuery} onChange={setSearchQuery} placeholder="Search models by name or description…" />
 
           {/* Available models list */}
           <div className="max-h-96 overflow-y-auto space-y-2 border rounded-md p-2">
@@ -215,7 +202,7 @@ export default function ModelManager() {
                     </div>
                     <Button onClick={() => handleInstallClick(model.name)} disabled={isInstallingModel} size="sm" variant="default">
                       {isInstallingModel ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <Spinner label="Installing" />
                       ) : (
                         <>
                           <Download className="h-4 w-4 mr-1" />
@@ -228,16 +215,17 @@ export default function ModelManager() {
                     <div className="mt-2 pt-2 border-t border-border">
                       {isFetchingTags ? (
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Loader2 className="h-3 w-3 animate-spin" />
+                          <Spinner className="h-3 w-3" />
                           Loading variants…
                         </div>
                       ) : tags && tags.length > 0 ? (
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-xs text-muted-foreground">Variant:</span>
-                          <select
+                          <NativeSelect
+                            aria-label={`Variant of ${model.name}`}
                             value={selectedTag}
                             onChange={(e) => setSelectedTags((prev) => ({ ...prev, [model.name]: e.target.value }))}
-                            className="text-xs border border-input rounded px-2 py-1 bg-background"
+                            className="w-auto px-2 py-1 text-xs"
                           >
                             {tags.map((tag) => (
                               <option key={tag} value={tag}>
@@ -245,7 +233,7 @@ export default function ModelManager() {
                                 {model.installed_variants?.includes(tag) ? " (installed)" : ""}
                               </option>
                             ))}
-                          </select>
+                          </NativeSelect>
                           <Button size="sm" onClick={() => doInstall(`${model.name}:${selectedTag}`)} disabled={isInstallingModel || isSelectedVariantInstalled}>
                             <Download className="h-3 w-3 mr-1" />
                             Confirm
@@ -273,9 +261,7 @@ export default function ModelManager() {
         <div className="space-y-2">
           <h3 className="text-sm font-semibold">Installed Models ({models.length})</h3>
           {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
+            <LoadingBlock />
           ) : models.length === 0 ? (
             <p className="text-sm text-muted-foreground py-4 text-center">No models installed. Install one from above.</p>
           ) : (
@@ -288,8 +274,8 @@ export default function ModelManager() {
                       {formatBytes(model.size)} • Modified {formatDate(model.modified_at)}
                     </p>
                   </div>
-                  <Button onClick={() => removeModel(model.model)} disabled={removing.has(model.model)} size="sm" variant="destructive">
-                    {removing.has(model.model) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                  <Button onClick={() => removeModel(model.model)} disabled={removing.has(model.model)} size="sm" variant="destructive" aria-label={`Delete ${model.model}`}>
+                    {removing.has(model.model) ? <Spinner label="Removing" /> : <Trash2 className="h-4 w-4" />}
                   </Button>
                 </div>
               ))}

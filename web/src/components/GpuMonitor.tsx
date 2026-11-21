@@ -2,19 +2,14 @@
 
 import { Cpu, RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import UsageBar from "@/components/UsageBar";
+import { ErrorAlert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { NativeSelect } from "@/components/ui/native-select";
 import { api } from "@/lib/api";
-import { formatBytes } from "@/lib/presentation";
+import { formatBytes } from "@/lib/format";
 import type { GpuResponse, GpuStats } from "@/lib/types";
-
-function UtilBar({ value, color }: { value: number; color: string }) {
-  return (
-    <div className="w-full bg-muted rounded-full h-3 overflow-hidden">
-      <div className={`h-3 rounded-full transition-all duration-500 ${color}`} style={{ width: `${Math.min(100, Math.max(0, value))}%` }} />
-    </div>
-  );
-}
 
 function StatRow({ label, value }: { label: string; value: string }) {
   return (
@@ -42,7 +37,7 @@ function GpuCard({ gpu }: { gpu: GpuStats }) {
           <span>GPU Load</span>
           <span>{gpu.gpu_utilization}%</span>
         </div>
-        <UtilBar value={gpu.gpu_utilization} color="bg-blue-500" />
+        <UsageBar value={gpu.gpu_utilization} color="bg-blue-500" />
       </div>
 
       {/* Memory utilization */}
@@ -53,7 +48,7 @@ function GpuCard({ gpu }: { gpu: GpuStats }) {
             {formatBytes(gpu.memory_used)} / {formatBytes(gpu.memory_total)} ({memPct.toFixed(1)}%)
           </span>
         </div>
-        <UtilBar value={memPct} color="bg-green-500" />
+        <UsageBar value={memPct} color="bg-green-500" />
       </div>
 
       {/* Detailed stats grid */}
@@ -126,10 +121,11 @@ export default function GpuMonitor() {
           <div className="flex items-center gap-2">
             {/* GPU selector */}
             {data && data.count > 1 && (
-              <select
+              <NativeSelect
+                aria-label="GPU"
                 value={selectedIndex ?? "all"}
                 onChange={(e) => setSelectedIndex(e.target.value === "all" ? null : Number(e.target.value))}
-                className="text-sm border border-input rounded-md px-2 py-1 bg-background"
+                className="w-auto py-1"
               >
                 <option value="all">All GPUs</option>
                 {data.gpus.map((g) => (
@@ -137,7 +133,7 @@ export default function GpuMonitor() {
                     GPU {g.index}: {g.name}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             )}
             {/* Auto-refresh toggle */}
             <Button
@@ -159,11 +155,7 @@ export default function GpuMonitor() {
         </div>
       </CardHeader>
       <CardContent>
-        {error && (
-          <div className="p-3 bg-destructive/10 border border-destructive rounded-md mb-4">
-            <p className="text-sm text-destructive">{error}</p>
-          </div>
-        )}
+        <ErrorAlert className="mb-4">{error}</ErrorAlert>
 
         {data && !data.available && (
           <div className="text-center py-12 text-muted-foreground">
