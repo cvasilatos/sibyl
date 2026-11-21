@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { GlobalDownloadProgress } from "@/components/GlobalDownloadProgress";
 import { Toaster } from "@/components/ui/toaster";
-import { DownloadProvider } from "@/lib/download-context";
+import { DownloadProvider } from "@/hooks/use-download";
 
 export const metadata: Metadata = {
   title: "Sibyl - AI Research Paper Review",

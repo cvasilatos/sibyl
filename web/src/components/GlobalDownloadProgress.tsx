@@ -1,7 +1,7 @@
 "use client";
 
 import { Progress } from "@/components/ui/progress";
-import { useDownload } from "@/lib/download-context";
+import { useDownload } from "@/hooks/use-download";
 
 export function GlobalDownloadProgress() {
   const { installing, downloadProgresses } = useDownload();

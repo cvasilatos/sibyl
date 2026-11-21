@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import ReviewDetails from "@/components/ReviewDetails";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
 import { fetchMaxScore } from "@/lib/config";
 import { formatDate, recommendationClassName } from "@/lib/presentation";

@@ -4,9 +4,9 @@ import { Download, Loader2, RefreshCw, Search, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
-import { useDownload } from "@/lib/download-context";
+import { useDownload } from "@/hooks/use-download";
 import { formatBytes, formatDate } from "@/lib/presentation";
 import type { AvailableModel, EngineInfo, InstalledModel } from "@/lib/types";
 

@@ -9,7 +9,7 @@ import ReviewLibrary from "@/components/ReviewLibrary";
 import Tabs from "@/components/Tabs";
 import UploadArea from "@/components/UploadArea";
 import type { AppTab } from "@/lib/types";
-import { useReviewWorkflow } from "@/lib/use-review-workflow";
+import { useReviewWorkflow } from "@/hooks/use-review-workflow";
 
 const APP_TABS: AppTab[] = ["review", "library", "models", "gpu"];
 
