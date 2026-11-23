@@ -63,15 +63,15 @@ def test_output_room_is_the_rest_of_the_context():
 def test_ollama_lets_the_model_write_until_the_context_is_full():
     engine = OllamaEngine(hosts=["http://a:1"])
     client = AsyncMock()
-    client.generate = AsyncMock(return_value=MagicMock(response="{}"))
+    client.chat = AsyncMock(return_value=MagicMock(message=MagicMock(content="{}")))
     engine.clients = [client]
 
     asyncio.run(engine.generate_json(_request(context_length=16384)))
-    assert client.generate.await_args is not None
-    assert client.generate.await_args.kwargs["options"]["num_predict"] == output_room(_request(context_length=16384))
+    assert client.chat.await_args is not None
+    assert client.chat.await_args.kwargs["options"]["num_predict"] == output_room(_request(context_length=16384))
 
     asyncio.run(engine.generate_json(_request(max_tokens=100)))
-    assert client.generate.await_args.kwargs["options"]["num_predict"] == 100
+    assert client.chat.await_args.kwargs["options"]["num_predict"] == 100
 
 
 @pytest.mark.parametrize(("max_tokens", "expected"), [(None, None), (512, 512)])
@@ -122,12 +122,12 @@ def test_ollama_hosts_from_env(monkeypatch):
 def test_ollama_generate_sets_context_length():
     engine = OllamaEngine(hosts=["http://a:1"], keep_alive="5m")
     client = AsyncMock()
-    client.generate = AsyncMock(return_value=MagicMock(response="{}"))
+    client.chat = AsyncMock(return_value=MagicMock(message=MagicMock(content="{}")))
     engine.clients = [client]
 
     assert asyncio.run(engine.generate_json(_request(context_length=20480))) == "{}"
-    assert client.generate.await_args is not None
-    kwargs = client.generate.await_args.kwargs
+    assert client.chat.await_args is not None
+    kwargs = client.chat.await_args.kwargs
     assert kwargs["options"]["num_ctx"] == 20480
     assert kwargs["format"] == {"type": "object"}
     assert kwargs["keep_alive"] == "5m"

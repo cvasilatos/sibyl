@@ -116,13 +116,16 @@ class OllamaEngine(InferenceEngine):
         await self.admin.delete(model=model)
 
     async def generate_json(self, request: GenerationRequest) -> str:  # noqa: D102
-        response = await self.client_for_slot(request.slot).generate(
+        # /api/chat, not /api/generate: with a schema, generate returns an empty response for models that reason before
+        # answering (gpt-oss, ...). Chat keeps the reasoning in ``message.thinking`` and the JSON in ``message.content``.
+        user: dict[str, Any] = {"role": "user", "content": request.prompt}
+        if request.images:
+            user["images"] = request.images
+        response = await self.client_for_slot(request.slot).chat(
             model=request.model,
-            system=request.system,
-            prompt=request.prompt,
+            messages=[{"role": "system", "content": request.system}, user],
             stream=False,
             format=request.schema,
-            images=request.images or None,
             options={
                 "temperature": request.temperature,
                 "num_predict": request.max_tokens if request.max_tokens is not None else output_room(request),
@@ -132,4 +135,4 @@ class OllamaEngine(InferenceEngine):
             # Keep a model loaded between consecutive requests (e.g. one per figure) instead of reloading it each time.
             keep_alive=KEEP_LOADED if request.keep_loaded else self.keep_alive,
         )
-        return response.response or ""
+        return response.message.content or ""

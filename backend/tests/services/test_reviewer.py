@@ -170,10 +170,10 @@ def test_review_system_review_paper():
     )
 
     mock_response = MagicMock()
-    mock_response.response = llm_reply_json
+    mock_response.message.content = llm_reply_json
 
     mock_client = AsyncMock(spec=AsyncClient)
-    mock_client.generate = AsyncMock(return_value=mock_response)
+    mock_client.chat = AsyncMock(return_value=mock_response)
 
     reviewer = ReviewSystem(_engine_with(mock_client), "test-model")
 
@@ -187,7 +187,7 @@ def test_review_system_review_paper():
     assert review.criteria.score == 4
     assert review.criteria.recommendation == Recommendation.ACCEPT
     assert review.raw_response == llm_reply_json
-    call = mock_client.generate.await_args
+    call = mock_client.chat.await_args
     assert call is not None
     schema = call.kwargs["format"]
     assert "detailed_feedback" in schema["required"]
@@ -204,10 +204,10 @@ def test_review_system_empty_response_raises():
     from sibyl.services.reviewer import ReviewSystem
 
     mock_response = MagicMock()
-    mock_response.response = ""  # Empty response
+    mock_response.message.content = ""  # Empty response
 
     mock_client = AsyncMock(spec=AsyncClient)
-    mock_client.generate = AsyncMock(return_value=mock_response)
+    mock_client.chat = AsyncMock(return_value=mock_response)
 
     reviewer = ReviewSystem(_engine_with(mock_client), "test-model")
 
@@ -232,9 +232,9 @@ def test_review_system_completes_custom_review_form():
         "score": 4,
         "recommendation": "Accept",
     }
-    mock_response = MagicMock(response=json.dumps(response_data))
+    mock_response = MagicMock(message=MagicMock(content=json.dumps(response_data)))
     mock_client = AsyncMock(spec=AsyncClient)
-    mock_client.generate = AsyncMock(return_value=mock_response)
+    mock_client.chat = AsyncMock(return_value=mock_response)
     reviewer = ReviewSystem(_engine_with(mock_client), "test-model")
 
     async def run():
@@ -246,13 +246,13 @@ def test_review_system_completes_custom_review_form():
         )
 
     review = asyncio.run(run())
-    assert mock_client.generate.await_args is not None
-    call = mock_client.generate.await_args.kwargs
+    assert mock_client.chat.await_args is not None
+    call = mock_client.chat.await_args.kwargs
 
     assert review.criteria.review_form_response == response_data["review_form_response"]
-    assert "<review_form>\n# Significance" in call["prompt"]
-    assert "<research_paper>\npaper text" in call["prompt"]
-    assert call["system"]
+    assert "<review_form>\n# Significance" in call["messages"][1]["content"]
+    assert "<research_paper>\npaper text" in call["messages"][1]["content"]
+    assert call["messages"][0]["content"]
     assert call["options"]["temperature"] == FORM_TEMPERATURE
     assert call["format"]["required"] == ["review_form_response", "score", "recommendation"]
     assert "novelty" not in call["format"]["properties"]
@@ -286,10 +286,10 @@ def _schema_driven_client():
 
     def answer(**kwargs):
         properties = kwargs["format"]["properties"]
-        return MagicMock(response=json.dumps({name: DEFAULT_REPLY.get(name, f"answer {name}") for name in properties}))
+        return MagicMock(message=MagicMock(content=json.dumps({name: DEFAULT_REPLY.get(name, f"answer {name}") for name in properties})))
 
     client = AsyncMock(spec=AsyncClient)
-    client.generate = AsyncMock(side_effect=answer)
+    client.chat = AsyncMock(side_effect=answer)
     return client
 
 
@@ -304,9 +304,9 @@ def test_detail_level_steers_length_in_the_prompt_without_a_token_limit(detail):
     engine = _engine_with(client)
     review = asyncio.run(ReviewSystem(engine, "m").review_paper("paper text", "T", "m", detail=ReviewDetail(detail), mode=ReviewMode.SINGLE))
 
-    call = client.generate.await_args.kwargs
-    assert length_guidance(ReviewDetail(detail)) in call["prompt"]
-    assert ("Length:" in call["prompt"]) == (detail != "auto")
+    call = client.chat.await_args.kwargs
+    assert length_guidance(ReviewDetail(detail)) in call["messages"][1]["content"]
+    assert ("Length:" in call["messages"][1]["content"]) == (detail != "auto")
     # The output cap is the rest of the context window, not a configured number.
     assert call["options"]["num_ctx"] == engine.context_length("m")  # the mocked show() reports no limit
     assert call["options"]["num_predict"] > 8192
@@ -333,14 +333,14 @@ def test_sections_mode_writes_one_section_per_call_then_scores():
 
     review = asyncio.run(ReviewSystem(_engine_with(client), "m").review_paper("paper text", "T", "m", detail=ReviewDetail.DETAILED, mode=ReviewMode.SECTIONS, on_status=on_status))
 
-    calls = [c.kwargs for c in client.generate.await_args_list]
+    calls = [c.kwargs for c in client.chat.await_args_list]
     assert [list(c["format"]["properties"]) for c in calls] == [[name] for name in NARRATIVE_FIELDS] + [["score", "recommendation"]]
     # Later calls see the sections already written; the model stays loaded until the last call.
-    assert "<your_review_so_far>" not in calls[0]["prompt"]
-    assert "## Novelty\nn" in calls[1]["prompt"]
+    assert "<your_review_so_far>" not in calls[0]["messages"][1]["content"]
+    assert "## Novelty\nn" in calls[1]["messages"][1]["content"]
     assert all(c["keep_alive"] == KEEP_LOADED for c in calls[:-1])
     assert calls[-1]["keep_alive"] != KEEP_LOADED
-    assert "numbered list" in calls[NARRATIVE_FIELDS.index("detailed_feedback")]["prompt"]
+    assert "numbered list" in calls[NARRATIVE_FIELDS.index("detailed_feedback")]["messages"][1]["content"]
     assert statuses[0].startswith("Section 1/9")
     assert review.criteria.methodology == "m"
     assert review.criteria.score == 4
@@ -366,7 +366,7 @@ def test_sections_mode_answers_conference_questions_one_by_one():
         for key in calls_answers:
             DEFAULT_REPLY.pop(key)
 
-    calls = [c.kwargs for c in client.generate.await_args_list]
+    calls = [c.kwargs for c in client.chat.await_args_list]
     assert [list(c["format"]["properties"]) for c in calls] == [["summary"], ["soundness", "decision", "score", "recommendation"]]
     assert review.criteria.review_form_answers == {"summary": "answer summary", "soundness": 3, "decision": "accept"}
     assert review.config is not None
@@ -387,7 +387,7 @@ def test_sections_mode_falls_back_to_one_pass_for_custom_forms():
     finally:
         DEFAULT_REPLY.pop("review_form_response")
 
-    assert client.generate.await_count == 1
+    assert client.chat.await_count == 1
     assert review.config is not None
     assert review.config.mode == "single"
     assert review.config.form == "custom"

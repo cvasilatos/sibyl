@@ -209,13 +209,13 @@ def test_concurrent_ensure_model_pulls_once(monkeypatch):
 def test_ollama_sends_images_and_keeps_model_loaded():
     engine = OllamaEngine(hosts=["http://a:1"], keep_alive="0")
     client = AsyncMock()
-    client.generate = AsyncMock(return_value=MagicMock(response="{}"))
+    client.chat = AsyncMock(return_value=MagicMock(message=MagicMock(content="{}")))
     engine.clients = [client]
     request = GenerationRequest(model="v", system="s", prompt="p", schema={}, temperature=0, max_tokens=10, context_length=8192, images=["abc"], keep_loaded=True)
     asyncio.run(engine.generate_json(request))
-    assert client.generate.await_args is not None
-    kwargs = client.generate.await_args.kwargs
-    assert kwargs["images"] == ["abc"]
+    assert client.chat.await_args is not None
+    kwargs = client.chat.await_args.kwargs
+    assert kwargs["messages"][1]["images"] == ["abc"]
     assert kwargs["keep_alive"] == KEEP_LOADED
 
 

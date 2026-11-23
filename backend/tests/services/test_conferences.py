@@ -72,16 +72,16 @@ def test_render_markdown_follows_form_order():
 def test_review_with_conference_template():
     reply = {"conference_review": {"summary": "Solid work.", "soundness": 3, "decision": "accept"}, **NORMALIZED}
     client = AsyncMock()
-    client.generate = AsyncMock(return_value=MagicMock(response=json.dumps(reply)))
+    client.chat = AsyncMock(return_value=MagicMock(message=MagicMock(content=json.dumps(reply))))
     engine = OllamaEngine(hosts=["http://ollama.test:11434"])
     engine.clients = [client]
 
     review = asyncio.run(ReviewSystem(engine, "m").review_paper("paper text", "Title", "m", conference=TEMPLATE))
 
-    assert client.generate.await_args is not None
-    call = client.generate.await_args.kwargs
-    assert "<conference_review_form>" in call["prompt"]
-    assert "Be constructive." in call["prompt"]
+    assert client.chat.await_args is not None
+    call = client.chat.await_args.kwargs
+    assert "<conference_review_form>" in call["messages"][1]["content"]
+    assert "Be constructive." in call["messages"][1]["content"]
     assert call["options"]["temperature"] == FORM_TEMPERATURE
     assert call["format"]["properties"]["conference_review"]["required"] == ["summary", "soundness", "decision"]
     assert review.criteria.conference == "testconf"
@@ -195,7 +195,7 @@ def test_ws_review_session_with_conference(client, monkeypatch):
 
     reply = {"conference_review": {"summary": "Fine.", "soundness": 2, "decision": "reject"}, **NORMALIZED}
     ollama = AsyncMock()
-    ollama.generate = AsyncMock(return_value=MagicMock(response=json.dumps(reply)))
+    ollama.chat = AsyncMock(return_value=MagicMock(message=MagicMock(content=json.dumps(reply))))
     client.app.state.engine.clients = [ollama]
 
     upload = client.post("/api/upload", files={"file": ("p.pdf", b"%PDF-1.4", "application/pdf")}, data={"conference_id": "testconf"}).json()
