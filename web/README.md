@@ -47,7 +47,7 @@ The frontend communicates with the FastAPI backend:
 - **REST API**: `http://localhost:8000/api/*`, called through the typed client in `src/lib/api/`
 - **WebSocket**: `ws://localhost:8000/ws/{session_id}` for real-time progress updates
 
-Start the backend before the frontend (`cd backend && uv run sibyl --log-level INFO`).
+Start the backend before the frontend (`cd backend && uv run sibyl serve`), or start both together with `uv run sibyl run` from `backend/`.
 
 ### Generated API client
 

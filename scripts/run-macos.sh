@@ -55,13 +55,7 @@ say "Installing backend dependencies..."
 (cd "$ROOT/backend" && env -u VIRTUAL_ENV uv sync --quiet)
 [[ -f "$ROOT/backend/.env" ]] || cp "$ROOT/backend/.env.example" "$ROOT/backend/.env"
 
-say "Starting backend on http://localhost:$BACKEND_PORT ..."
-(cd "$ROOT/backend" && env -u VIRTUAL_ENV uv run sibyl --host 127.0.0.1 --port "$BACKEND_PORT" --log-level INFO) &
+say "Starting the backend on :$BACKEND_PORT and the web app on http://localhost:$WEB_PORT ..."
+(cd "$ROOT/backend" && env -u VIRTUAL_ENV uv run sibyl run --port "$BACKEND_PORT" --web-port "$WEB_PORT") &
 PIDS+=($!)
-
-say "Starting web app on http://localhost:$WEB_PORT ..."
-(cd "$ROOT/web" && { [[ -d node_modules/next ]] || npm ci --no-audit --no-fund; } && NEXT_PUBLIC_API_URL="http://localhost:$BACKEND_PORT" npm run dev -- -p "$WEB_PORT") &
-PIDS+=($!)
-
-say "Sibyl is starting. Open http://localhost:$WEB_PORT (Ctrl+C to stop)."
 wait

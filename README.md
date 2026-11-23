@@ -71,6 +71,19 @@ To add or update a conference, copy an existing JSON file and edit `questions`. 
 `{"type": "text"}` or `{"type": "choice", "options": [{"value": 4, "label": "excellent"}, ...]}`.
 The template is picked up on the next backend start. You can still upload any free-form `.txt`/`.md` form instead.
 
+## Quick Start: any platform (`sibyl run`)
+
+With [uv](https://docs.astral.sh/uv/), Node.js 20+ and a model server already running (Ollama by default, or set
+`SIBYL_ENGINE` in `backend/.env`), one command starts the backend and the web app on Linux, macOS or Windows:
+
+```bash
+cd backend
+uv run sibyl run                 # backend on :8000, web app on http://localhost:3000; Ctrl+C stops both
+uv run sibyl run --help          # ports, host, HTTPS, log level
+```
+
+It installs the web dependencies on first run. `uv run sibyl serve` starts only the backend.
+
 ## Quick Start: macOS (Apple Silicon)
 
 Docker on macOS cannot use the Apple GPU, so Sibyl runs natively:
@@ -114,7 +127,7 @@ cd backend
 uv sync --extra web --extra dev
 
 # Start the API server
-sibyl --host 0.0.0.0 --port 8000 --log-level INFO
+uv run sibyl serve --host 0.0.0.0 --port 8000 --log-level INFO
 
 # Run tests
 pytest

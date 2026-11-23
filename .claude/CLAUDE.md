@@ -5,7 +5,7 @@ LLM-powered research paper review system that runs open-source models locally (O
 ## Layout
 
 - `backend/`: Python package `sibyl` (FastAPI). Self-contained: own `pyproject.toml`, `uv.lock`, `ruff.toml`, `Dockerfile`. Reviews are stored in `backend/sibyl_storage/` (`SIBYL_STORAGE_PATH`), wherever the server is started.
-  - `main.py`: the FastAPI app and `run_server()` (the `sibyl` command). Routers are mounted under `/api` and `/ws`. `openapi.py` exports the API schema without starting a server.
+  - `main.py`: the FastAPI app. `cli.py`: the `sibyl` Typer command (`sibyl run` starts the backend and the Next.js dev server together on any OS; `sibyl serve` only the backend). Routers are mounted under `/api` and `/ws`. `openapi.py` exports the API schema without starting a server.
   - `routers/`: HTTP and WebSocket endpoints (`reviews`, `upload`, `ws`, `gpu`, `conferences`, `review_forms`). `schemas/`: their pydantic request and response models; `tests/schemas/test_responses.py` checks no model drops a field its producer returns. `state.py`: shared app state.
   - `services/`: the review pipeline and helpers (`reviewer`, `comparison`, `pdf_parser`, `figures`, `conferences`, `review_forms`, `hardware`, `model_catalog`).
   - `inference/`: pluggable engines (`base.py`, `ollama_engine.py`, `vllm_engine.py`, `openai_engine.py`), picked with `SIBYL_ENGINE`.
@@ -24,7 +24,7 @@ LLM-powered research paper review system that runs open-source models locally (O
 
 ## Commands
 
-- Backend (in `backend/`): `uv sync --all-groups` (pytest lives in the `test` group); run with `uv run sibyl`. Add dependencies with `uv add <pkg>`, never `pip install`. The `decima` logging dependency is installed from `github.com/cvasilatos/decima` (a git source in `pyproject.toml`), so `uv sync` needs access to it.
+- Backend (in `backend/`): `uv sync --all-groups` (pytest lives in the `test` group); run with `uv run sibyl serve` (backend only) or `uv run sibyl run` (backend and web app). Add dependencies with `uv add <pkg>`, never `pip install`. The `decima` logging dependency is installed from `github.com/cvasilatos/decima` (a git source in `pyproject.toml`), so `uv sync` needs access to it.
 - Before finishing a backend change: `uv run ruff check . && uv run ruff format --check . && uv run ty check && uv run pytest`.
 - Web (in `web/`): `npm install`; run with `npm run dev` (expects the backend on :8000).
 - Before finishing a web change: `npm run check && npm test && npm run build`.

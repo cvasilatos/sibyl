@@ -19,7 +19,6 @@ dependencies = [
     "requests>=2.31.0",
     "pypdf>=3.17.0",
     "python-dotenv>=1.0.0",
-    "click>=8.1.0",
     "pydantic>=2.0.0",
     "rich>=13.0.0",
     "tabulate>=0.9.0",
@@ -40,6 +39,7 @@ dependencies = [
     "marker-pdf>=1.10.2",
     "torch<=2.7.0",
     "defusedxml>=0.7.1",
+    "typer>=0.24.0",
 ]
 
 [dependency-groups]
@@ -48,7 +48,7 @@ dev = ["pre-commit>=4.5.1", "ruff>=0.15.1", "ty>=0.0.17"]
 test = ["pytest>=9.0.2", "pytest-cov>=7.0.0"]
 
 [project.scripts]
-sibyl = "sibyl.main:run_server"
+sibyl = "sibyl.cli:app"
 
 [project.urls]
 Homepage = "https://github.com/cvasilatos/sibyl"

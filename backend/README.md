@@ -139,7 +139,7 @@ Choose a model based on your hardware:
 ### Start the API Server
 
 ```bash
-sibyl --host 0.0.0.0 --port 8000 --log-level INFO
+uv run sibyl serve --host 0.0.0.0 --port 8000 --log-level INFO
 ```
 
 The Next.js frontend (in [`../web`](../web)) will connect to this server automatically.

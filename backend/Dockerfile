@@ -33,4 +33,4 @@ RUN if [ "$INSTALL_VLLM" = "true" ]; then uv tool install "vllm==${VLLM_VERSION}
 EXPOSE 8000
 
 
-CMD ["sibyl", "--host", "0.0.0.0", "--port", "8000", "--log-level", "INFO"]
+CMD ["sibyl", "serve", "--host", "0.0.0.0", "--port", "8000", "--log-level", "INFO"]

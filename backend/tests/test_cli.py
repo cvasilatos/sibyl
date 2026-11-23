@@ -1,0 +1,81 @@
+# ruff: noqa: S603  (the tests start fixed Python one-liners)
+
+import subprocess
+import sys
+import time
+
+import pytest
+from typer.testing import CliRunner
+
+from sibyl import cli
+
+runner = CliRunner()
+
+
+def test_help_lists_commands():
+    result = runner.invoke(cli.app, ["--help"])
+    assert result.exit_code == 0
+    assert "run" in result.output
+    assert "serve" in result.output
+
+
+def test_run_without_web_app_fails(tmp_path):
+    result = runner.invoke(cli.app, ["run", "--web-dir", str(tmp_path)])
+    assert result.exit_code == 1
+
+
+def test_start_web_requires_node(tmp_path, monkeypatch):
+    (tmp_path / "package.json").write_text("{}")
+    monkeypatch.setattr(cli.shutil, "which", lambda _name: None)
+    with pytest.raises(cli.typer.Exit):
+        cli.start_web(tmp_path, 3000, "http://localhost:8000")
+
+
+def test_stop_process_tree_stops_children():
+    # A parent that starts a long-running child, as `next dev` does.
+    code = "import subprocess, sys, time; subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(60)']); time.sleep(60)"
+    if sys.platform == "win32":
+        process = subprocess.Popen([sys.executable, "-c", code], creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
+    else:
+        process = subprocess.Popen([sys.executable, "-c", code], start_new_session=True)
+    time.sleep(0.5)
+    cli.stop_process_tree(process)
+    assert process.poll() is not None
+    if sys.platform != "win32":
+        with pytest.raises(ProcessLookupError):
+            cli.os.killpg(process.pid, 0)  # the whole group is gone
+
+
+class FakeServer:
+    """Stands in for uvicorn.Server: runs until asked to exit, like the real one."""
+
+    def __init__(self, config):
+        self.config = config
+        self.should_exit = False
+
+    def run(self):
+        deadline = time.monotonic() + 10
+        while not self.should_exit and time.monotonic() < deadline:
+            time.sleep(0.05)
+
+
+def test_run_stops_backend_when_web_app_exits(tmp_path, monkeypatch):
+    web = subprocess.Popen([sys.executable, "-c", "raise SystemExit(3)"])
+    monkeypatch.setattr(cli, "start_web", lambda *_args, **_kwargs: web)
+    monkeypatch.setattr(cli.uvicorn, "Server", FakeServer)
+    result = runner.invoke(cli.app, ["run", "--web-dir", str(tmp_path)])
+    assert result.exit_code == 1
+    assert "code 3" in result.output
+
+
+def test_run_passes_backend_url_to_web_app(tmp_path, monkeypatch):
+    seen = {}
+
+    def fake_start_web(web_dir, web_port, api_url):
+        seen.update(web_dir=web_dir, web_port=web_port, api_url=api_url)
+        return subprocess.Popen([sys.executable, "-c", "pass"])
+
+    monkeypatch.setattr(cli, "start_web", fake_start_web)
+    monkeypatch.setattr(cli.uvicorn, "Server", FakeServer)
+    runner.invoke(cli.app, ["run", "--web-dir", str(tmp_path), "--port", "9001", "--web-port", "4001"])
+    assert seen == {"web_dir": tmp_path, "web_port": 4001, "api_url": "http://localhost:9001"}
