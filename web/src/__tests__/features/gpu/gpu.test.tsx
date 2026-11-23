@@ -26,7 +26,7 @@ describe("GPU views", () => {
       <>
         <GpuMonitor />
         <GpuLoadSummary />
-      </>
+      </>,
     );
     expect(await screen.findByText("RTX 4090")).toBeInTheDocument();
     expect(screen.getByText("VRAM")).toBeInTheDocument(); // only the summary has it

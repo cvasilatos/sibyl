@@ -8,7 +8,10 @@ export default function UsageBar({ value, color, size = "md" }: { value: number;
   const height = size === "sm" ? "h-1.5" : "h-3";
   return (
     <div className={cn("w-full flex-1 overflow-hidden rounded-full bg-muted", height)} aria-hidden="true">
-      <div className={cn("rounded-full transition-all duration-500", height, color)} style={{ width: `${Math.min(100, Math.max(0, value))}%` }} />
+      <div
+        className={cn("rounded-full transition-all duration-500", height, color)}
+        style={{ width: `${Math.min(100, Math.max(0, value))}%` }}
+      />
     </div>
   );
 }

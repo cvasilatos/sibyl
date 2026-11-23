@@ -9,13 +9,17 @@ function FormsContent() {
   const router = useRouter();
   const { selectForm, isReviewing } = useReview();
   const selectedKey = useSearchParams().get("form");
-  const onSelect = useCallback((key: string | null) => router.replace(key ? `/forms?form=${encodeURIComponent(key)}` : "/forms", { scroll: false }), [router]);
+  const onSelect = useCallback(
+    (key: string | null) =>
+      router.replace(key ? `/forms?form=${encodeURIComponent(key)}` : "/forms", { scroll: false }),
+    [router],
+  );
   const onUse = useCallback(
     (key: string) => {
       selectForm(key);
       router.push("/review");
     },
-    [selectForm, router]
+    [selectForm, router],
   );
   return <ReviewFormsBrowser selectedKey={selectedKey} onSelect={onSelect} onUse={isReviewing ? undefined : onUse} />;
 }

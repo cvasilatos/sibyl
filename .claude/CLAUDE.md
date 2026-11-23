@@ -17,7 +17,7 @@ LLM-powered research paper review system that runs open-source models locally (O
   - `src/features/<page>/`: that page's components, hooks and context. A feature imports from `components/`, `hooks/` and `lib/`, never from another feature; pages compose features.
   - `src/components/`: components shared by features; shadcn-style primitives in `ui/` (dialog, alert, spinner, native select, …).
   - Server data goes through TanStack Query: every read is defined once in `src/lib/api/queries.ts`, and changes invalidate the keys in `invalidates`. Don't fetch in `useEffect`.
-  - Vitest tests in `src/__tests__/`, mirroring `src/`; `helpers/` has `renderWithQuery`, `mockApi` (route-based fetch stub) and `FakeWebSocket`.
+  - Vitest tests in `src/__tests__/` (Playwright specs live in `e2e/`), mirroring `src/`; `helpers/` has `renderWithQuery`, `mockApi` (route-based fetch stub) and `FakeWebSocket`.
 - API contract: every backend route returns a pydantic model from `schemas/`. `web/openapi.json` and `web/src/lib/api/schema.d.ts` are generated from them; never edit either by hand. After changing a route or response model, run `npm run gen:api` in `web/` and commit both files (CI fails otherwise). The web app calls the backend only through `api` in `src/lib/api/index.ts`; `src/lib/types.ts` aliases the generated types.
 - `docker-compose.yml` (Ollama, one container per GPU) and `docker-compose.vllm.yml` (vLLM). `scripts/run-macos.sh` runs everything natively on Apple Silicon.
 - `docs/`: design notes and decisions. `tmp/`: scratch, ignored by git.
@@ -27,7 +27,7 @@ LLM-powered research paper review system that runs open-source models locally (O
 - Backend (in `backend/`): `uv sync --all-groups` (pytest lives in the `test` group); run with `uv run sibyl serve` (backend only) or `uv run sibyl run` (backend and web app). Add dependencies with `uv add <pkg>`, never `pip install`. The `decima` logging dependency is installed from `github.com/cvasilatos/decima` (a git source in `pyproject.toml`), so `uv sync` needs access to it.
 - Before finishing a backend change: `uv run ruff check . && uv run ruff format --check . && uv run ty check && uv run pytest`.
 - Web (in `web/`): `npm install`; run with `npm run dev` (expects the backend on :8000).
-- Before finishing a web change: `npm run check && npm test && npm run build`.
+- Before finishing a web change: `npm run check && npm run typecheck && npm test && npm run build`. End-to-end: `npm run test:e2e` (Playwright, `web/e2e/`; starts its own backend on :18000 and web app on :13000; `npx playwright install chromium` once).
 - CI: `.github/workflows/backend-ci.yml` and `frontend-ci.yml`.
 - Git hooks (`.pre-commit-config.yaml` at the repo root; install once with `uv run --directory backend pre-commit install`) run ruff, uv lock, ty and pytest on backend changes and `biome ci` on web changes. CI runs the same checks. If a hook fails, fix the cause and commit again; never bypass with `--no-verify` unless the user asks.
 

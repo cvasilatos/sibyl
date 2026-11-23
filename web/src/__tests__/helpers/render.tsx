@@ -8,12 +8,16 @@ export function testQueryClient(): QueryClient {
 }
 
 export function withQueryClient(client: QueryClient = testQueryClient()) {
+  // biome-ignore lint/correctness/noComponentHookFactories: a test wrapper bound to one client, created once per render call.
   return function Wrapper({ children }: { children: ReactNode }) {
     return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
   };
 }
 
 /** Render with a fresh query client (or the given one), returned alongside the render result. */
-export function renderWithQuery(ui: ReactElement, { client = testQueryClient(), ...options }: RenderOptions & { client?: QueryClient } = {}) {
+export function renderWithQuery(
+  ui: ReactElement,
+  { client = testQueryClient(), ...options }: RenderOptions & { client?: QueryClient } = {},
+) {
   return { client, ...render(ui, { wrapper: withQueryClient(client), ...options }) };
 }

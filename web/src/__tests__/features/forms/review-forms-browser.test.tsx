@@ -6,7 +6,10 @@ import ReviewFormsBrowser from "@/features/forms/ReviewFormsBrowser";
 import { mockApi } from "../../helpers/fetch";
 import { renderWithQuery } from "../../helpers/render";
 
-vi.mock("@/hooks/use-toast", () => ({ toast: vi.fn(), useToast: () => ({ toast: vi.fn(), toasts: [], dismiss: vi.fn() }) }));
+vi.mock("@/hooks/use-toast", () => ({
+  toast: vi.fn(),
+  useToast: () => ({ toast: vi.fn(), toasts: [], dismiss: vi.fn() }),
+}));
 
 const neurips = {
   id: "neurips",
@@ -19,7 +22,13 @@ const neurips = {
   question_count: 9,
   page_limit: null,
 };
-const saved = { id: "b".repeat(32), name: "Lab Template", filename: "lab.md", created_at: "2026-11-01T00:00:00Z", size: 10 };
+const saved = {
+  id: "b".repeat(32),
+  name: "Lab Template",
+  filename: "lab.md",
+  created_at: "2026-11-01T00:00:00Z",
+  size: 10,
+};
 
 function Browser({ onUse }: { onUse?: (key: string) => void }) {
   const [key, setKey] = useState<string | null>(null);

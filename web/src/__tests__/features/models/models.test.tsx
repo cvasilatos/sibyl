@@ -12,9 +12,19 @@ vi.mock("@/hooks/use-toast", () => ({ toast, useToast: () => ({ toast, toasts: [
 
 function routes(installed: string[] = []) {
   return {
-    "GET /api/engine": { name: "ollama", label: "Ollama", supports_downloads: true, platform: "linux", machine: "x86_64" },
-    "GET /api/models": () => ({ models: installed.map((model) => ({ model, size: 5 * 1024 ** 3, digest: model, modified_at: "2026-01-01" })) }),
-    "GET /api/models/available": { models: [{ name: "qwen3", description: "Qwen 3", size: "5 GB", installed: false, installed_variants: [] }] },
+    "GET /api/engine": {
+      name: "ollama",
+      label: "Ollama",
+      supports_downloads: true,
+      platform: "linux",
+      machine: "x86_64",
+    },
+    "GET /api/models": () => ({
+      models: installed.map((model) => ({ model, size: 5 * 1024 ** 3, digest: model, modified_at: "2026-01-01" })),
+    }),
+    "GET /api/models/available": {
+      models: [{ name: "qwen3", description: "Qwen 3", size: "5 GB", installed: false, installed_variants: [] }],
+    },
     "GET /api/models/available/qwen3/tags": { model: "qwen3", tags: ["8b", "14b"] },
   };
 }
@@ -23,7 +33,7 @@ function renderManager() {
   return renderWithQuery(
     <DownloadProvider>
       <ModelManager />
-    </DownloadProvider>
+    </DownloadProvider>,
   );
 }
 
@@ -63,7 +73,9 @@ describe("ModelManager", () => {
     act(() => FakeWebSocket.last().receive({ status: "error", message: "Disk full" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Disk full");
-    expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: "Installation Failed", description: "Disk full" }));
+    expect(toast).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Installation Failed", description: "Disk full" }),
+    );
   });
 
   it("deletes an installed model after confirmation", async () => {
@@ -84,7 +96,16 @@ describe("ModelManager", () => {
   });
 
   it("hides the catalog when the engine cannot download models", async () => {
-    mockApi({ ...routes(), "GET /api/engine": { name: "openai", label: "OpenAI-compatible", supports_downloads: false, platform: "linux", machine: "x86_64" } });
+    mockApi({
+      ...routes(),
+      "GET /api/engine": {
+        name: "openai",
+        label: "OpenAI-compatible",
+        supports_downloads: false,
+        platform: "linux",
+        machine: "x86_64",
+      },
+    });
     renderManager();
     expect(await screen.findByText(/Models are managed by your inference server/)).toBeInTheDocument();
     expect(screen.queryByText("Browse & Install Models")).not.toBeInTheDocument();

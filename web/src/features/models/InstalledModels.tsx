@@ -18,7 +18,8 @@ export default function InstalledModels() {
       toast({ title: "Model Removed", description: `${modelName} was deleted.` });
       return queryClient.invalidateQueries(invalidates.models);
     },
-    onError: (err) => toast({ title: "Removal Failed", description: err.message || "Could not delete model", variant: "destructive" }),
+    onError: (err) =>
+      toast({ title: "Removal Failed", description: err.message || "Could not delete model", variant: "destructive" }),
   });
 
   return (
@@ -41,7 +42,10 @@ export default function InstalledModels() {
                   </p>
                 </div>
                 <Button
-                  onClick={() => window.confirm(`Delete ${model.model}? It will need to be downloaded again to use it.`) && remove.mutate(model.model)}
+                  onClick={() =>
+                    window.confirm(`Delete ${model.model}? It will need to be downloaded again to use it.`) &&
+                    remove.mutate(model.model)
+                  }
                   disabled={removing}
                   size="sm"
                   variant="destructive"

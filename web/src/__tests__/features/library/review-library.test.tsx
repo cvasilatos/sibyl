@@ -86,7 +86,7 @@ describe("ReviewLibrary", () => {
           current = reviews.filter((r) => r.id !== "r2");
           return { message: "deleted" };
         },
-      })
+      }),
     );
     renderWithQuery(<Library />);
     await userEvent.click(await screen.findByRole("button", { name: "Delete review for Paper Two" }));
@@ -98,7 +98,11 @@ describe("ReviewLibrary", () => {
 
   it("shows the backend's message when a deletion fails", async () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
-    mockApi(routes({ "DELETE /api/reviews/r1": new Response(JSON.stringify({ detail: "Storage is read-only" }), { status: 500 }) }));
+    mockApi(
+      routes({
+        "DELETE /api/reviews/r1": new Response(JSON.stringify({ detail: "Storage is read-only" }), { status: 500 }),
+      }),
+    );
     renderWithQuery(<Library />);
     await userEvent.click(await screen.findByRole("button", { name: "Delete review for Paper One" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Storage is read-only");

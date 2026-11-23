@@ -21,7 +21,12 @@ type Props = {
 };
 
 /** Uploads a TXT or Markdown reviewer form and asks for a name, so the form is saved and can be picked again later. */
-export default function AddReviewFormButton({ onSaved, disabled = false, className, label = "Upload Review Form" }: Props) {
+export default function AddReviewFormButton({
+  onSaved,
+  disabled = false,
+  className,
+  label = "Upload Review Form",
+}: Props) {
   const queryClient = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -64,7 +69,13 @@ export default function AddReviewFormButton({ onSaved, disabled = false, classNa
           setFile(chosen);
         }}
       />
-      <Button type="button" variant="outline" className={className} onClick={() => inputRef.current?.click()} disabled={disabled}>
+      <Button
+        type="button"
+        variant="outline"
+        className={className}
+        onClick={() => inputRef.current?.click()}
+        disabled={disabled}
+      >
         <FileUp className="mr-2 h-4 w-4" />
         {label}
       </Button>
@@ -74,7 +85,9 @@ export default function AddReviewFormButton({ onSaved, disabled = false, classNa
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Name This Review Form</DialogTitle>
-              <DialogDescription>Saved forms appear in the Review Forms tab and in the review form list, so you can reuse them.</DialogDescription>
+              <DialogDescription>
+                Saved forms appear in the Review Forms tab and in the review form list, so you can reuse them.
+              </DialogDescription>
             </DialogHeader>
             <form
               className="mt-4 space-y-4"
@@ -87,7 +100,14 @@ export default function AddReviewFormButton({ onSaved, disabled = false, classNa
                 <label htmlFor="review-form-name" className="text-sm font-medium">
                   Name
                 </label>
-                <Input id="review-form-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={100} autoFocus placeholder="e.g. Workshop on Efficient ML 2026" />
+                <Input
+                  id="review-form-name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  maxLength={100}
+                  autoFocus
+                  placeholder="e.g. Workshop on Efficient ML 2026"
+                />
                 <p className="truncate text-xs text-muted-foreground" title={file.name}>
                   From {file.name}
                 </p>

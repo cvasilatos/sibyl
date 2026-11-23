@@ -8,8 +8,22 @@ export function recommendationClassName(recommendation: string): string {
   return "text-yellow-600 bg-yellow-50 dark:text-yellow-400 dark:bg-yellow-950";
 }
 
-export default function RecommendationBadge({ recommendation, size = "sm" }: { recommendation: string; size?: "sm" | "md" }) {
+export default function RecommendationBadge({
+  recommendation,
+  size = "sm",
+}: {
+  recommendation: string;
+  size?: "sm" | "md";
+}) {
   return (
-    <span className={cn("rounded-full font-semibold", size === "md" ? "px-3 py-1 text-sm" : "px-2 py-0.5 text-xs", recommendationClassName(recommendation))}>{recommendation}</span>
+    <span
+      className={cn(
+        "rounded-full font-semibold",
+        size === "md" ? "px-3 py-1 text-sm" : "px-2 py-0.5 text-xs",
+        recommendationClassName(recommendation),
+      )}
+    >
+      {recommendation}
+    </span>
   );
 }

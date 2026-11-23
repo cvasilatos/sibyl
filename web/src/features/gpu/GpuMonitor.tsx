@@ -72,7 +72,9 @@ export default function GpuMonitor() {
           </div>
         )}
 
-        {data?.available && displayedGpus.length === 0 && <p className="py-8 text-center text-sm text-muted-foreground">No GPUs found.</p>}
+        {data?.available && displayedGpus.length === 0 && (
+          <p className="py-8 text-center text-sm text-muted-foreground">No GPUs found.</p>
+        )}
 
         <div className="space-y-4">
           {displayedGpus.map((gpu) => (

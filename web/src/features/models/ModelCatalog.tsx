@@ -15,7 +15,9 @@ export default function ModelCatalog({ isVllm }: { isVllm: boolean }) {
   const filtered = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     if (!query) return models;
-    return models.filter((model) => model.name.toLowerCase().includes(query) || model.description.toLowerCase().includes(query));
+    return models.filter(
+      (model) => model.name.toLowerCase().includes(query) || model.description.toLowerCase().includes(query),
+    );
   }, [models, searchQuery]);
 
   return (
@@ -32,7 +34,9 @@ export default function ModelCatalog({ isVllm }: { isVllm: boolean }) {
             onToggle={() => setExpandedModel((current) => (current === model.name ? null : model.name))}
           />
         ))}
-        {filtered.length === 0 && <p className="py-4 text-center text-sm text-muted-foreground">No models found matching "{searchQuery}"</p>}
+        {filtered.length === 0 && (
+          <p className="py-4 text-center text-sm text-muted-foreground">No models found matching "{searchQuery}"</p>
+        )}
       </div>
     </div>
   );

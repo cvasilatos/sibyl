@@ -45,7 +45,19 @@ const completed = {
   progress: 100,
   message: "Review complete!",
   review_id: "r1",
-  results: { paper_title: "My Paper", reviews: [{ paper_title: "My Paper", reviewer_model: "llama3:8b", criteria, raw_response: "{}", related_work: [relatedPaper], config }] },
+  results: {
+    paper_title: "My Paper",
+    reviews: [
+      {
+        paper_title: "My Paper",
+        reviewer_model: "llama3:8b",
+        criteria,
+        raw_response: "{}",
+        related_work: [relatedPaper],
+        config,
+      },
+    ],
+  },
 };
 
 function routes() {
@@ -76,7 +88,7 @@ function renderReviewPage() {
     <ReviewProvider>
       <ReviewForm />
       <ResultsPanel />
-    </ReviewProvider>
+    </ReviewProvider>,
   );
   const pdfInput = view.container.querySelector<HTMLInputElement>('input[accept=".pdf"]');
   if (!pdfInput) throw new Error("PDF input not found");
@@ -117,7 +129,10 @@ describe("review flow", () => {
 
     expect(await screen.findByText("Very novel")).toBeInTheDocument();
     expect(screen.getByText("8/10")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Prior Work" })).toHaveAttribute("href", "https://arxiv.org/abs/2401.00001");
+    expect(screen.getByRole("link", { name: "Prior Work" })).toHaveAttribute(
+      "href",
+      "https://arxiv.org/abs/2401.00001",
+    );
     expect(screen.getByText("Same task, different method.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Start Review/ })).toBeEnabled();
     expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: "✅ Review Complete" }));
@@ -176,7 +191,11 @@ describe("review flow", () => {
       page_limit: { pages: 6, excludes: "references", note: "", edition: "2026", source_url: "https://dac.com/cfp" },
     };
     const noLimit = { ...dac, id: "other", name: "Other", page_limit: null };
-    mockApi({ ...routes(), "GET /api/conferences": { conferences: [dac, noLimit], count: 2 }, "GET /api/conferences/dac": { ...dac, questions: [], form_markdown: "# DAC" } });
+    mockApi({
+      ...routes(),
+      "GET /api/conferences": { conferences: [dac, noLimit], count: 2 },
+      "GET /api/conferences/dac": { ...dac, questions: [], form_markdown: "# DAC" },
+    });
     renderReviewPage();
 
     const select = await screen.findByLabelText("Review Form");
@@ -185,19 +204,29 @@ describe("review flow", () => {
 
     await userEvent.selectOptions(select, "conference:dac");
     expect(screen.getByText(/6 pages, excluding references/)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "DAC 2026 call for papers" })).toHaveAttribute("href", "https://dac.com/cfp");
+    expect(screen.getByRole("link", { name: "DAC 2026 call for papers" })).toHaveAttribute(
+      "href",
+      "https://dac.com/cfp",
+    );
     // Selecting a form no longer opens a preview; it is one link away in the Review Forms tab.
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "View form" })).toHaveAttribute("href", "/forms?form=conference%3Adac");
   });
 
   it("asks for a name when a form is uploaded, saves it and reviews with it", async () => {
-    const saved = { id: "a".repeat(32), name: "Workshop 2026", filename: "workshop_2026.md", created_at: "2026-11-23T00:00:00Z", size: 4 };
+    const saved = {
+      id: "a".repeat(32),
+      name: "Workshop 2026",
+      filename: "workshop_2026.md",
+      created_at: "2026-11-23T00:00:00Z",
+      size: 4,
+    };
     let forms: (typeof saved)[] = [];
     let savedName: string | undefined;
     let uploadedFormId: string | undefined;
     // jsdom's File cannot be parsed back out of a multipart body, so read the text fields from the raw body.
-    const field = async (request: Request, name: string) => (await request.text()).match(new RegExp(`name="${name}"\\r\\n\\r\\n([^\\r]*)`))?.[1];
+    const field = async (request: Request, name: string) =>
+      (await request.text()).match(new RegExp(`name="${name}"\\r\\n\\r\\n([^\\r]*)`))?.[1];
     mockApi({
       ...routes(),
       "GET /api/review-forms": () => ({ forms, count: forms.length }),
@@ -214,7 +243,10 @@ describe("review flow", () => {
     const { pdfInput } = renderReviewPage();
     await screen.findByLabelText("Select Model for Review");
 
-    await userEvent.upload(screen.getByLabelText("Review form file"), new File(["# Q1"], "workshop_2026.md", { type: "text/markdown" }));
+    await userEvent.upload(
+      screen.getByLabelText("Review form file"),
+      new File(["# Q1"], "workshop_2026.md", { type: "text/markdown" }),
+    );
     const name = await screen.findByLabelText("Name");
     expect(name).toHaveValue("workshop 2026");
     await userEvent.clear(name);
@@ -240,7 +272,9 @@ describe("review flow", () => {
 
     act(() => FakeWebSocket.last().receive({ status: "error", message: "Model crashed" }));
 
-    expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: "Review Failed", description: "Model crashed" }));
+    expect(toast).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Review Failed", description: "Model crashed" }),
+    );
     expect(screen.getByRole("button", { name: /Start Review/ })).toBeEnabled();
   });
 
@@ -254,7 +288,9 @@ describe("review flow", () => {
 
     act(() => FakeWebSocket.last().serverClose());
 
-    expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: "Review Failed", description: "The review connection closed unexpectedly." }));
+    expect(toast).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Review Failed", description: "The review connection closed unexpectedly." }),
+    );
   });
 
   it("rejects a file that is not a PDF", async () => {

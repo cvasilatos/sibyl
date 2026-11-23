@@ -63,7 +63,12 @@ export default function ModelCatalogItem({ model, expanded, onToggle, isVllm }: 
           ) : tags.data && tags.data.length > 0 && selectedTag ? (
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs text-muted-foreground">Variant:</span>
-              <NativeSelect aria-label={`Variant of ${model.name}`} value={selectedTag} onChange={(e) => setChosenTag(e.target.value)} className="w-auto px-2 py-1 text-xs">
+              <NativeSelect
+                aria-label={`Variant of ${model.name}`}
+                value={selectedTag}
+                onChange={(e) => setChosenTag(e.target.value)}
+                className="w-auto px-2 py-1 text-xs"
+              >
                 {tags.data.map((tag) => (
                   <option key={tag} value={tag}>
                     {tag}
@@ -71,7 +76,11 @@ export default function ModelCatalogItem({ model, expanded, onToggle, isVllm }: 
                   </option>
                 ))}
               </NativeSelect>
-              <Button size="sm" onClick={() => install(`${model.name}:${selectedTag}`)} disabled={isInstalling || installed.includes(selectedTag)}>
+              <Button
+                size="sm"
+                onClick={() => install(`${model.name}:${selectedTag}`)}
+                disabled={isInstalling || installed.includes(selectedTag)}
+              >
                 <Download className="mr-1 h-3 w-3" />
                 Confirm
               </Button>

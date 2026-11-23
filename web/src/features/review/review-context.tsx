@@ -32,13 +32,19 @@ function useReviewState() {
   const installed = useQuery(queries.installedModels()).data;
   const availableModels = useMemo(() => installed?.map((model) => model.model) ?? [], [installed]);
   const selectedModel = availableModels.includes(chosenModel) ? chosenModel : (availableModels[0] ?? "");
-  const selectedVlm = chosenVlm === VLM_DEFAULT || chosenVlm === VLM_NONE || availableModels.includes(chosenVlm) ? chosenVlm : VLM_DEFAULT;
+  const selectedVlm =
+    chosenVlm === VLM_DEFAULT || chosenVlm === VLM_NONE || availableModels.includes(chosenVlm)
+      ? chosenVlm
+      : VLM_DEFAULT;
   const gpus = useQuery(queries.gpus()).data;
   const availableGpus = useMemo(() => (gpus?.available ? gpus.gpus : []), [gpus]);
   const selectedGpuIndex = availableGpus.some((gpu) => gpu.index === chosenGpuIndex) ? chosenGpuIndex : null;
   // A saved form deleted in the Review Forms tab falls back to the generic review.
   const savedForms = useQuery(queries.reviewForms()).data;
-  const selectedForm = chosenForm?.kind === "custom" && savedForms && !savedForms.some((form) => form.id === chosenForm.id) ? null : chosenForm;
+  const selectedForm =
+    chosenForm?.kind === "custom" && savedForms && !savedForms.some((form) => form.id === chosenForm.id)
+      ? null
+      : chosenForm;
   const selectedFormKey = selectedForm ? formKey(selectedForm) : null;
 
   const selectFile = useCallback(
@@ -50,7 +56,7 @@ function useReviewState() {
       setSelectedFile(file);
       clearResults();
     },
-    [clearResults]
+    [clearResults],
   );
 
   /** Pick a review form by its key ("conference:<id>" or "custom:<id>"), or null for the generic review. */
@@ -59,13 +65,17 @@ function useReviewState() {
       setChosenForm(parseFormKey(key));
       clearResults();
     },
-    [clearResults]
+    [clearResults],
   );
 
   const { start } = session;
   const startReview = useCallback(() => {
     if (!selectedFile || !selectedModel) {
-      toast({ title: "Cannot Start Review", description: "Select a PDF and an installed model first.", variant: "destructive" });
+      toast({
+        title: "Cannot Start Review",
+        description: "Select a PDF and an installed model first.",
+        variant: "destructive",
+      });
       return;
     }
     start({
@@ -78,7 +88,17 @@ function useReviewState() {
       detail: selectedDetail,
       mode: selectedMode,
     });
-  }, [start, selectedFile, selectedForm, selectedModel, selectedVlm, relatedWork, selectedGpuIndex, selectedDetail, selectedMode]);
+  }, [
+    start,
+    selectedFile,
+    selectedForm,
+    selectedModel,
+    selectedVlm,
+    relatedWork,
+    selectedGpuIndex,
+    selectedDetail,
+    selectedMode,
+  ]);
 
   return useMemo(
     () => ({
@@ -122,7 +142,7 @@ function useReviewState() {
       session.results,
       session.isReviewing,
       startReview,
-    ]
+    ],
   );
 }
 

@@ -42,7 +42,7 @@ export function useReviewSession() {
         socket.close();
       }
     },
-    []
+    [],
   );
 
   const start = useCallback(
@@ -53,8 +53,18 @@ export function useReviewSession() {
         const upload = await api.uploadPaper(file, form);
         // The backend numbers hosts from 1; 0 means "any".
         const hostIndex = gpuIndex !== null ? gpuIndex + 1 : 0;
-        const progressToast = toast({ title: "Review in Progress", description: `Starting review of ${file.name}...`, duration: Number.POSITIVE_INFINITY });
-        const params = new URLSearchParams({ model, host: String(hostIndex), related: String(relatedWork), detail, mode });
+        const progressToast = toast({
+          title: "Review in Progress",
+          description: `Starting review of ${file.name}...`,
+          duration: Number.POSITIVE_INFINITY,
+        });
+        const params = new URLSearchParams({
+          model,
+          host: String(hostIndex),
+          related: String(relatedWork),
+          detail,
+          mode,
+        });
         if (vlm) params.set("vlm", vlm);
         const socket = new WebSocket(`${getWebSocketUrl()}/ws/session/${upload.session_id}?${params}`);
         socketRef.current = socket;
@@ -90,7 +100,10 @@ export function useReviewSession() {
             setIsReviewing(false);
             setResults(message.results);
             progressToast.dismiss();
-            toast({ title: "✅ Review Complete", description: `"${message.results.paper_title}" — ID: ${message.review_id}` });
+            toast({
+              title: "✅ Review Complete",
+              description: `"${message.results.paper_title}" — ID: ${message.review_id}`,
+            });
             queryClient.invalidateQueries(invalidates.reviews);
             socket.close();
           } else if (message.status === "error") {
@@ -105,10 +118,14 @@ export function useReviewSession() {
         };
       } catch (error) {
         setIsReviewing(false);
-        toast({ title: "Upload Failed", description: error instanceof Error ? error.message : "An error occurred", variant: "destructive" });
+        toast({
+          title: "Upload Failed",
+          description: error instanceof Error ? error.message : "An error occurred",
+          variant: "destructive",
+        });
       }
     },
-    [queryClient]
+    [queryClient],
   );
 
   const clearResults = useCallback(() => setResults(null), []);

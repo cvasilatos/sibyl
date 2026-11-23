@@ -21,21 +21,32 @@ export default function ReviewDetails({
   review,
   maxScore,
 }: {
-  review: Pick<Review, "paper_title" | "reviewer_model" | "criteria" | "related_work"> & Partial<Pick<Review, "config">>;
+  review: Pick<Review, "paper_title" | "reviewer_model" | "criteria" | "related_work"> &
+    Partial<Pick<Review, "config">>;
   maxScore?: number;
 }) {
   const { criteria } = review;
   return (
     <>
       <div className="flex justify-end">
-        <Button size="sm" variant="outline" onClick={() => downloadReviewText(review, maxScore)} aria-label={`Download review of ${review.paper_title} as text`}>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => downloadReviewText(review, maxScore)}
+          aria-label={`Download review of ${review.paper_title} as text`}
+        >
           <FileText className="h-4 w-4 mr-1" /> Download .txt
         </Button>
       </div>
       {criteria.review_form_response ? (
-        <ReviewSection title={criteria.conference ? "📋 Conference Reviewer Form" : "📋 Completed Review Form"} content={criteria.review_form_response} />
+        <ReviewSection
+          title={criteria.conference ? "📋 Conference Reviewer Form" : "📋 Completed Review Form"}
+          content={criteria.review_form_response}
+        />
       ) : (
-        DEFAULT_SECTIONS.map(({ title, field }) => <ReviewSection key={field} title={`${SECTION_ICONS[field]} ${title}`} content={String(criteria[field])} />)
+        DEFAULT_SECTIONS.map(({ title, field }) => (
+          <ReviewSection key={field} title={`${SECTION_ICONS[field]} ${title}`} content={String(criteria[field])} />
+        ))
       )}
       {review.related_work.length > 0 && <RelatedWorkList papers={review.related_work} />}
       {review.config && <ReviewConfigPanel config={review.config} />}

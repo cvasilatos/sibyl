@@ -17,7 +17,13 @@ import PaperReviewsDialog from "./PaperReviewsDialog";
 import ReviewListItem from "./ReviewListItem";
 
 function matches(review: StoredReview, query: string): boolean {
-  return [review.paper_title, review.pdf_filename, review.reviewer_model, review.recommendation, review.review_summary].some((field) => field.toLowerCase().includes(query));
+  return [
+    review.paper_title,
+    review.pdf_filename,
+    review.reviewer_model,
+    review.recommendation,
+    review.review_summary,
+  ].some((field) => field.toLowerCase().includes(query));
 }
 
 type Props = {
@@ -72,7 +78,9 @@ export default function ReviewLibrary({ expandedReviewId, onExpandedChange }: Pr
           </div>
           <div className="flex items-center gap-2">
             <Button
-              onClick={() => confirm("Are you sure you want to delete ALL reviews? This cannot be undone.") && deleteAll.mutate()}
+              onClick={() =>
+                confirm("Are you sure you want to delete ALL reviews? This cannot be undone.") && deleteAll.mutate()
+              }
               disabled={deleteAll.isPending || reviews.isPending || allReviews.length === 0}
               size="sm"
               variant="destructive"
@@ -80,7 +88,13 @@ export default function ReviewLibrary({ expandedReviewId, onExpandedChange }: Pr
               {deleteAll.isPending ? <Spinner label="Deleting" /> : <Trash2 className="h-4 w-4" />}
               Delete All
             </Button>
-            <Button onClick={refresh} disabled={reviews.isFetching} size="sm" variant="outline" aria-label="Refresh reviews">
+            <Button
+              onClick={refresh}
+              disabled={reviews.isFetching}
+              size="sm"
+              variant="outline"
+              aria-label="Refresh reviews"
+            >
               <RefreshCw className={`h-4 w-4 ${reviews.isFetching ? "animate-spin" : ""}`} />
             </Button>
           </div>
@@ -89,7 +103,11 @@ export default function ReviewLibrary({ expandedReviewId, onExpandedChange }: Pr
       <CardContent className="space-y-4">
         <ErrorAlert>{actionError ?? (loadError && (loadError.message || "Failed to load reviews"))}</ErrorAlert>
         {stats.data && <LibraryStats stats={stats.data} />}
-        <SearchInput value={searchQuery} onChange={setSearchQuery} placeholder="Search reviews by title, model, recommendation…" />
+        <SearchInput
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Search reviews by title, model, recommendation…"
+        />
 
         <div className="space-y-2">
           {reviews.isPending ? (
@@ -107,7 +125,9 @@ export default function ReviewLibrary({ expandedReviewId, onExpandedChange }: Pr
                 expanded={expandedReviewId === review.id}
                 onToggle={() => onExpandedChange(expandedReviewId === review.id ? null : review.id)}
                 onShowPaper={() => setSelectedPaperTitle(review.paper_title)}
-                onDelete={() => confirm("Are you sure you want to delete this review?") && deleteReview.mutate(review.id)}
+                onDelete={() =>
+                  confirm("Are you sure you want to delete this review?") && deleteReview.mutate(review.id)
+                }
                 deleting={deleteReview.isPending && deleteReview.variables === review.id}
                 onError={setActionError}
               />
@@ -116,7 +136,12 @@ export default function ReviewLibrary({ expandedReviewId, onExpandedChange }: Pr
         </div>
       </CardContent>
 
-      <PaperReviewsDialog paperTitle={selectedPaperTitle} reviews={allReviews} maxScore={maxScore} onClose={() => setSelectedPaperTitle(null)} />
+      <PaperReviewsDialog
+        paperTitle={selectedPaperTitle}
+        reviews={allReviews}
+        maxScore={maxScore}
+        onClose={() => setSelectedPaperTitle(null)}
+      />
     </Card>
   );
 }

@@ -9,10 +9,9 @@ export function GlobalDownloadProgress() {
   if (installing.length === 0) return null;
 
   return (
-    <div
-      role="status"
+    <output
       aria-live="polite"
-      className="fixed bottom-4 right-4 z-50 w-72 max-w-[calc(100vw-2rem)] rounded-lg border bg-background p-3 shadow-lg"
+      className="block fixed bottom-4 right-4 z-50 w-72 max-w-[calc(100vw-2rem)] rounded-lg border bg-background p-3 shadow-lg"
     >
       <div className="space-y-3">
         {installing.map((modelName) => (
@@ -27,6 +26,6 @@ export function GlobalDownloadProgress() {
           </div>
         ))}
       </div>
-    </div>
+    </output>
   );
 }

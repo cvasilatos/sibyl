@@ -22,7 +22,13 @@ describe("NavTabs", () => {
   it("links every page and marks the current one", () => {
     pathname.current = "/library";
     render(<NavTabs />);
-    expect(screen.getAllByRole("link").map((link) => link.getAttribute("href"))).toEqual(["/review", "/forms", "/library", "/models", "/gpu"]);
+    expect(screen.getAllByRole("link").map((link) => link.getAttribute("href"))).toEqual([
+      "/review",
+      "/forms",
+      "/library",
+      "/models",
+      "/gpu",
+    ]);
     expect(screen.getByRole("link", { name: "Library" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("link", { name: "Review Paper" })).not.toHaveAttribute("aria-current");
   });

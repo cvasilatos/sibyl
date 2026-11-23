@@ -33,25 +33,33 @@ export const api = {
   getEngine: () => unwrap(client.GET("/api/engine")),
   listConferences: () => unwrap(client.GET("/api/conferences")),
   getConference: (conferenceId: string, signal?: AbortSignal) =>
-    unwrap(client.GET("/api/conferences/{conference_id}", { params: { path: { conference_id: conferenceId } }, signal })),
+    unwrap(
+      client.GET("/api/conferences/{conference_id}", { params: { path: { conference_id: conferenceId } }, signal }),
+    ),
   listReviewForms: () => unwrap(client.GET("/api/review-forms")),
-  getReviewForm: (formId: string, signal?: AbortSignal) => unwrap(client.GET("/api/review-forms/{form_id}", { params: { path: { form_id: formId } }, signal })),
+  getReviewForm: (formId: string, signal?: AbortSignal) =>
+    unwrap(client.GET("/api/review-forms/{form_id}", { params: { path: { form_id: formId } }, signal })),
   saveReviewForm(name: string, file: File) {
     const formData = new FormData();
     formData.append("name", name);
     formData.append("file", file);
     return unwrap(client.POST("/api/review-forms", { body: formData as never, bodySerializer: (body) => body }));
   },
-  deleteReviewForm: (formId: string) => unwrap(client.DELETE("/api/review-forms/{form_id}", { params: { path: { form_id: formId } } })),
+  deleteReviewForm: (formId: string) =>
+    unwrap(client.DELETE("/api/review-forms/{form_id}", { params: { path: { form_id: formId } } })),
   listInstalledModels: () => unwrap(client.GET("/api/models")),
-  deleteModel: (modelName: string) => unwrap(client.DELETE("/api/models/{model_name}", { params: { path: { model_name: modelName } } })),
+  deleteModel: (modelName: string) =>
+    unwrap(client.DELETE("/api/models/{model_name}", { params: { path: { model_name: modelName } } })),
   listAvailableModels: () => unwrap(client.GET("/api/models/available")),
-  listModelTags: (modelName: string) => unwrap(client.GET("/api/models/available/{model_name}/tags", { params: { path: { model_name: modelName } } })),
+  listModelTags: (modelName: string) =>
+    unwrap(client.GET("/api/models/available/{model_name}/tags", { params: { path: { model_name: modelName } } })),
   listGpus: () => unwrap(client.GET("/api/gpu")),
   listReviews: (limit = 50) => unwrap(client.GET("/api/reviews", { params: { query: { limit } } })),
-  getReview: (reviewId: string, signal?: AbortSignal) => unwrap(client.GET("/api/reviews/{review_id}", { params: { path: { review_id: reviewId } }, signal })),
+  getReview: (reviewId: string, signal?: AbortSignal) =>
+    unwrap(client.GET("/api/reviews/{review_id}", { params: { path: { review_id: reviewId } }, signal })),
   getStatistics: () => unwrap(client.GET("/api/statistics")),
-  deleteReview: (reviewId: string) => unwrap(client.DELETE("/api/reviews/{review_id}", { params: { path: { review_id: reviewId } } })),
+  deleteReview: (reviewId: string) =>
+    unwrap(client.DELETE("/api/reviews/{review_id}", { params: { path: { review_id: reviewId } } })),
   deleteAllReviews: () => unwrap(client.DELETE("/api/reviews")),
   async downloadReviewPdf(reviewId: string): Promise<Blob> {
     const { data } = await client.GET("/api/reviews/{review_id}/pdf", {

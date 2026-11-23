@@ -8,7 +8,8 @@ export function formKey(form: FormRef): string {
 
 export function parseFormKey(key: string | null | undefined): FormRef | null {
   const match = key?.match(/^(conference|custom):(.+)$/);
-  return match ? { kind: match[1] as FormRef["kind"], id: match[2] } : null;
+  const [, kind, id] = match ?? [];
+  return kind && id ? { kind: kind as FormRef["kind"], id } : null;
 }
 
 const REVIEW_FORM_EXTENSIONS = [".txt", ".md", ".markdown"];

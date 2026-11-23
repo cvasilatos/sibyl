@@ -36,7 +36,9 @@ export default function RootLayout({
             </header>
             <main className="flex-1 space-y-6 px-4 py-6 md:px-8">{children}</main>
             <footer className="border-t px-4 py-3 text-center">
-              <p className="text-xs text-muted-foreground">Powered by local open-source LLMs • Privacy-first • Zero-cost</p>
+              <p className="text-xs text-muted-foreground">
+                Powered by local open-source LLMs • Privacy-first • Zero-cost
+              </p>
             </footer>
           </div>
           <Toaster />

@@ -6,7 +6,11 @@ import { cn } from "@/lib/utils";
 export function ErrorAlert({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   if (children === null || children === undefined || children === false || children === "") return null;
   return (
-    <div role="alert" className={cn("rounded-md border border-destructive bg-destructive/10 p-3 text-sm text-destructive", className)} {...props}>
+    <div
+      role="alert"
+      className={cn("rounded-md border border-destructive bg-destructive/10 p-3 text-sm text-destructive", className)}
+      {...props}
+    >
       {children}
     </div>
   );

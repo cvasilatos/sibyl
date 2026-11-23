@@ -79,7 +79,11 @@ export function DownloadProvider({ children }: { children: ReactNode }) {
           progress = Math.round((line.completed / line.total) * 100);
           setDownloadProgresses((prev) => ({ ...prev, [modelName]: progress }));
         }
-        progressToast.update({ id: progressToast.id, title: "Downloading Model", description: `${modelName}: ${progress}% - ${line.status}` });
+        progressToast.update({
+          id: progressToast.id,
+          title: "Downloading Model",
+          description: `${modelName}: ${progress}% - ${line.status}`,
+        });
         if (line.status === "success") {
           finish();
           ws.close();
@@ -88,10 +92,13 @@ export function DownloadProvider({ children }: { children: ReactNode }) {
       ws.onerror = () => finish("Failed to connect to download stream");
       ws.onclose = () => finish("Connection lost during model download");
     },
-    [queryClient]
+    [queryClient],
   );
 
-  const value = useMemo(() => ({ installing, downloadProgresses, error, startDownload, clearError }), [installing, downloadProgresses, error, startDownload, clearError]);
+  const value = useMemo(
+    () => ({ installing, downloadProgresses, error, startDownload, clearError }),
+    [installing, downloadProgresses, error, startDownload, clearError],
+  );
 
   return <DownloadContext.Provider value={value}>{children}</DownloadContext.Provider>;
 }

@@ -47,7 +47,10 @@ export default function GpuCard({ gpu }: { gpu: GpuStats }) {
       <div className="space-y-1 pt-1 border-t border-border">
         {gpu.temperature !== null && <StatRow label="Temperature" value={`${gpu.temperature} °C`} />}
         {gpu.power_usage_watts !== null && gpu.power_limit_watts !== null && (
-          <StatRow label="Power" value={`${gpu.power_usage_watts.toFixed(0)} W / ${gpu.power_limit_watts.toFixed(0)} W`} />
+          <StatRow
+            label="Power"
+            value={`${gpu.power_usage_watts.toFixed(0)} W / ${gpu.power_limit_watts.toFixed(0)} W`}
+          />
         )}
         {gpu.fan_speed_percent !== null && <StatRow label="Fan Speed" value={`${gpu.fan_speed_percent}%`} />}
         <StatRow label="Free Memory" value={formatBytes(gpu.memory_free)} />
@@ -58,8 +61,8 @@ export default function GpuCard({ gpu }: { gpu: GpuStats }) {
         <div className="space-y-1 pt-1 border-t border-border">
           <p className="text-xs font-medium text-muted-foreground">Processes ({gpu.processes.length})</p>
           <div className="space-y-1 max-h-32 overflow-y-auto">
-            {gpu.processes.map((p, i) => (
-              <div key={`${p.type}-${p.pid}-${i}`} className="flex items-center justify-between text-xs gap-2">
+            {gpu.processes.map((p) => (
+              <div key={`${p.type}-${p.pid}`} className="flex items-center justify-between text-xs gap-2">
                 <span className="font-mono truncate flex-1">{p.name || `PID ${p.pid}`}</span>
                 <span
                   className={`shrink-0 px-1 rounded ${p.type === "compute" ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300" : "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300"}`}

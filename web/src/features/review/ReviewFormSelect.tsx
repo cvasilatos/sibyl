@@ -26,7 +26,12 @@ export default function ReviewFormSelect() {
       <label htmlFor="review-form-select" className="text-sm font-medium">
         Review Form
       </label>
-      <NativeSelect id="review-form-select" value={selectedFormKey ?? ""} onChange={(e) => selectForm(e.target.value || null)} disabled={isReviewing}>
+      <NativeSelect
+        id="review-form-select"
+        value={selectedFormKey ?? ""}
+        onChange={(e) => selectForm(e.target.value || null)}
+        disabled={isReviewing}
+      >
         <option value="">Generic Sibyl review</option>
         {savedForms.length > 0 && (
           <optgroup label="Your forms">
@@ -63,12 +68,21 @@ export default function ReviewFormSelect() {
             ).
           </>
         )}{" "}
-        <Link href={selectedFormKey ? `/forms?form=${encodeURIComponent(selectedFormKey)}` : "/forms"} className={linkClass}>
+        <Link
+          href={selectedFormKey ? `/forms?form=${encodeURIComponent(selectedFormKey)}` : "/forms"}
+          className={linkClass}
+        >
           {selectedFormKey ? "View form" : "Browse forms"}
         </Link>
       </p>
-      <AddReviewFormButton className="w-full" disabled={isReviewing} onSaved={(form) => selectForm(formKey({ kind: "custom", id: form.id }))} />
-      <p className="text-xs text-muted-foreground">TXT or Markdown, up to 64 KiB. You name it once and can pick it again later.</p>
+      <AddReviewFormButton
+        className="w-full"
+        disabled={isReviewing}
+        onSaved={(form) => selectForm(formKey({ kind: "custom", id: form.id }))}
+      />
+      <p className="text-xs text-muted-foreground">
+        TXT or Markdown, up to 64 KiB. You name it once and can pick it again later.
+      </p>
     </div>
   );
 }

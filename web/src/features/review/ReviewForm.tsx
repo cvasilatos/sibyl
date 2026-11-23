@@ -28,14 +28,21 @@ export default function ReviewForm() {
             <label htmlFor="model-select" className="text-sm font-medium">
               Select Model for Review
             </label>
-            <NativeSelect id="model-select" value={review.selectedModel} onChange={(e) => review.setSelectedModel(e.target.value)} disabled={review.isReviewing}>
+            <NativeSelect
+              id="model-select"
+              value={review.selectedModel}
+              onChange={(e) => review.setSelectedModel(e.target.value)}
+              disabled={review.isReviewing}
+            >
               {review.availableModels.map((model) => (
                 <option key={model} value={model}>
                   {model}
                 </option>
               ))}
             </NativeSelect>
-            <p className="text-xs text-muted-foreground">This will override the default model configured in your environment</p>
+            <p className="text-xs text-muted-foreground">
+              This will override the default model configured in your environment
+            </p>
           </div>
         )}
 
@@ -44,7 +51,12 @@ export default function ReviewForm() {
             <label htmlFor="vlm-select" className="text-sm font-medium">
               Vision Model for Figures
             </label>
-            <NativeSelect id="vlm-select" value={review.selectedVlm} onChange={(e) => review.setSelectedVlm(e.target.value)} disabled={review.isReviewing}>
+            <NativeSelect
+              id="vlm-select"
+              value={review.selectedVlm}
+              onChange={(e) => review.setSelectedVlm(e.target.value)}
+              disabled={review.isReviewing}
+            >
               <option value={VLM_DEFAULT}>Server default</option>
               <option value={VLM_NONE}>None (captions only)</option>
               {review.availableModels.map((model) => (
@@ -53,7 +65,9 @@ export default function ReviewForm() {
                 </option>
               ))}
             </NativeSelect>
-            <p className="text-xs text-muted-foreground">Describes each figure for the reviewer; pick a vision-language model</p>
+            <p className="text-xs text-muted-foreground">
+              Describes each figure for the reviewer; pick a vision-language model
+            </p>
           </div>
         )}
 
@@ -61,21 +75,34 @@ export default function ReviewForm() {
           <label htmlFor="detail-select" className="text-sm font-medium">
             Review Length
           </label>
-          <NativeSelect id="detail-select" value={review.selectedDetail} onChange={(e) => review.setSelectedDetail(e.target.value as ReviewDetail)} disabled={review.isReviewing}>
+          <NativeSelect
+            id="detail-select"
+            value={review.selectedDetail}
+            onChange={(e) => review.setSelectedDetail(e.target.value as ReviewDetail)}
+            disabled={review.isReviewing}
+          >
             {Object.entries(DETAIL_LABELS).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
               </option>
             ))}
           </NativeSelect>
-          <p className="text-xs text-muted-foreground">Model decides: no length guidance. The other levels tell the model how much to write; none cuts the review off</p>
+          <p className="text-xs text-muted-foreground">
+            Model decides: no length guidance. The other levels tell the model how much to write; none cuts the review
+            off
+          </p>
         </div>
 
         <div className="space-y-2">
           <label htmlFor="mode-select" className="text-sm font-medium">
             Generation
           </label>
-          <NativeSelect id="mode-select" value={review.selectedMode} onChange={(e) => review.setSelectedMode(e.target.value as ReviewMode)} disabled={review.isReviewing}>
+          <NativeSelect
+            id="mode-select"
+            value={review.selectedMode}
+            onChange={(e) => review.setSelectedMode(e.target.value as ReviewMode)}
+            disabled={review.isReviewing}
+          >
             {Object.entries(MODE_LABELS).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
@@ -101,7 +128,9 @@ export default function ReviewForm() {
             />
             Search arXiv for related work
           </label>
-          <p className="text-xs text-muted-foreground">Judges novelty against prior work. Sends search keywords (never the paper) to arXiv.</p>
+          <p className="text-xs text-muted-foreground">
+            Judges novelty against prior work. Sends search keywords (never the paper) to arXiv.
+          </p>
         </div>
 
         {review.availableGpus.length > 0 && (
@@ -128,7 +157,12 @@ export default function ReviewForm() {
 
         <ReviewFormSelect />
 
-        <Button onClick={review.startReview} disabled={!review.selectedFile || review.isReviewing} className="w-full" size="lg">
+        <Button
+          onClick={review.startReview}
+          disabled={!review.selectedFile || review.isReviewing}
+          className="w-full"
+          size="lg"
+        >
           {review.isReviewing ? (
             <>
               <Spinner className="mr-2" label="Reviewing" />

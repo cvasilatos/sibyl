@@ -25,7 +25,16 @@ type Props = {
 };
 
 /** One stored review: summary row with actions, and the full review when expanded. */
-export default function ReviewListItem({ review, maxScore, expanded, onToggle, onShowPaper, onDelete, deleting, onError }: Props) {
+export default function ReviewListItem({
+  review,
+  maxScore,
+  expanded,
+  onToggle,
+  onShowPaper,
+  onDelete,
+  deleting,
+  onError,
+}: Props) {
   const details = useQuery({ ...queries.review(review.id), enabled: expanded });
   const downloadPdf = useMutation({
     mutationFn: () => api.downloadReviewPdf(review.id),
@@ -37,7 +46,11 @@ export default function ReviewListItem({ review, maxScore, expanded, onToggle, o
     <div className="rounded-md bg-muted transition-colors">
       <div className="flex w-full items-start justify-between rounded-md p-4 text-left transition-colors hover:bg-muted/80">
         <div className="min-w-0 flex-1">
-          <button type="button" className="block max-w-full cursor-pointer truncate text-sm font-semibold hover:text-primary hover:underline" onClick={onShowPaper}>
+          <button
+            type="button"
+            className="block max-w-full cursor-pointer truncate text-sm font-semibold hover:text-primary hover:underline"
+            onClick={onShowPaper}
+          >
             {review.paper_title}
           </button>
           <p className="mb-2 text-xs text-muted-foreground">
@@ -62,11 +75,27 @@ export default function ReviewListItem({ review, maxScore, expanded, onToggle, o
           >
             {downloadPdf.isPending ? <Spinner label="Downloading" /> : <Download className="h-4 w-4" />}
           </Button>
-          <Button size="sm" variant="destructive" onClick={onDelete} disabled={deleting} aria-label={`Delete review for ${review.paper_title}`}>
+          <Button
+            size="sm"
+            variant="destructive"
+            onClick={onDelete}
+            disabled={deleting}
+            aria-label={`Delete review for ${review.paper_title}`}
+          >
             {deleting ? <Spinner label="Deleting" /> : <Trash2 className="h-4 w-4" />}
           </Button>
-          <Button size="sm" variant="ghost" onClick={onToggle} aria-expanded={expanded} aria-label={`${expanded ? "Collapse" : "Expand"} review for ${review.paper_title}`}>
-            {expanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={onToggle}
+            aria-expanded={expanded}
+            aria-label={`${expanded ? "Collapse" : "Expand"} review for ${review.paper_title}`}
+          >
+            {expanded ? (
+              <ChevronUp className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            )}
           </Button>
         </div>
       </div>

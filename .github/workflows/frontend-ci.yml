@@ -40,6 +40,9 @@ jobs:
       - name: Lint and format
         run: npx biome ci .
 
+      - name: Type check
+        run: npm run typecheck
+
       - name: API client is up to date
         run: |
           npm run gen:api:types

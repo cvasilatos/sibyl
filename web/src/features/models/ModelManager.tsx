@@ -12,8 +12,10 @@ import InstalledModels from "./InstalledModels";
 import ModelCatalog from "./ModelCatalog";
 
 function engineDescription(engine: EngineInfo | undefined): string {
-  if (engine?.name === "vllm") return "Download models from Hugging Face; Sibyl starts vLLM on the selected GPU when a review needs it";
-  if (engine && !engine.supports_downloads) return "Models are managed by your inference server; Sibyl lists what it serves";
+  if (engine?.name === "vllm")
+    return "Download models from Hugging Face; Sibyl starts vLLM on the selected GPU when a review needs it";
+  if (engine && !engine.supports_downloads)
+    return "Models are managed by your inference server; Sibyl lists what it serves";
   return "Manage your local models";
 }
 

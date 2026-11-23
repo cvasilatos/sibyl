@@ -20,7 +20,8 @@ function formatDuration(seconds: number): string {
 
 function formLabel(config: ReviewConfig): string {
   if (config.form === "conference") return `${config.conference ?? "Conference"} reviewer form`;
-  if (config.form === "custom") return config.review_form_name ? `Custom form: ${config.review_form_name}` : "Custom form";
+  if (config.form === "custom")
+    return config.review_form_name ? `Custom form: ${config.review_form_name}` : "Custom form";
   return "Sibyl default";
 }
 
@@ -34,11 +35,20 @@ export function reviewConfigRows(config: ReviewConfig): [label: string, value: s
     ["Generation", `${MODE_LABELS[config.mode]} (${calls})`],
     ["Review form", formLabel(config)],
     ["Temperature", String(config.temperature)],
-    ["Context window", `${config.context_length.toLocaleString()} tokens${config.paper_truncated ? " (paper end trimmed)" : ""}`],
-    ["Figures", config.vlm_model ? `${config.vlm_model} (${config.figures_described ?? 0} described)` : "Not described (captions only)"],
+    [
+      "Context window",
+      `${config.context_length.toLocaleString()} tokens${config.paper_truncated ? " (paper end trimmed)" : ""}`,
+    ],
+    [
+      "Figures",
+      config.vlm_model
+        ? `${config.vlm_model} (${config.figures_described ?? 0} described)`
+        : "Not described (captions only)",
+    ],
     ["Related work search", config.related_work ? "On" : "Off"],
     ["GPU", config.gpu === null || config.gpu === undefined ? "Auto" : `GPU ${config.gpu}`],
   ];
-  if (config.duration_seconds !== null && config.duration_seconds !== undefined) rows.push(["Time taken", formatDuration(config.duration_seconds)]);
+  if (config.duration_seconds !== null && config.duration_seconds !== undefined)
+    rows.push(["Time taken", formatDuration(config.duration_seconds)]);
   return rows;
 }

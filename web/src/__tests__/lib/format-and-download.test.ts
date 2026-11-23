@@ -34,7 +34,7 @@ describe("saveText", () => {
     expect(click).toHaveBeenCalledOnce();
     const anchor = click.mock.contexts[0] as HTMLAnchorElement;
     expect(anchor.download).toBe("notes.txt");
-    expect(await createObjectURL.mock.calls[0][0].text()).toBe("hello");
+    expect(await createObjectURL.mock.calls[0]?.[0].text()).toBe("hello");
     expect(revokeObjectURL).toHaveBeenCalledWith("blob:test");
     expect(document.querySelector("a[download]")).toBeNull();
   });

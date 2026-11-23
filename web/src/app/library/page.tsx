@@ -8,8 +8,9 @@ function LibraryContent() {
   const router = useRouter();
   const expandedReview = useSearchParams().get("review");
   const onReviewExpand = useCallback(
-    (reviewId: string | null) => router.replace(reviewId ? `/library?review=${encodeURIComponent(reviewId)}` : "/library", { scroll: false }),
-    [router]
+    (reviewId: string | null) =>
+      router.replace(reviewId ? `/library?review=${encodeURIComponent(reviewId)}` : "/library", { scroll: false }),
+    [router],
   );
   return <ReviewLibrary expandedReviewId={expandedReview} onExpandedChange={onReviewExpand} />;
 }

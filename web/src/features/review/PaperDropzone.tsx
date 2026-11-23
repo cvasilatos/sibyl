@@ -33,7 +33,7 @@ export default function PaperDropzone() {
       className={cn(
         "w-full cursor-pointer rounded-lg border-2 border-dashed p-12 text-center transition-all disabled:cursor-not-allowed",
         isDragging ? "scale-[1.02] border-primary bg-primary/5" : "border-border hover:border-primary hover:bg-accent",
-        selectedFile && "border-green-500 bg-green-50 dark:bg-green-950"
+        selectedFile && "border-green-500 bg-green-50 dark:bg-green-950",
       )}
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
@@ -52,8 +52,14 @@ export default function PaperDropzone() {
         }}
       />
       <FileText className="mx-auto mb-4 h-16 w-16 text-muted-foreground" />
-      <p className="mb-2 text-lg font-medium">{selectedFile ? `Selected: ${selectedFile.name}` : "Drag and drop a PDF file here or click to browse"}</p>
-      <p className="text-sm text-muted-foreground">{selectedFile ? `Size: ${(selectedFile.size / 1024 / 1024).toFixed(2)} MB` : "Supports research papers in PDF format"}</p>
+      <p className="mb-2 text-lg font-medium">
+        {selectedFile ? `Selected: ${selectedFile.name}` : "Drag and drop a PDF file here or click to browse"}
+      </p>
+      <p className="text-sm text-muted-foreground">
+        {selectedFile
+          ? `Size: ${(selectedFile.size / 1024 / 1024).toFixed(2)} MB`
+          : "Supports research papers in PDF format"}
+      </p>
     </button>
   );
 }

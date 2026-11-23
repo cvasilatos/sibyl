@@ -2,7 +2,8 @@ import { saveText } from "@/lib/download";
 import { reviewConfigRows } from "@/lib/review-config";
 import type { RelatedPaper, Review, ReviewConfig } from "@/lib/types";
 
-type ReviewLike = Pick<Review, "paper_title" | "reviewer_model" | "criteria"> & Partial<Pick<Review, "related_work" | "config">>;
+type ReviewLike = Pick<Review, "paper_title" | "reviewer_model" | "criteria"> &
+  Partial<Pick<Review, "related_work" | "config">>;
 
 export const DEFAULT_SECTIONS = [
   { title: "Novelty", field: "novelty" },
@@ -33,7 +34,12 @@ function configText(config: ReviewConfig): string {
 export function reviewToText(review: ReviewLike, maxScore?: number): string {
   const { criteria } = review;
   const score = maxScore ? `${criteria.score}/${maxScore}` : String(criteria.score);
-  const header = [`Paper: ${review.paper_title}`, `Reviewer model: ${review.reviewer_model}`, `Overall score: ${score}`, `Recommendation: ${criteria.recommendation}`];
+  const header = [
+    `Paper: ${review.paper_title}`,
+    `Reviewer model: ${review.reviewer_model}`,
+    `Overall score: ${score}`,
+    `Recommendation: ${criteria.recommendation}`,
+  ];
   const body = criteria.review_form_response
     ? [criteria.review_form_response]
     : DEFAULT_SECTIONS.map(({ title, field }) => `${title}\n${"-".repeat(title.length)}\n${criteria[field]}`);

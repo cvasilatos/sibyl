@@ -21,7 +21,9 @@ type Props = {
 function useFormText(form: FormRef): { text: string | null; error: Error | null } {
   const conference = useQuery({ ...queries.conference(form.id), enabled: form.kind === "conference" });
   const saved = useQuery({ ...queries.reviewForm(form.id), enabled: form.kind === "custom" });
-  return form.kind === "conference" ? { text: conference.data?.form_markdown ?? null, error: conference.error } : { text: saved.data?.content ?? null, error: saved.error };
+  return form.kind === "conference"
+    ? { text: conference.data?.form_markdown ?? null, error: conference.error }
+    : { text: saved.data?.content ?? null, error: saved.error };
 }
 
 /** The text of a reviewer form, as the model receives it, with copy, download and "use for a review". */
@@ -29,7 +31,9 @@ export default function FormViewer({ form, conference, savedForm, onUse }: Props
   const { text, error } = useFormText(form);
   const [copied, setCopied] = useState(false);
 
-  const title = conference ? `${conference.name} ${conference.edition} Review Form` : (savedForm?.name ?? "Review Form");
+  const title = conference
+    ? `${conference.name} ${conference.edition} Review Form`
+    : (savedForm?.name ?? "Review Form");
   const details = conference
     ? [
         conference.full_name,
@@ -57,7 +61,13 @@ export default function FormViewer({ form, conference, savedForm, onUse }: Props
           {conference?.source_urls.length ? (
             <p className="mt-1 flex flex-wrap gap-x-3 text-xs">
               {conference.source_urls.map((url) => (
-                <a key={url} href={url} target="_blank" rel="noopener noreferrer" className="truncate text-primary underline underline-offset-2 hover:no-underline">
+                <a
+                  key={url}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="truncate text-primary underline underline-offset-2 hover:no-underline"
+                >
                   {new URL(url).hostname}
                 </a>
               ))}
@@ -68,7 +78,13 @@ export default function FormViewer({ form, conference, savedForm, onUse }: Props
           <Button size="sm" variant="outline" onClick={copy} disabled={!text} aria-label="Copy form text">
             {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
           </Button>
-          <Button size="sm" variant="outline" onClick={() => text && saveText(`${text}\n`, `review-form-${form.id}.txt`)} disabled={!text} aria-label="Download form as .txt">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => text && saveText(`${text}\n`, `review-form-${form.id}.txt`)}
+            disabled={!text}
+            aria-label="Download form as .txt"
+          >
             <Download className="h-4 w-4" />
           </Button>
           {onUse && (
@@ -87,7 +103,9 @@ export default function FormViewer({ form, conference, savedForm, onUse }: Props
           Loading form…
         </div>
       ) : (
-        <pre className="max-h-[70vh] overflow-y-auto whitespace-pre-wrap break-words rounded-md bg-muted p-4 font-mono text-xs leading-relaxed">{text}</pre>
+        <pre className="max-h-[70vh] overflow-y-auto whitespace-pre-wrap break-words rounded-md bg-muted p-4 font-mono text-xs leading-relaxed">
+          {text}
+        </pre>
       )}
     </section>
   );

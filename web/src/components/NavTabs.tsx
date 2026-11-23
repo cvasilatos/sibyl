@@ -24,7 +24,10 @@ export default function NavTabs() {
             key={href}
             href={href}
             aria-current={active ? "page" : undefined}
-            className={cn("relative px-2 pb-6 text-sm font-medium transition-colors", active ? "text-primary" : "text-muted-foreground hover:text-foreground")}
+            className={cn(
+              "relative px-2 pb-6 text-sm font-medium transition-colors",
+              active ? "text-primary" : "text-muted-foreground hover:text-foreground",
+            )}
           >
             <div className="flex items-center gap-2">
               <Icon className="h-4 w-4" />

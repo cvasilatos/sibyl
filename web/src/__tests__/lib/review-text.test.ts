@@ -22,7 +22,9 @@ const review = { paper_title: "Attention Is All You Need!", reviewer_model: "qwe
 describe("reviewToText", () => {
   it("writes the header and Sibyl's default sections", () => {
     const text = reviewToText(review, 10);
-    expect(text).toContain("Paper: Attention Is All You Need!\nReviewer model: qwen3:8b\nOverall score: 7/10\nRecommendation: Accept");
+    expect(text).toContain(
+      "Paper: Attention Is All You Need!\nReviewer model: qwen3:8b\nOverall score: 7/10\nRecommendation: Accept",
+    );
     expect(text).toContain("Novelty\n-------\nNovel");
     expect(text).toContain("Detailed Feedback\n-----------------\nGood work");
   });
@@ -37,16 +39,30 @@ describe("reviewToText", () => {
 
 describe("reviewToText related work", () => {
   it("lists the arXiv papers the review cites", () => {
-    const related_work = [{ ref: "R1", title: "Prior Work", authors: [], year: 2024, url: "https://arxiv.org/abs/1", abstract: "", relation: "Same task." }];
+    const related_work = [
+      {
+        ref: "R1",
+        title: "Prior Work",
+        authors: [],
+        year: 2024,
+        url: "https://arxiv.org/abs/1",
+        abstract: "",
+        relation: "Same task.",
+      },
+    ];
     const text = reviewToText({ ...review, related_work });
-    expect(text).toContain("Related Work (arXiv)\n--------------------\n[R1] Prior Work (2024). https://arxiv.org/abs/1\n     Same task.\n");
+    expect(text).toContain(
+      "Related Work (arXiv)\n--------------------\n[R1] Prior Work (2024). https://arxiv.org/abs/1\n     Same task.\n",
+    );
   });
 });
 
 describe("reviewFileName", () => {
   it("slugs the title and model, and adds the conference", () => {
     expect(reviewFileName(review)).toBe("review-attention-is-all-you-need-qwen3-8b.txt");
-    expect(reviewFileName({ ...review, criteria: { ...criteria, conference: "NeurIPS 2025" } })).toBe("review-attention-is-all-you-need-neurips-2025-qwen3-8b.txt");
+    expect(reviewFileName({ ...review, criteria: { ...criteria, conference: "NeurIPS 2025" } })).toBe(
+      "review-attention-is-all-you-need-neurips-2025-qwen3-8b.txt",
+    );
   });
 
   it("falls back when the title has no usable characters", () => {
@@ -75,7 +91,9 @@ describe("reviewToText settings", () => {
       duration_seconds: 42,
     } as const;
     const text = reviewToText({ ...review, config });
-    expect(text).toContain("Settings Used\n-------------\nModel: qwen3:8b\nEngine: vllm\nReview length: Concise\nGeneration: Whole review at once (1 call)");
+    expect(text).toContain(
+      "Settings Used\n-------------\nModel: qwen3:8b\nEngine: vllm\nReview length: Concise\nGeneration: Whole review at once (1 call)",
+    );
     expect(text).toContain("Review form: NeurIPS 2025 reviewer form");
     expect(text).toContain("Context window: 16,384 tokens (paper end trimmed)");
     expect(text).toContain("Figures: qwen2.5vl:7b (3 described)");
