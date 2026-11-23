@@ -9,13 +9,19 @@ export function GlobalDownloadProgress() {
   if (installing.length === 0) return null;
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 bg-background border-b p-4 shadow-md">
-      <div className="max-w-4xl mx-auto space-y-3">
+    <div
+      role="status"
+      aria-live="polite"
+      className="fixed bottom-4 right-4 z-50 w-72 max-w-[calc(100vw-2rem)] rounded-lg border bg-background p-3 shadow-lg"
+    >
+      <div className="space-y-3">
         {installing.map((modelName) => (
           <div key={modelName} className="space-y-1">
-            <div className="flex items-center justify-between text-sm">
-              <span>Installing {modelName}...</span>
-              <span>{downloadProgresses[modelName] || 0}%</span>
+            <div className="flex items-center justify-between gap-2 text-xs">
+              <span className="truncate" title={modelName}>
+                Installing {modelName}...
+              </span>
+              <span className="shrink-0 tabular-nums">{downloadProgresses[modelName] || 0}%</span>
             </div>
             <Progress value={downloadProgresses[modelName] || 0} />
           </div>
