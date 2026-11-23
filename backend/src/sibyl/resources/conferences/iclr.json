@@ -14,6 +14,13 @@
   ],
   "verified": false,
   "notes": "The official reviewer guide does not publish the form. Field order and scale labels are taken from public ICLR 2026 OpenReview reviews (HuggingFace mirrors of the review records). Rating uses the new 2026 scale {0,2,4,6,8,10}; the label for 0 was empty in the scraped data and 'strong reject' comes from secondary sources. Prompts are paraphrased from the reviewer guide. Omitted: code of conduct and LLM-usage disclosure.",
+  "page_limit": {
+    "pages": 9,
+    "excludes": "references, appendices and ethics/reproducibility statements",
+    "note": "camera-ready: 10 pages",
+    "edition": "2027",
+    "source_url": "https://iclr.cc/Conferences/2027/AuthorGuidelines"
+  },
   "guidelines": "Answer four key questions: what specific problem the paper tackles; whether the approach is well motivated and well placed in the literature; whether the paper supports its claims (are theoretical and empirical results correct and scientifically rigorous); and what the significance of the work is. Lack of state-of-the-art results alone is not grounds for rejection, and be open-minded about value to the wider ICLR community. Requested additional experiments should be limited in scope and validate existing results. Work published within two months of the deadline and arXiv-only papers need not be compared against. Be rigorous, constructive, and concise; raise points likely to affect the decision.",
   "questions": [
     {

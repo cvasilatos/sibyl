@@ -8,6 +8,8 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from sibyl.schemas.related_work import RelatedPaper
+from sibyl.schemas.review_config import ReviewConfig
 from sibyl.schemas.reviews import ReviewCriteria
 
 
@@ -25,6 +27,8 @@ class ReviewResult(BaseModel):
     reviewer_model: str
     criteria: ReviewCriteria
     raw_response: str
+    related_work: list[RelatedPaper] = []
+    config: ReviewConfig | None = None
 
 
 class ReviewResults(BaseModel):

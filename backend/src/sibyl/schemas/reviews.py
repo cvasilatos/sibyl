@@ -2,6 +2,8 @@
 
 from pydantic import BaseModel
 
+from sibyl.schemas.related_work import RelatedPaper
+from sibyl.schemas.review_config import ReviewConfig
 from sibyl.storage.review import Review
 
 
@@ -36,6 +38,8 @@ class FullReview(BaseModel):
     created_at: str
     criteria: ReviewCriteria
     raw_response: str
+    related_work: list[RelatedPaper] = []
+    config: ReviewConfig | None = None
 
 
 class ReviewList(BaseModel):

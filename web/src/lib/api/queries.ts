@@ -23,10 +23,14 @@ export const queries = {
       staleTime: Number.POSITIVE_INFINITY,
       meta: { errorToast: "Could not load score scale from server, using default." },
     }),
+  serviceConfig: () => queryOptions({ queryKey: ["config", "service"], queryFn: api.getConfig, staleTime: Number.POSITIVE_INFINITY }),
   engine: () => queryOptions({ queryKey: ["engine"], queryFn: api.getEngine, staleTime: Number.POSITIVE_INFINITY }),
   conferences: () => queryOptions({ queryKey: ["conferences"], queryFn: api.listConferences, staleTime: Number.POSITIVE_INFINITY, select: (data) => data.conferences }),
   conference: (conferenceId: string) =>
     queryOptions({ queryKey: ["conferences", conferenceId], queryFn: ({ signal }) => api.getConference(conferenceId, signal), staleTime: Number.POSITIVE_INFINITY }),
+  reviewForms: () => queryOptions({ queryKey: ["reviewForms", "list"], queryFn: api.listReviewForms, select: (data) => data.forms }),
+  reviewForm: (formId: string) =>
+    queryOptions({ queryKey: ["reviewForms", "detail", formId], queryFn: ({ signal }) => api.getReviewForm(formId, signal), staleTime: Number.POSITIVE_INFINITY }),
   installedModels: () => queryOptions({ queryKey: ["models", "installed"], queryFn: api.listInstalledModels, select: (data) => data.models }),
   availableModels: () => queryOptions({ queryKey: ["models", "available"], queryFn: api.listAvailableModels, select: (data) => data.models }),
   modelTags: (modelName: string) =>
@@ -42,6 +46,7 @@ export const queries = {
 export const invalidates = {
   models: { queryKey: ["models"] },
   reviews: { queryKey: ["reviews"] },
+  reviewForms: { queryKey: ["reviewForms"] },
 } as const;
 
 export function createQueryClient(): QueryClient {

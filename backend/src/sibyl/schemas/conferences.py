@@ -2,7 +2,7 @@
 
 from pydantic import BaseModel
 
-from sibyl.services.conferences import ConferenceTemplate
+from sibyl.services.conferences import ConferenceTemplate, PageLimit
 
 
 class ConferenceSummary(BaseModel):
@@ -15,6 +15,7 @@ class ConferenceSummary(BaseModel):
     edition: str
     verified: bool
     source_urls: list[str]
+    page_limit: PageLimit | None
     question_count: int
 
 

@@ -10,6 +10,13 @@
   ],
   "verified": false,
   "notes": "CCS's HotCRP form is not public. A third-party CCS 2021 screenshot shows score fields Recommendation (/6), Reviewer expertise (/4), Overall merit (/5), Reviewer interest (/3), Writing quality (/5) and Ethical concerns, but no level labels. Overall merit labels and expertise labels here are reconstructed; the recommendation mirrors the official 2026 outcomes (Accept / Minor revision / Reject). Writing quality and reviewer interest omitted because their labels are unknown.",
+  "page_limit": {
+    "pages": 12,
+    "excludes": "bibliography and appendices",
+    "note": "",
+    "edition": "2026",
+    "source_url": "https://www.sigsac.org/ccs/CCS2026/call-for/call-for-papers.html"
+  },
   "guidelines": "Judge papers on importance to practical aspects of computer and communications security and privacy, novelty, quality of execution, and presentation. Theoretical papers must make a convincing case for relevance to practice. Reviewers are not required to read appendices or supplementary material, so the paper must stand on its own. A minor revision should require only small additions (e.g., minor experiments or proofs) achievable within the cycle.",
   "questions": [
     {

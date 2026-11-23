@@ -10,6 +10,13 @@
   ],
   "verified": false,
   "notes": "NDSS's HotCRP form is not public. NDSS 2025 statistics confirm a 1-5 overall score plus Writing Quality and Reviewer Confidence fields, but not their labels; all labels here are reconstructed. Text fields follow the 2027 CFP's stated review goals (concrete improvement steps, separating opinion from demonstrable weaknesses, citations for novelty claims).",
+  "page_limit": {
+    "pages": 13,
+    "excludes": "references, appendices and ethics considerations",
+    "note": "",
+    "edition": "2027",
+    "source_url": "https://www.ndss-symposium.org/ndss2027/submissions/call-for-papers/"
+  },
   "guidelines": "Reviews should provide concrete steps for improving the work, separate reviewer opinion from demonstrable technical weaknesses, and provide clear citations to prior work whenever novelty claims are raised. The aim is to help authors, including those of rejected papers, improve their work as much as possible. Major revisions are for promising papers that need additional work (new implementations, experiments, or proofs) defined as concrete revision tasks.",
   "questions": [
     {

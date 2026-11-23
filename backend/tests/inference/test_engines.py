@@ -8,20 +8,22 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
+import httpx
 import pytest
 
 from sibyl.inference import AUTO_SLOT, GenerationRequest, create_engine
-from sibyl.inference.ollama_engine import OllamaEngine
-from sibyl.inference.openai_engine import OpenAICompatibleEngine
+from sibyl.inference.base import estimate_tokens
+from sibyl.inference.ollama_engine import MIN_OUTPUT_TOKENS, OllamaEngine, output_room
+from sibyl.inference.openai_engine import OpenAICompatibleEngine, chat_json
 from sibyl.inference.vllm_engine import VLLMEngine, VLLMServerPool, select_download_files
 from sibyl.services import hardware
-from sibyl.services.reviewer import CONTEXT_STEP, MIN_CONTEXT, context_window, fit_paper, strip_reasoning
+from sibyl.services.reviewer import fit_paper, strip_reasoning
 
 FAKE_VLLM = [sys.executable, str(Path(__file__).with_name("fake_vllm.py"))]
 
 
 def _request(**overrides: Any) -> GenerationRequest:
-    values: dict[str, Any] = {"model": "m", "system": "s", "prompt": "p", "schema": {"type": "object"}, "temperature": 0.2, "max_tokens": 100, "context_length": 8192}
+    values: dict[str, Any] = {"model": "m", "system": "s", "prompt": "p", "schema": {"type": "object"}, "temperature": 0.2, "context_length": 8192}
     return GenerationRequest(**(values | overrides))
 
 
@@ -52,11 +54,37 @@ def test_create_engine_rejects_unknown():
 # --- context budgeting ----------------------------------------------------------------------------
 
 
-def test_context_window_rounds_up_and_caps():
-    assert context_window(10_000, 4_000, 32_768) == 14_336
-    assert context_window(10_000, 4_000, 32_768) % CONTEXT_STEP == 0
-    assert context_window(100, 100, 32_768) == MIN_CONTEXT
-    assert context_window(100_000, 4_000, 32_768) == 32_768
+def test_output_room_is_the_rest_of_the_context():
+    request = _request(system="s" * 300, prompt="p" * 2700, context_length=8192)
+    assert output_room(request) == 8192 - estimate_tokens("s" * 300 + "p" * 2700)
+    assert output_room(_request(prompt="p" * 30_000, context_length=8192)) == MIN_OUTPUT_TOKENS
+
+
+def test_ollama_lets_the_model_write_until_the_context_is_full():
+    engine = OllamaEngine(hosts=["http://a:1"])
+    client = AsyncMock()
+    client.generate = AsyncMock(return_value=MagicMock(response="{}"))
+    engine.clients = [client]
+
+    asyncio.run(engine.generate_json(_request(context_length=16384)))
+    assert client.generate.await_args is not None
+    assert client.generate.await_args.kwargs["options"]["num_predict"] == output_room(_request(context_length=16384))
+
+    asyncio.run(engine.generate_json(_request(max_tokens=100)))
+    assert client.generate.await_args.kwargs["options"]["num_predict"] == 100
+
+
+@pytest.mark.parametrize(("max_tokens", "expected"), [(None, None), (512, 512)])
+def test_openai_payload_omits_max_tokens_unless_set(monkeypatch, max_tokens, expected):
+    sent: dict[str, Any] = {}
+
+    async def post(_self, _url, json):
+        sent.update(json)
+        return httpx.Response(200, json={"choices": [{"message": {"content": "{}"}}]})
+
+    monkeypatch.setattr(httpx.AsyncClient, "post", post)
+    assert asyncio.run(chat_json("http://server/v1", _request(max_tokens=max_tokens))) == "{}"
+    assert sent.get("max_tokens") == expected
 
 
 def test_fit_paper_trims_tail_only_when_needed():
@@ -105,6 +133,27 @@ def test_ollama_generate_sets_context_length():
     assert kwargs["keep_alive"] == "5m"
 
 
+@pytest.mark.parametrize(
+    ("show", "expected"),
+    [
+        (MagicMock(modelinfo={"general.architecture": "llama", "llama.context_length": 8192}), 8192),  # model limit is lower
+        (MagicMock(modelinfo={"qwen3.context_length": 131072}), 32768),  # SIBYL_MAX_CONTEXT is lower
+        (MagicMock(modelinfo=None), 32768),  # limit unknown
+        (RuntimeError("model not found"), 32768),
+    ],
+)
+def test_ollama_caps_the_context_at_the_model_limit(monkeypatch, show, expected):
+    monkeypatch.setenv("SIBYL_MAX_CONTEXT", "32768")
+    engine = OllamaEngine(hosts=["http://a:1"])
+    client = AsyncMock()
+    client.show = AsyncMock(side_effect=show) if isinstance(show, Exception) else AsyncMock(return_value=show)
+    engine.clients = [client]
+
+    assert asyncio.run(engine.context_window("m")) == expected
+    assert asyncio.run(engine.context_window("m")) == expected
+    assert client.show.await_count == 1  # asked once per model
+
+
 # --- vLLM / Hugging Face --------------------------------------------------------------------------
 
 
@@ -131,6 +180,36 @@ def test_select_download_files_prefers_safetensors():
 
 def test_select_download_files_falls_back_to_bin():
     assert "pytorch_model.bin" in select_download_files({"config.json": 1, "pytorch_model.bin": 10})
+
+
+@pytest.mark.parametrize(
+    ("setting", "native", "expected"),
+    [
+        ("", 131072, 32768),  # unset: the 32k default cap
+        ("65536", 131072, 65536),
+        ("65536", 8192, 8192),
+        ("model", 131072, 131072),  # each model's full limit
+        ("MODEL", None, 32768),  # limit unknown: the default
+    ],
+)
+def test_max_context_setting(monkeypatch, setting, native, expected):
+    from sibyl.inference.base import cap_context, max_context_setting
+
+    monkeypatch.setenv("SIBYL_MAX_CONTEXT", setting)
+    assert cap_context(native, max_context_setting()) == expected
+
+
+def test_full_model_context_with_ollama_and_vllm(monkeypatch):
+    monkeypatch.setenv("SIBYL_MAX_CONTEXT", "model")
+    engine = OllamaEngine(hosts=["http://a:1"])
+    client = AsyncMock()
+    client.show = AsyncMock(return_value=MagicMock(modelinfo={"llama.context_length": 131072}))
+    engine.clients = [client]
+    assert asyncio.run(engine.context_window("m")) == 131072
+
+    vllm = VLLMEngine(pool=MagicMock())
+    monkeypatch.setattr(vllm.store, "native_context_length", lambda _m: 40960)
+    assert vllm.context_length("m") == 40960
 
 
 def test_vllm_context_length_capped_by_model(monkeypatch):

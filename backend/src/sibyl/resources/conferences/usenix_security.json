@@ -10,6 +10,13 @@
   ],
   "verified": false,
   "notes": "USENIX Security's HotCRP form is not public. The recommendation scale mirrors the official 2026 decision outcomes (Accept / Accept on Shepherd Approval / Reject; Major Revision was dropped for 2026); the form wording, field list, and reviewer expertise levels are reconstructed. Ethics and open-science questions reflect the 2026 CFP requirement that reviewers evaluate ethics and artifacts.",
+  "page_limit": {
+    "pages": 13,
+    "excludes": "references and appendices",
+    "note": "camera-ready: 20 pages total",
+    "edition": "2027",
+    "source_url": "https://www.usenix.org/conference/usenixsecurity27/call-for-papers"
+  },
   "guidelines": "Evaluate the scientific contribution together with the submitted artifacts, which are used as part of the evaluation. Assess the ethics of every submission using the paper's mandatory Ethical Considerations appendix (stakeholder-based analysis), and check the Open Science appendix. Papers accepted on shepherd approval should need only changes unlikely to reduce enthusiasm (text changes, clarifications, explicit discussion of limitations). For rejected papers, try to identify the major changes that could move the paper toward a publishable state.",
   "questions": [
     {

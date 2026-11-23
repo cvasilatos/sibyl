@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import logging
 import os
+from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
 import httpx
 from ollama import AsyncClient
 
-from sibyl.inference.base import AUTO_SLOT, GenerationRequest, InferenceEngine
+from sibyl.inference.base import AUTO_SLOT, GenerationRequest, InferenceEngine, cap_context, estimate_tokens, max_context_setting
 from sibyl.services.model_catalog import ModelCatalog
 
 if TYPE_CHECKING:
@@ -18,6 +19,19 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 KEEP_LOADED = "5m"
+
+
+MIN_OUTPUT_TOKENS = 1024
+
+
+def output_room(request: GenerationRequest) -> int:
+    """Tokens left for the answer once the prompt fills its share of the context.
+
+    Ollama has no "until the context is full" setting that is safe with schema-constrained output (``-1`` shifts the
+    context and can loop forever), so the cap is the rest of the window. The prompt estimate errs high, so the real
+    room is slightly larger.
+    """
+    return max(request.context_length - estimate_tokens(request.system + request.prompt), MIN_OUTPUT_TOKENS)
 
 
 def ollama_hosts_from_env() -> list[str]:
@@ -39,6 +53,7 @@ class OllamaEngine(InferenceEngine):
         self.clients = [AsyncClient(host=host) for host in self.hosts]
         # "0" unloads the model right after each review, freeing VRAM for PDF parsing on shared GPUs.
         self.keep_alive = keep_alive if keep_alive is not None else os.getenv("OLLAMA_KEEP_ALIVE", "0")
+        self._native_context: dict[str, int | None] = {}
 
     @property
     def admin(self) -> AsyncClient:
@@ -54,6 +69,23 @@ class OllamaEngine(InferenceEngine):
             logger.warning("Slot %s requested but only %s Ollama host(s) configured; using the first", slot, len(self.clients))
             return self.clients[0]
         return self.clients[index]
+
+    async def native_context_length(self, model: str) -> int | None:
+        """Return the model's own context limit (``<arch>.context_length`` from ``ollama show``), cached; ``None`` if unknown."""
+        if model not in self._native_context:
+            native: int | None = None
+            try:
+                info = (await self.admin.show(model)).modelinfo
+                if isinstance(info, Mapping):
+                    native = next((v for k, v in info.items() if k.endswith(".context_length") and isinstance(v, int)), None)
+            except Exception as e:  # an unknown limit falls back to SIBYL_MAX_CONTEXT or the default
+                logger.debug("Could not read the context length of %s: %s", model, e)
+            self._native_context[model] = native
+        return self._native_context[model]
+
+    async def context_window(self, model: str) -> int:
+        """``SIBYL_MAX_CONTEXT`` capped by the model's own limit (so Ollama never runs it past what it was trained on), or that limit itself for ``model``."""
+        return cap_context(await self.native_context_length(model), max_context_setting())
 
     async def list_installed(self) -> list[dict[str, Any]]:  # noqa: D102
         response = await self.admin.list()
@@ -75,10 +107,12 @@ class OllamaEngine(InferenceEngine):
         return await ModelCatalog(client_factory=httpx.AsyncClient).list_tags(name)
 
     async def pull(self, model: str) -> AsyncIterator[dict[str, Any]]:  # noqa: D102
+        self._native_context.pop(model, None)
         async for part in await self.admin.pull(model=model, stream=True):
             yield part.model_dump() if hasattr(part, "model_dump") else dict(part)
 
     async def delete(self, model: str) -> None:  # noqa: D102
+        self._native_context.pop(model, None)
         await self.admin.delete(model=model)
 
     async def generate_json(self, request: GenerationRequest) -> str:  # noqa: D102
@@ -91,7 +125,7 @@ class OllamaEngine(InferenceEngine):
             images=request.images or None,
             options={
                 "temperature": request.temperature,
-                "num_predict": request.max_tokens,
+                "num_predict": request.max_tokens if request.max_tokens is not None else output_room(request),
                 # Without this Ollama falls back to a small default context and silently drops most of the paper.
                 "num_ctx": request.context_length,
             },

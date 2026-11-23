@@ -16,6 +16,7 @@ if TYPE_CHECKING:
 
 import chromadb
 from chromadb.config import Settings
+from chromadb.errors import InvalidArgumentError
 
 from sibyl.config import MAX_SCORE, STORAGE_PATH
 from sibyl.services.reviewer import PaperReview
@@ -186,19 +187,45 @@ class Engine:
                     "reviewer_model": review.reviewer_model,
                     "criteria": review.criteria.model_dump(),
                     "raw_response": review.raw_response,
+                    "related_work": [paper.model_dump() for paper in review.related_work],
+                    "config": review.config.model_dump(mode="json") if review.config else None,
                 }
             ),
         }
 
-        self.collection.add(
-            ids=[review_id],
-            embeddings=[embedding],
-            documents=[searchable_content],
-            metadatas=[metadata],
-        )
+        try:
+            self._add(review_id, embedding, searchable_content, metadata)
+        except Exception:
+            if stored_pdf_path:  # don't leave a PDF behind for a review that was not saved
+                Path(stored_pdf_path).unlink(missing_ok=True)
+            raise
 
         self.logger.debug(f"Review saved with id={review_id}")
         return review_id
+
+    def _add(self, review_id: str, embedding: list[float], document: str, metadata: dict) -> None:
+        """Add one review, adapting an empty collection to the current embedding size.
+
+        Chroma fixes a collection's vector size on its first insert and keeps it after every record is deleted. A
+        store created with another embedding model (older Sibyl versions used 384-dim MiniLM for ``paper_reviews``)
+        then rejects every new review, so an empty collection is recreated with the current size.
+        """
+        try:
+            self.collection.add(ids=[review_id], embeddings=[embedding], documents=[document], metadatas=[metadata])
+        except InvalidArgumentError as e:
+            if "dimension" not in str(e):
+                raise
+            if self.collection.count() > 0:
+                raise RuntimeError(
+                    f"The review library '{self.collection.name}' holds {self.collection.count()} reviews embedded with a different model "
+                    f"than the current {self.embeddings} embeddings ({len(embedding)} dimensions). Set SIBYL_EMBEDDINGS to the backend "
+                    "those reviews were saved with, or point SIBYL_STORAGE_PATH at a new directory."
+                ) from e
+            self.logger.warning(f"Collection '{self.collection.name}' is empty but sized for another embedding model; recreating it ({e})")
+            name, collection_metadata = self.collection.name, self.collection.metadata
+            self.client.delete_collection(name)
+            self.collection = self.client.create_collection(name=name, metadata=collection_metadata)
+            self.collection.add(ids=[review_id], embeddings=[embedding], documents=[document], metadatas=[metadata])
 
     def search_reviews(self, query: str, limit: int = 10) -> list[Review]:
         """Search reviews using semantic similarity.
@@ -342,6 +369,8 @@ class Engine:
                 "created_at": str(metadata.get("created_at", "")),
                 "criteria": review_data.get("criteria", {}),
                 "raw_response": review_data.get("raw_response", ""),
+                "related_work": review_data.get("related_work", []),
+                "config": review_data.get("config"),
             }
         except Exception:
             return None

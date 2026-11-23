@@ -3,9 +3,16 @@ import type { Schemas } from "@/lib/api";
 // Backend models, generated from the OpenAPI schema (see src/lib/api/schema.d.ts). Do not redefine them here.
 export type ReviewCriteria = Schemas["ReviewCriteria"];
 export type ConferenceSummary = Schemas["ConferenceSummary"];
+export type SavedFormSummary = Schemas["SavedFormSummary"];
+export type SavedFormDetail = Schemas["SavedFormDetail"];
 export type EngineInfo = Schemas["EngineInfo"];
 export type StoredReview = Schemas["Review"];
 export type FullReview = Schemas["FullReview"];
+export type RelatedPaper = Schemas["RelatedPaper"];
+export type ReviewConfig = Schemas["ReviewConfig"];
+export type ReviewDetail = Schemas["ReviewDetail"];
+export type ReviewMode = Schemas["ReviewMode"];
+export type ServiceConfig = Schemas["ServiceConfig"];
 export type ReviewsResponse = Schemas["ReviewList"];
 export type ReviewStatistics = Schemas["ReviewStatistics"];
 export type InstalledModel = Schemas["InstalledModel"];

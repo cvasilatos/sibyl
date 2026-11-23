@@ -14,6 +14,34 @@ AUTO_SLOT = 0
 """Slot value meaning "let the engine pick a GPU/host". Slot ``n >= 1`` targets GPU ``n - 1``."""
 
 
+CHARS_PER_TOKEN = 3.0
+"""Conservative estimate for English scientific text with Markdown/LaTeX (real ratio is ~3.5-4)."""
+
+
+def estimate_tokens(text: str) -> int:
+    """Rough token count used for context budgeting; errs high."""
+    return int(len(text) / CHARS_PER_TOKEN) + 1
+
+
+DEFAULT_CONTEXT = 32768
+"""Context window when ``SIBYL_MAX_CONTEXT`` is unset, or when it is ``model`` but the model's limit is unknown."""
+
+
+def max_context_setting() -> int | None:
+    """Read ``SIBYL_MAX_CONTEXT``: a token cap (default 32768), or ``None`` for ``model`` (each model's full limit)."""
+    value = os.getenv("SIBYL_MAX_CONTEXT", "").strip()
+    if value.lower() == "model":
+        return None
+    return int(value) if value else DEFAULT_CONTEXT
+
+
+def cap_context(native: int | None, setting: int | None) -> int:
+    """Pick the context window from the model's own limit (``None`` if unknown) and the ``SIBYL_MAX_CONTEXT`` setting."""
+    if setting is None:
+        return native or DEFAULT_CONTEXT
+    return min(setting, native) if native else setting
+
+
 class EngineOperationNotSupportedError(RuntimeError):
     """Raised when an engine cannot perform an operation (e.g. downloads on an external server)."""
 
@@ -27,8 +55,10 @@ class GenerationRequest:
     prompt: str
     schema: dict[str, Any]
     temperature: float
-    max_tokens: int
     context_length: int
+    """Context window (prompt + output tokens)."""
+    max_tokens: int | None = None
+    """Output cap; ``None`` lets the model write until the context window is full."""
     slot: int = AUTO_SLOT
     on_status: Callable[[str], Awaitable[None]] | None = field(default=None, repr=False)
     images: list[str] = field(default_factory=list, repr=False)
@@ -70,8 +100,12 @@ class InferenceEngine(ABC):
         """Run a schema-constrained generation and return the raw JSON text."""
 
     def context_length(self, model: str) -> int:  # noqa: ARG002
-        """Context window (prompt + output tokens) to use for ``model``."""
-        return env_int("SIBYL_MAX_CONTEXT", 32768)
+        """Context window (prompt + output tokens) to use for ``model``; this engine cannot ask for the model's limit."""
+        return cap_context(None, max_context_setting())
+
+    async def context_window(self, model: str) -> int:
+        """Context window for ``model``; engines that must ask their server for the model's limit override this."""
+        return self.context_length(model)
 
     def info(self) -> dict[str, Any]:
         """Describe this engine for the frontend."""

@@ -44,6 +44,16 @@ class Question(BaseModel):
         return next((o.label for o in self.options if str(o.value) == str(value)), None)
 
 
+class PageLimit(BaseModel):
+    """How long a submission may be, from the conference's call for papers."""
+
+    pages: int = Field(gt=0, description="Main-body pages allowed at submission")
+    excludes: str = Field(default="", description="What does not count towards the limit, e.g. 'references and appendices'")
+    note: str = Field(default="", description="Other paper types or caps, e.g. 'short papers: 4 pages'")
+    edition: str = Field(description="Edition whose call for papers states the limit")
+    source_url: str
+
+
 class ConferenceTemplate(BaseModel):
     """A conference's reviewer form."""
 
@@ -55,6 +65,7 @@ class ConferenceTemplate(BaseModel):
     source_urls: list[str] = Field(default_factory=list)
     verified: bool = False
     notes: str = ""
+    page_limit: PageLimit | None = None
     guidelines: str = ""
     questions: list[Question]
 
@@ -67,7 +78,7 @@ class ConferenceTemplate(BaseModel):
 
     def summary(self) -> dict[str, Any]:
         """Short description for listings."""
-        return self.model_dump(include={"id", "name", "full_name", "area", "edition", "verified", "source_urls"}) | {"question_count": len(self.questions)}
+        return self.model_dump(include={"id", "name", "full_name", "area", "edition", "verified", "source_urls", "page_limit"}) | {"question_count": len(self.questions)}
 
     def json_schema(self) -> dict[str, Any]:
         """JSON schema forcing one answer per question, with scores restricted to the official scale."""

@@ -9,6 +9,13 @@
   ],
   "verified": true,
   "notes": "Official ARR review form (page footer 2026). Soundness and Excitement also allow half-points (e.g., 3.5); only the labelled integer levels are listed. Overall Assessment uses string values because its official labelled levels include half-points. Omitted: best-paper justification, author-identity knowledge/conjecture. Ethical concerns and 'needs ethics review' merged into one text field.",
+  "page_limit": {
+    "pages": 8,
+    "excludes": "references, limitations, ethics statement and appendices",
+    "note": "short papers: 4 pages",
+    "edition": "2026",
+    "source_url": "https://aclrollingreview.org/cfp"
+  },
   "guidelines": "Write for both the authors and the area chairs: the summary should let ACs understand the paper and spot misunderstandings. Weaknesses should be concerns that would lead you to prioritize other papers, numbered so authors can respond individually; separate them from minor suggestions. Soundness concerns whether claims are sufficiently supported, independent of excitement; Findings recommendations depend mainly on soundness and reproducibility, while main-conference recommendations may additionally weigh novelty and impact. Check limitations, societal impact and ethics against the ACL Code of Ethics and the authors' Responsible NLP checklist.",
   "questions": [
     {

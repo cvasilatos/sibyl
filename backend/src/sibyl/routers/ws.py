@@ -1,22 +1,29 @@
 import contextlib
 import logging
-from typing import TYPE_CHECKING, cast
+import time
+from typing import TYPE_CHECKING, Annotated, Any, cast
 
 import anyio
 from anyio import to_thread
 from decima.logger import CustomLogger
 from fastapi import APIRouter, Query, WebSocket
 
+from sibyl.schemas.review_config import ReviewDetail, ReviewMode
 from sibyl.schemas.reviews import ReviewCriteria
 from sibyl.schemas.ws import PullProgress, ReviewCompleted, ReviewProgress, ReviewResult, ReviewResults, SocketError
 from sibyl.services.conferences import get_conference
 from sibyl.services.figures import FigureDescriber, vlm_model_for
 from sibyl.services.pdf_parser import PDFParser
+from sibyl.services.related_work import RelatedWorkFinder, related_work_enabled
 from sibyl.services.reviewer import PaperReview, ReviewSystem
 from sibyl.state import review_sessions, storage
 
 if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+
     from sibyl.inference import InferenceEngine
+    from sibyl.schemas.related_work import RelatedPaper
+    from sibyl.state import ReviewSession
 
 router = APIRouter()
 
@@ -42,12 +49,80 @@ async def pull_model(websocket: WebSocket, model_name: str = Query()) -> None:
             await websocket.close()
 
 
+async def _related_work(  # noqa: PLR0913
+    engine: "InferenceEngine",
+    model: str,
+    paper_text: str,
+    paper_title: str,
+    *,
+    host: int,
+    requested: bool | None,
+    progress: "Callable[[int, str], Awaitable[None]]",
+) -> "list[RelatedPaper]":
+    """Search arXiv for related work when enabled for this review; an empty list otherwise."""
+    if not related_work_enabled(requested):
+        return []
+
+    async def status(message: str) -> None:
+        await progress(47, message)
+
+    return await RelatedWorkFinder(engine, model).find(paper_text, paper_title, slot=host, on_status=status)
+
+
+async def _describe_figures(  # noqa: PLR0913
+    engine: "InferenceEngine",
+    vlm_model: str | None,
+    paper_text: str,
+    images: dict[str, Any],
+    *,
+    host: int,
+    progress: "Callable[[int, str], Awaitable[None]]",
+) -> tuple[str, int]:
+    """Replace each figure with a vision model's description (the reviewer is text-only); return the text and the count."""
+
+    async def status(message: str) -> None:
+        await progress(40, message)
+
+    paper_text, described = await FigureDescriber(engine, vlm_model).enrich(paper_text, images, slot=host, on_status=status)
+    if described:
+        await progress(45, f"Described {described} figure(s) with a vision model")
+    return paper_text, described
+
+
+def _record_run(review: PaperReview, session: "ReviewSession", *, vlm_model: str | None, figures: int, related: bool, host: int, started: float) -> None:  # noqa: PLR0913
+    """Add the settings only the session knows to the review's recorded configuration."""
+    if review.config is None:
+        return
+    review.config = review.config.model_copy(
+        update={
+            "review_form_name": session.get("review_form_filename") if session.get("review_form") else None,
+            "vlm_model": vlm_model,
+            "figures_described": figures,
+            "related_work": related,
+            "gpu": host - 1 if host > 0 else None,
+            "duration_seconds": round(time.monotonic() - started, 1),
+        }
+    )
+
+
 @router.websocket("/session/{session_id}")
-async def websocket_endpoint(websocket: WebSocket, session_id: str, model: str = Query(...), host: int = Query(0), vlm: str | None = Query(None)) -> None:
+async def websocket_endpoint(  # noqa: PLR0913
+    websocket: WebSocket,
+    session_id: str,
+    model: str = Query(...),
+    host: int = Query(0),
+    vlm: str | None = Query(None),
+    related: bool | None = Query(None),  # noqa: FBT001
+    detail: Annotated[ReviewDetail | None, Query()] = None,
+    mode: Annotated[ReviewMode | None, Query()] = None,
+) -> None:
     """WebSocket endpoint for real-time review progress updates.
 
     ``host`` is the review slot: 0 lets the engine choose, ``n`` targets GPU ``n - 1``.
     ``vlm`` is the vision model that describes figures: omitted uses the server default, ``none`` skips the step.
+    ``related`` searches arXiv for related work before reviewing: omitted uses ``SIBYL_RELATED_WORK``.
+    ``detail`` (concise, standard, detailed) and ``mode`` (single, sections) default to ``SIBYL_REVIEW_DETAIL`` and
+    ``SIBYL_REVIEW_MODE``.
     """
     await websocket.accept()
     session = review_sessions.get(session_id)
@@ -60,6 +135,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, model: str =
     async def progress(value: int, message: str) -> None:
         await websocket.send_json(ReviewProgress(progress=value, message=message).model_dump())
 
+    started = time.monotonic()
     try:
         await progress(10, "Extracting text from PDF...")
 
@@ -73,36 +149,35 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, model: str =
 
         engine: InferenceEngine = websocket.app.state.engine
 
-        async def figure_status(message: str) -> None:
-            await progress(40, message)
+        vlm_model = vlm_model_for(engine.name, vlm)
+        paper_text, described = await _describe_figures(engine, vlm_model, paper_text, metadata.get("images") or {}, host=host, progress=progress)
 
-        # The reviewer is text-only: a vision model describes each figure image and the description replaces it.
-        describer = FigureDescriber(engine, vlm_model_for(engine.name, vlm))
-        paper_text, described = await describer.enrich(paper_text, metadata.get("images") or {}, slot=host, on_status=figure_status)
-        if described:
-            await progress(45, f"Described {described} figure(s) with a vision model")
+        search_related = related_work_enabled(related)
+        related_work = await _related_work(engine, model, paper_text, paper_title, host=host, requested=search_related, progress=progress)
 
         conference_id = session.get("conference_id")
         conference = get_conference(conference_id) if conference_id else None
         form_label = f" using the {conference.name} {conference.edition} reviewer form" if conference else ""
 
         try:
-            reviewer = ReviewSystem(engine, model)
-
             await progress(50, f"Reviewing with {model}{form_label}...")
 
             async def on_status(message: str) -> None:
                 await progress(60, message)
 
-            review: PaperReview = await reviewer.review_paper(
+            review: PaperReview = await ReviewSystem(engine, model).review_paper(
                 paper_text,
                 paper_title,
                 model,
                 review_form=session.get("review_form"),
                 conference=conference,
+                related_work=related_work,
                 slot=host,
                 on_status=on_status,
+                detail=detail,
+                mode=mode,
             )
+            _record_run(review, session, vlm_model=vlm_model, figures=described, related=search_related, host=host, started=started)
             logger.info(f"Generated review for paper '{paper_title}' with model {model}")
         except Exception as e:
             logger.exception(f"Error during review with model {model}")
@@ -118,6 +193,8 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, model: str =
             reviewer_model=review.reviewer_model,
             criteria=ReviewCriteria.model_validate(review.criteria.model_dump(mode="json")),
             raw_response=review.raw_response,
+            related_work=review.related_work,
+            config=review.config,
         )
         completed = ReviewCompleted(review_id=review_id, results=ReviewResults(paper_title=paper_title, reviews=[result]))
         await websocket.send_json(completed.model_dump(mode="json"))

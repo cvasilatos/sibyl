@@ -12,6 +12,13 @@
   ],
   "verified": false,
   "notes": "AAAI's OpenReview review form is not public (guest access refused for AAAI-25/26/27). Text fields follow the official AAAI-26 reviewer instructions' recommended structure (paper summary, review summary, specific feedback, questions, suggestions). The overall rating (1-8) and confidence (1-5) scales are a third-party reconstruction (reviewpaper.ai), not confirmed; officially AAAI only states that human reviews carry a rating, a confidence and a recommendation.",
+  "page_limit": {
+    "pages": 7,
+    "excludes": "references (up to two extra pages; 9 total)",
+    "note": "",
+    "edition": "2027",
+    "source_url": "https://aaai.org/conference/aaai/aaai-27/main-technical-track-call/"
+  },
   "guidelines": "Keep the review impersonal and focused on the work (refer to 'the paper', not 'you' or 'the authors'), and ask 'how could this paper be better?' rather than 'what is wrong with it?'. Assess clarity, technical and experimental soundness, intellectual novelty, and relevance to the AAAI community; papers that open new territory are preferred over incremental advances. Check whether empirical results really support the claims, whether baselines, metrics and datasets are appropriate, whether limitations are stated, and whether results are replicable. Distinguish essential revisions from optional improvements and keep requests reasonable in time and resources; requests for more related work should cite specific works.",
   "questions": [
     {

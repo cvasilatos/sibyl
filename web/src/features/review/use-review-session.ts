@@ -6,17 +6,24 @@ import { toast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
 import { invalidates } from "@/lib/api/queries";
 import { getWebSocketUrl } from "@/lib/config";
-import type { ReviewResults, ReviewSessionMessage } from "@/lib/types";
+import type { FormRef } from "@/lib/review-forms";
+import type { ReviewDetail, ReviewMode, ReviewResults, ReviewSessionMessage } from "@/lib/types";
 
 export interface ReviewRequest {
   file: File;
-  reviewForm: File | null;
-  conferenceId: string | null;
+  /** Conference template or saved custom form to answer, or null for the generic review. */
+  form: FormRef | null;
   model: string;
   /** Vision model that describes figures: "" for the server default, "none" to skip figures. */
   vlm: string;
+  /** Search arXiv for related work so the reviewer can judge novelty against it. */
+  relatedWork: boolean;
   /** GPU to run on, or null to let the backend pick. */
   gpuIndex: number | null;
+  /** How long the review should be (guidance in the prompt, not a token limit). */
+  detail: ReviewDetail;
+  /** Write the whole review in one call, or one call per section. */
+  mode: ReviewMode;
 }
 
 /** Uploads a paper and follows its review over the session WebSocket, reporting progress in a toast. */
@@ -39,15 +46,15 @@ export function useReviewSession() {
   );
 
   const start = useCallback(
-    async ({ file, reviewForm, conferenceId, model, vlm, gpuIndex }: ReviewRequest) => {
+    async ({ file, form, model, vlm, relatedWork, gpuIndex, detail, mode }: ReviewRequest) => {
       setIsReviewing(true);
       setResults(null);
       try {
-        const upload = await api.uploadPaper(file, reviewForm, conferenceId);
+        const upload = await api.uploadPaper(file, form);
         // The backend numbers hosts from 1; 0 means "any".
         const hostIndex = gpuIndex !== null ? gpuIndex + 1 : 0;
         const progressToast = toast({ title: "Review in Progress", description: `Starting review of ${file.name}...`, duration: Number.POSITIVE_INFINITY });
-        const params = new URLSearchParams({ model, host: String(hostIndex) });
+        const params = new URLSearchParams({ model, host: String(hostIndex), related: String(relatedWork), detail, mode });
         if (vlm) params.set("vlm", vlm);
         const socket = new WebSocket(`${getWebSocketUrl()}/ws/session/${upload.session_id}?${params}`);
         socketRef.current = socket;

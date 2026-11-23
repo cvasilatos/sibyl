@@ -10,6 +10,13 @@
   ],
   "verified": true,
   "notes": "Main-track form from the official ICML 2026 reviewer instructions. Scale level names are official; the long confidence descriptions follow the standard ICML/NeurIPS wording (the 2026 page abbreviates them). Omitted: LLM-policy compliance, code-of-conduct acknowledgement, ethics-expertise area selector, and the post-rebuttal Final Justification.",
+  "page_limit": {
+    "pages": 8,
+    "excludes": "references, impact statement and appendices",
+    "note": "camera-ready: 9 pages",
+    "edition": "2027",
+    "source_url": "https://icml.cc/Conferences/2027/CallForPapers"
+  },
   "guidelines": "Read with empathy and be professional and constructive; substantiate every strength and weakness and focus on major issues over minor ones. Check whether claims are substantiated: proofs, whether experiments actually test the hypotheses, and whether empirical claims follow from the results. Place the work in the context of prior literature, but treat work made public within about four months of the deadline as concurrent. Be open-minded about broad definitions of significance and originality; for application-driven papers judge methods by fit to the problem and accept well-documented non-standard datasets.",
   "questions": [
     {

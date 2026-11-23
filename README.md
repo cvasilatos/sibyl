@@ -28,8 +28,33 @@ With `vllm`, Sibyl downloads Hugging Face models into the HF cache and starts `v
 UI when a review needs it. Reviews of the same model on the same GPU share one server, so vLLM batches them.
 Asking for a different model on that GPU swaps the server once running reviews finish. Server logs go to `backend/logs/vllm-gpu<N>.log`.
 
-Every engine sizes the context window to the paper (up to `SIBYL_MAX_CONTEXT`, default 32k tokens). If a paper
-does not fit, its end (references/appendix) is trimmed and the UI says so, instead of the model silently seeing only the first few pages.
+Every engine gives the review the full context window (`SIBYL_MAX_CONTEXT`, default 32k tokens, capped by the
+model's own limit with Ollama and vLLM; `SIBYL_MAX_CONTEXT=model` uses each model's full limit, which needs plenty of
+VRAM because the engine reserves memory for the whole window), and the model may write until it is full: there is no output-token limit. If a paper
+does not leave room for the review, its end (references/appendix) is trimmed and the UI says so, instead of the model
+silently seeing only the first few pages.
+
+## Review Length and Mode
+
+The Review tab sets how long the review should be (default `SIBYL_REVIEW_DETAIL`). **Model decides** (the default)
+gives no length guidance. **Concise**, **standard** and **detailed** tell the model how many paragraphs to write per
+section and how many suggestions to give, for models whose reviews come out too short; this is guidance in the prompt,
+not a token limit. **Section by section** mode (default `SIBYL_REVIEW_MODE`) writes
+each section, or each open question of a conference form, in its own call, showing the model what it already wrote,
+then asks for the ratings, score and recommendation. Small models write much longer reviews this way, at the cost of
+one call per section. Custom forms have no fixed sections and are always reviewed in one call.
+
+Every review stores the settings that produced it (engine, model, length, mode, temperature, context, form, vision
+model, related work, GPU, time taken). They are shown under the review on the Review tab and in the Library.
+
+## Related Work Search
+
+Before reviewing, the review model writes a few keyword searches from the paper's title, abstract and introduction.
+Sibyl runs them on arXiv, and the model picks the most relevant results and notes how each relates to the paper.
+The reviewer sees these abstracts and cites them as [R1], [R2], ... when judging novelty. The papers are listed
+under the review and in the `.txt` export.
+Only the search keywords leave the machine, never the paper. Turn the search off per review on the Review tab,
+or by default with `SIBYL_RELATED_WORK=false`. If arXiv is unreachable, the review goes ahead without related work.
 
 ## Conference Review Templates
 
@@ -38,6 +63,9 @@ top venue. Templates live in [`backend/src/sibyl/resources/conferences/`](backen
 one JSON file per conference. Each question becomes a required field of the JSON schema the model is constrained
 to, and each rating uses the conference's own scale. Even a small model therefore answers every question with a valid score.
 The completed form is shown in the results and stored in the library next to Sibyl's normalized review.
+
+The selector also shows each venue's submission page limit (`page_limit` in the JSON), taken from the newest
+official call for papers and linked to it.
 
 To add or update a conference, copy an existing JSON file and edit `questions`. Each question is either
 `{"type": "text"}` or `{"type": "choice", "options": [{"value": 4, "label": "excellent"}, ...]}`.

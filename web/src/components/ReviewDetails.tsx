@@ -1,4 +1,6 @@
 import { FileText } from "lucide-react";
+import RelatedWorkList from "@/components/RelatedWorkList";
+import ReviewConfigPanel from "@/components/ReviewConfigPanel";
 import ReviewSection from "@/components/ReviewSection";
 import { Button } from "@/components/ui/button";
 import { DEFAULT_SECTIONS, downloadReviewText } from "@/lib/review-text";
@@ -15,7 +17,13 @@ const SECTION_ICONS: Record<string, string> = {
   detailed_feedback: "📝",
 };
 
-export default function ReviewDetails({ review, maxScore }: { review: Pick<Review, "paper_title" | "reviewer_model" | "criteria">; maxScore?: number }) {
+export default function ReviewDetails({
+  review,
+  maxScore,
+}: {
+  review: Pick<Review, "paper_title" | "reviewer_model" | "criteria" | "related_work"> & Partial<Pick<Review, "config">>;
+  maxScore?: number;
+}) {
   const { criteria } = review;
   return (
     <>
@@ -29,6 +37,8 @@ export default function ReviewDetails({ review, maxScore }: { review: Pick<Revie
       ) : (
         DEFAULT_SECTIONS.map(({ title, field }) => <ReviewSection key={field} title={`${SECTION_ICONS[field]} ${title}`} content={String(criteria[field])} />)
       )}
+      {review.related_work.length > 0 && <RelatedWorkList papers={review.related_work} />}
+      {review.config && <ReviewConfigPanel config={review.config} />}
     </>
   );
 }

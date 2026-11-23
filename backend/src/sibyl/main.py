@@ -14,7 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic.json_schema import models_json_schema
 
 from sibyl.inference import create_engine
-from sibyl.routers import conferences, gpu, reviews, upload, ws
+from sibyl.routers import conferences, gpu, review_forms, reviews, upload, ws
 from sibyl.schemas.system import Online
 from sibyl.schemas.ws import WS_MESSAGES
 from sibyl.services.figures import prefetch_vlm
@@ -77,6 +77,7 @@ app.include_router(upload.router, prefix="/api", tags=["Upload"])
 app.include_router(ws.router, prefix="/ws", tags=["WebSocket"])
 app.include_router(gpu.router, prefix="/api", tags=["GPU"])
 app.include_router(conferences.router, prefix="/api", tags=["Conferences"])
+app.include_router(review_forms.router, prefix="/api", tags=["Review Forms"])
 
 
 @app.get("/")

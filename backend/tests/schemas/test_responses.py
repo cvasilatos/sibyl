@@ -11,6 +11,7 @@ from pydantic import BaseModel
 from sibyl.schemas.conferences import ConferenceDetail, ConferenceList
 from sibyl.schemas.engines import AvailableModels, EngineInfo, InstalledModels
 from sibyl.schemas.gpu import GpuList
+from sibyl.schemas.review_config import ReviewConfig, ReviewDetail, ReviewMode
 from sibyl.schemas.reviews import FullReview, ReviewStatistics
 from sibyl.services.conferences import get_conference, list_conferences
 
@@ -114,6 +115,10 @@ def test_full_review_keeps_fields() -> None:
         "created_at": "2026-01-01",
         "criteria": criteria,
         "raw_response": "{}",
+        "related_work": [{"ref": "R1", "title": "T", "authors": ["A"], "year": 2024, "url": "https://arxiv.org/abs/2401.00001", "abstract": "a", "relation": "close"}],
+        "config": ReviewConfig(engine="ollama", model="qwen3:8b", detail=ReviewDetail.STANDARD, mode=ReviewMode.SINGLE, temperature=0.7, context_length=32768).model_dump(
+            mode="json"
+        ),
     }
     assert_keeps_fields(FullReview, review)
 
@@ -141,3 +146,15 @@ def test_statistics_keep_fields() -> None:
     """Review statistics keep every field."""
     stats = {"total_reviews": 2, "unique_papers": 1, "unique_models": 2, "recommendations": {"Accept": 2}}
     assert_keeps_fields(ReviewStatistics, stats)
+
+
+def test_saved_form_models_keep_fields(tmp_path, monkeypatch) -> None:
+    """Saved review forms keep every field in listings and in detail."""
+    from sibyl import config
+    from sibyl.schemas.review_forms import SavedFormDetail, SavedFormList
+    from sibyl.services.review_forms import save_form
+
+    monkeypatch.setattr(config, "STORAGE_PATH", tmp_path)
+    form = save_form("Workshop", "form.md", "# Q1")
+    assert_keeps_fields(SavedFormList, {"forms": [form.summary()], "count": 1})
+    assert_keeps_fields(SavedFormDetail, form.model_dump())

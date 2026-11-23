@@ -4,31 +4,29 @@ import { useQuery } from "@tanstack/react-query";
 import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from "react";
 import { toast } from "@/hooks/use-toast";
 import { queries } from "@/lib/api/queries";
+import { type FormRef, formKey, parseFormKey } from "@/lib/review-forms";
+import type { ReviewDetail, ReviewMode } from "@/lib/types";
 import { useReviewSession } from "./use-review-session";
 
-const REVIEW_FORM_EXTENSIONS = [".txt", ".md", ".markdown"];
-const REVIEW_FORM_MAX_BYTES = 64 * 1024;
 /** Vision-model choices besides installed models: use the server's configured default, or skip figure descriptions. */
 export const VLM_DEFAULT = "";
 export const VLM_NONE = "none";
-
-/** Why a custom review form file is rejected, or null when it is acceptable. */
-export function reviewFormProblem(file: File): string | null {
-  const extension = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
-  if (!REVIEW_FORM_EXTENSIONS.includes(extension)) return "Choose a .txt, .md, or .markdown file.";
-  if (file.size > REVIEW_FORM_MAX_BYTES) return "The review form must be 64 KiB or smaller.";
-  return null;
-}
 
 function useReviewState() {
   const session = useReviewSession();
   const { clearResults } = session;
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [selectedReviewForm, setSelectedReviewForm] = useState<File | null>(null);
-  const [selectedConferenceId, setSelectedConferenceId] = useState<string | null>(null);
+  const [chosenForm, setChosenForm] = useState<FormRef | null>(null);
   const [chosenModel, setSelectedModel] = useState("");
   const [chosenVlm, setSelectedVlm] = useState(VLM_DEFAULT);
   const [chosenGpuIndex, setSelectedGpuIndex] = useState<number | null>(null);
+  const [relatedWork, setRelatedWork] = useState(true);
+  // Unset until the user picks one: follow the server defaults (SIBYL_REVIEW_DETAIL / SIBYL_REVIEW_MODE).
+  const [chosenDetail, setSelectedDetail] = useState<ReviewDetail | null>(null);
+  const [chosenMode, setSelectedMode] = useState<ReviewMode | null>(null);
+  const serviceConfig = useQuery(queries.serviceConfig()).data;
+  const selectedDetail: ReviewDetail = chosenDetail ?? serviceConfig?.review_detail ?? "auto";
+  const selectedMode: ReviewMode = chosenMode ?? serviceConfig?.review_mode ?? "single";
 
   // A choice that is no longer offered (model removed, GPU gone) falls back to the first model / automatic GPU choice.
   const installed = useQuery(queries.installedModels()).data;
@@ -38,6 +36,10 @@ function useReviewState() {
   const gpus = useQuery(queries.gpus()).data;
   const availableGpus = useMemo(() => (gpus?.available ? gpus.gpus : []), [gpus]);
   const selectedGpuIndex = availableGpus.some((gpu) => gpu.index === chosenGpuIndex) ? chosenGpuIndex : null;
+  // A saved form deleted in the Review Forms tab falls back to the generic review.
+  const savedForms = useQuery(queries.reviewForms()).data;
+  const selectedForm = chosenForm?.kind === "custom" && savedForms && !savedForms.some((form) => form.id === chosenForm.id) ? null : chosenForm;
+  const selectedFormKey = selectedForm ? formKey(selectedForm) : null;
 
   const selectFile = useCallback(
     (file: File) => {
@@ -51,26 +53,10 @@ function useReviewState() {
     [clearResults]
   );
 
-  const selectReviewForm = useCallback(
-    (file: File | null) => {
-      if (file) {
-        const problem = reviewFormProblem(file);
-        if (problem) {
-          toast({ title: "Invalid Review Form", description: problem, variant: "destructive" });
-          return;
-        }
-        setSelectedConferenceId(null);
-        clearResults();
-      }
-      setSelectedReviewForm(file);
-    },
-    [clearResults]
-  );
-
-  const selectConference = useCallback(
-    (conferenceId: string | null) => {
-      setSelectedConferenceId(conferenceId);
-      if (conferenceId) setSelectedReviewForm(null);
+  /** Pick a review form by its key ("conference:<id>" or "custom:<id>"), or null for the generic review. */
+  const selectForm = useCallback(
+    (key: string | null) => {
+      setChosenForm(parseFormKey(key));
       clearResults();
     },
     [clearResults]
@@ -82,22 +68,36 @@ function useReviewState() {
       toast({ title: "Cannot Start Review", description: "Select a PDF and an installed model first.", variant: "destructive" });
       return;
     }
-    start({ file: selectedFile, reviewForm: selectedReviewForm, conferenceId: selectedConferenceId, model: selectedModel, vlm: selectedVlm, gpuIndex: selectedGpuIndex });
-  }, [start, selectedFile, selectedReviewForm, selectedConferenceId, selectedModel, selectedVlm, selectedGpuIndex]);
+    start({
+      file: selectedFile,
+      form: selectedForm,
+      model: selectedModel,
+      vlm: selectedVlm,
+      relatedWork,
+      gpuIndex: selectedGpuIndex,
+      detail: selectedDetail,
+      mode: selectedMode,
+    });
+  }, [start, selectedFile, selectedForm, selectedModel, selectedVlm, relatedWork, selectedGpuIndex, selectedDetail, selectedMode]);
 
   return useMemo(
     () => ({
       selectedFile,
       selectFile,
-      selectedReviewForm,
-      selectReviewForm,
-      selectedConferenceId,
-      selectConference,
+      selectedFormKey,
+      selectedFormKind: selectedForm?.kind ?? null,
+      selectForm,
       availableModels,
       selectedModel,
       setSelectedModel,
+      selectedDetail,
+      setSelectedDetail,
+      selectedMode,
+      setSelectedMode,
       selectedVlm,
       setSelectedVlm,
+      relatedWork,
+      setRelatedWork,
       availableGpus,
       selectedGpuIndex,
       setSelectedGpuIndex,
@@ -108,13 +108,15 @@ function useReviewState() {
     [
       selectedFile,
       selectFile,
-      selectedReviewForm,
-      selectReviewForm,
-      selectedConferenceId,
-      selectConference,
+      selectedFormKey,
+      selectedForm,
+      selectForm,
       availableModels,
       selectedModel,
+      selectedDetail,
+      selectedMode,
       selectedVlm,
+      relatedWork,
       availableGpus,
       selectedGpuIndex,
       session.results,

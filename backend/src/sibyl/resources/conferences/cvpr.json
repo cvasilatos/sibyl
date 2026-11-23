@@ -13,6 +13,13 @@
   ],
   "verified": false,
   "notes": "The CVPR OpenReview form is not public. OpenReview venue config confirms fields named preliminary_recommendation and confidence_level for 2026. Recommendation labels (Strong Accept, Weak Accept, Borderline, Weak Reject, Reject) come from the official 2026 reviewer training material; their numeric values and the confidence wording are reconstructed (third-party, reviewpaper.ai). Field order follows the training material and a third-party reconstruction of the 2024-25 form. Post-rebuttal final rating omitted.",
+  "page_limit": {
+    "pages": 8,
+    "excludes": "references",
+    "note": "",
+    "edition": "2027",
+    "source_url": "https://cvpr.thecvf.com/Conferences/2027/AuthorGuidelines"
+  },
   "guidelines": "Organize the main critique as strengths and weaknesses with explanation; one-phrase bullet lists are not a detailed review. Back up any claim that the work has been done before with specific references and how closely they relate, and give specific, constructive suggestions. Weigh novelty and impact alongside benchmark performance; do not reject solely for not beating the state of the art, for minor easily fixed flaws, or for missing comparisons to arXiv papers. Do not request substantial new experiments for the rebuttal. Honest limitations and societal-impact discussions should be weighed positively, but their absence is not grounds for rejection. Refer to 'the paper' rather than 'you' or 'the authors', and keep the tone courteous.",
   "questions": [
     {

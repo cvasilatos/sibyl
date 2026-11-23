@@ -24,7 +24,7 @@ from typing import TYPE_CHECKING, Any
 
 import httpx
 
-from sibyl.inference.base import AUTO_SLOT, GenerationRequest, InferenceEngine, env_float, env_int
+from sibyl.inference.base import AUTO_SLOT, GenerationRequest, InferenceEngine, cap_context, env_float, env_int, max_context_setting
 from sibyl.inference.openai_engine import chat_json
 from sibyl.services.hardware import nvidia_gpu_count
 
@@ -355,7 +355,8 @@ class VLLMEngine(InferenceEngine):
     def __init__(self, store: HuggingFaceStore | None = None, pool: VLLMServerPool | None = None, max_context: int | None = None) -> None:
         """Configure from ``SIBYL_VLLM_*`` environment variables unless components are injected."""
         self.store = store or HuggingFaceStore()
-        self.max_context = max_context or env_int("SIBYL_MAX_CONTEXT", 32768)
+        self.max_context: int | None = max_context if max_context is not None else max_context_setting()
+        """Cap on the context window; ``None`` (``SIBYL_MAX_CONTEXT=model``) uses each model's full limit."""
         self.pool = pool or VLLMServerPool(
             gpus=_gpus_from_env(),
             command=shlex.split(os.getenv("SIBYL_VLLM_COMMAND", "vllm")),
@@ -368,11 +369,11 @@ class VLLMEngine(InferenceEngine):
         self.timeout = env_float("SIBYL_REQUEST_TIMEOUT", 1800.0)
 
     def context_length(self, model: str) -> int:
-        """Context window used for ``model``: the configured maximum, capped by the model's native limit."""
+        """Context window used for ``model``: the configured maximum capped by the model's native limit, or that limit for ``model``."""
         native = None
         with contextlib.suppress(Exception):
             native = self.store.native_context_length(model)
-        return min(self.max_context, native) if native else self.max_context
+        return cap_context(native, self.max_context)
 
     def info(self) -> dict[str, Any]:  # noqa: D102
         return {**super().info(), "gpus": self.pool.gpus, "servers": self.pool.status()}

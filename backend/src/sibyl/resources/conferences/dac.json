@@ -12,6 +12,13 @@
   ],
   "verified": false,
   "notes": "DAC does not publish its review form. Rating dimensions are modeled on the official DAC 2026/2027 manuscript selection criteria (technical quality, originality, significance of quantitative results, experimental evidence, writing); the 1-5 scales and their labels, and the expertise scale, are reconstructed (a 1-5 Overall Recommendation and Author/Committee comments follow A. Kahng's DAC reviewing guide, an unofficial source). No rebuttal phase.",
+  "page_limit": {
+    "pages": 6,
+    "excludes": "references (one extra page, references only)",
+    "note": "",
+    "edition": "2027",
+    "source_url": "https://dac.com/2027/program/research-manuscript-submissions"
+  },
   "guidelines": "Manuscripts are reviewed as finished work; preliminary submissions are at a disadvantage. Judge the quality of the technical contribution, originality, advances over previous approaches, and the significance of results described by measurable quantitative criteria (e.g., runtime, optimality, automation of manual effort). Experimental evidence on industry-strength designs or widely accepted benchmarks is highly desirable; a good discussion of limitations is expected. Back up criticisms (name the prior work when saying 'not novel'), pair negative verdicts with concrete suggestions, and make a clear call rather than rating everything as average.",
   "questions": [
     {

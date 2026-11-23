@@ -6,14 +6,14 @@ LLM-powered research paper review system that runs open-source models locally (O
 
 - `backend/`: Python package `sibyl` (FastAPI). Self-contained: own `pyproject.toml`, `uv.lock`, `ruff.toml`, `Dockerfile`. Reviews are stored in `backend/sibyl_storage/` (`SIBYL_STORAGE_PATH`), wherever the server is started.
   - `main.py`: the FastAPI app and `run_server()` (the `sibyl` command). Routers are mounted under `/api` and `/ws`. `openapi.py` exports the API schema without starting a server.
-  - `routers/`: HTTP and WebSocket endpoints (`reviews`, `upload`, `ws`, `gpu`, `conferences`). `schemas/`: their pydantic request and response models; `tests/schemas/test_responses.py` checks no model drops a field its producer returns. `state.py`: shared app state.
-  - `services/`: the review pipeline and helpers (`reviewer`, `comparison`, `pdf_parser`, `figures`, `conferences`, `hardware`, `model_catalog`).
+  - `routers/`: HTTP and WebSocket endpoints (`reviews`, `upload`, `ws`, `gpu`, `conferences`, `review_forms`). `schemas/`: their pydantic request and response models; `tests/schemas/test_responses.py` checks no model drops a field its producer returns. `state.py`: shared app state.
+  - `services/`: the review pipeline and helpers (`reviewer`, `comparison`, `pdf_parser`, `figures`, `conferences`, `review_forms`, `hardware`, `model_catalog`).
   - `inference/`: pluggable engines (`base.py`, `ollama_engine.py`, `vllm_engine.py`, `openai_engine.py`), picked with `SIBYL_ENGINE`.
   - `storage/`: review persistence.
   - `resources/`: review prompt and conference templates (`conferences/*.json`, one per venue).
   - `config.py`: settings from `SIBYL_*` env vars or `backend/.env`; document new ones in `backend/.env.example`.
 - `backend/tests/`: pytest, mirroring `src/sibyl/` (`tests/services/`, `tests/routers/`, …). `tests/inference/fake_vllm.py` stands in for a vLLM server.
-- `web/`: Next.js app (App Router). One route per page in `src/app/` (`review`, `library`, `models`, `gpu`); the root layout holds the shell and `providers.tsx`.
+- `web/`: Next.js app (App Router). One route per page in `src/app/` (`review`, `forms`, `library`, `models`, `gpu`); the root layout holds the shell and `providers.tsx`.
   - `src/features/<page>/`: that page's components, hooks and context. A feature imports from `components/`, `hooks/` and `lib/`, never from another feature; pages compose features.
   - `src/components/`: components shared by features; shadcn-style primitives in `ui/` (dialog, alert, spinner, native select, …).
   - Server data goes through TanStack Query: every read is defined once in `src/lib/api/queries.ts`, and changes invalidate the keys in `invalidates`. Don't fetch in `useEffect`.
@@ -34,5 +34,5 @@ LLM-powered research paper review system that runs open-source models locally (O
 ## Conventions
 
 - Keep routers thin; put logic in the pipeline modules or `services/`.
-- A new conference form is a JSON file in `resources/conferences/`; no code change needed.
+- A new conference form is a JSON file in `resources/conferences/`; no code change needed. Users' own named forms are saved under `<SIBYL_STORAGE_PATH>/review_forms/`.
 - Put scratch files in `tmp/` or the session scratchpad, never next to source.

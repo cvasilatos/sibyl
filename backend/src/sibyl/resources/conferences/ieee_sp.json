@@ -11,6 +11,13 @@
   ],
   "verified": false,
   "notes": "S&P's HotCRP review form is not public. Overall merit 1-5 labels (Reject, Weak Reject, Weak Accept, Accept, Strong Accept) are confirmed only from the S&P 2021 PC chairs' report; reviewer expertise levels and the text-field list are reconstructed from typical S&P HotCRP forms. Process details (Accept/Reject only, rebuttal focused on factual errors and reviewer questions, public meta-reviews) are from the 2026/2027 CFPs.",
+  "page_limit": {
+    "pages": 13,
+    "excludes": "references and appendices (up to 5 more pages; 18 total)",
+    "note": "",
+    "edition": "2027",
+    "source_url": "https://sp2027.ieee-security.org/cfpapers.html"
+  },
   "guidelines": "Papers must make novel research contributions to security or privacy (theory, design, implementation, analysis, verification, or empirical evaluation); theoretical work must make a convincing case for relevance to practice. SoK papers must provide a new viewpoint or a comprehensive taxonomy and support or challenge long-held beliefs with evidence; plain surveys do not qualify. Papers are reviewed as submitted (no conditional acceptance), so judge the submitted work plus only material you explicitly request in the rebuttal. Failure to responsibly disclose vulnerabilities and unaddressed ethical issues may be grounds for rejection.",
   "questions": [
     {

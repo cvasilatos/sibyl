@@ -10,38 +10,34 @@ from fastapi import APIRouter, Form, HTTPException, UploadFile
 
 from sibyl.schemas.system import UploadResult
 from sibyl.services.conferences import get_conference
+from sibyl.services.review_forms import MAX_REVIEW_FORM_BYTES, ReviewFormError, decode_review_form, get_form
 from sibyl.state import review_sessions
 
 router = APIRouter()
 
-MAX_REVIEW_FORM_BYTES = 64 * 1024
-REVIEW_FORM_EXTENSIONS = {".txt", ".md", ".markdown"}
-
 
 def _decode_review_form(filename: str, content: bytes) -> str:
     """Validate and decode a text or Markdown review form."""
-    if Path(filename).suffix.lower() not in REVIEW_FORM_EXTENSIONS:
-        raise HTTPException(status_code=400, detail="Review form must be a .txt, .md, or .markdown file")
-    if len(content) > MAX_REVIEW_FORM_BYTES:
-        raise HTTPException(status_code=413, detail="Review form must be 64 KiB or smaller")
     try:
-        decoded = content.decode("utf-8-sig")
-    except UnicodeDecodeError as exc:
-        raise HTTPException(status_code=400, detail="Review form must contain valid UTF-8 text") from exc
-    if not decoded.strip():
-        raise HTTPException(status_code=400, detail="Review form cannot be empty")
-    return decoded
+        return decode_review_form(filename, content)
+    except ReviewFormError as e:
+        raise HTTPException(status_code=e.status_code, detail=str(e)) from e
 
 
 @router.post("/upload")
-async def upload_paper(file: UploadFile, review_form: UploadFile | None = None, conference_id: Annotated[str | None, Form()] = None) -> UploadResult:
-    """Upload a PDF paper with either a conference template id or an optional UTF-8 text/Markdown review form."""
+async def upload_paper(
+    file: UploadFile,
+    review_form: UploadFile | None = None,
+    conference_id: Annotated[str | None, Form()] = None,
+    review_form_id: Annotated[str | None, Form()] = None,
+) -> UploadResult:
+    """Upload a PDF paper with at most one review form: a conference template, a saved form, or a UTF-8 text/Markdown file."""
     conference_id = conference_id or None
-    if conference_id is not None:
-        if review_form is not None:
-            raise HTTPException(status_code=400, detail="Choose either a conference template or a custom review form, not both")
-        if get_conference(conference_id) is None:
-            raise HTTPException(status_code=400, detail=f"Unknown conference template '{conference_id}'")
+    review_form_id = review_form_id or None
+    if sum(x is not None for x in (conference_id, review_form_id, review_form)) > 1:
+        raise HTTPException(status_code=400, detail="Choose only one review form: a conference template, a saved form, or an uploaded file")
+    if conference_id is not None and get_conference(conference_id) is None:
+        raise HTTPException(status_code=400, detail=f"Unknown conference template '{conference_id}'")
 
     content = await file.read()
 
@@ -51,6 +47,11 @@ async def upload_paper(file: UploadFile, review_form: UploadFile | None = None, 
         review_form_filename = review_form.filename or ""
         form_bytes = await review_form.read(MAX_REVIEW_FORM_BYTES + 1)
         review_form_content = _decode_review_form(review_form_filename, form_bytes)
+    elif review_form_id is not None:
+        saved = get_form(review_form_id)
+        if saved is None:
+            raise HTTPException(status_code=400, detail="Unknown saved review form")
+        review_form_content, review_form_filename = saved.content, saved.name
 
     session_id = str(uuid.uuid4())
 

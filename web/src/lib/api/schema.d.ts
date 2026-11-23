@@ -283,7 +283,7 @@ export interface paths {
     put?: never;
     /**
      * Upload Paper
-     * @description Upload a PDF paper with either a conference template id or an optional UTF-8 text/Markdown review form.
+     * @description Upload a PDF paper with at most one review form: a conference template, a saved form, or a UTF-8 text/Markdown file.
      */
     post: operations["upload_paper_api_upload_post"];
     delete?: never;
@@ -372,6 +372,54 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/review-forms": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Review Forms
+     * @description List saved review forms, by name.
+     */
+    get: operations["list_review_forms_api_review_forms_get"];
+    put?: never;
+    /**
+     * Save Review Form
+     * @description Save an uploaded UTF-8 text or Markdown form under a name.
+     */
+    post: operations["save_review_form_api_review_forms_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/review-forms/{form_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Review Form
+     * @description Return a saved form with its text.
+     */
+    get: operations["get_review_form_api_review_forms__form_id__get"];
+    put?: never;
+    post?: never;
+    /**
+     * Delete Review Form
+     * @description Delete a saved form.
+     */
+    delete: operations["delete_review_form_api_review_forms__form_id__delete"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/": {
     parameters: {
       query?: never;
@@ -425,6 +473,16 @@ export interface components {
       /** Count */
       count: number;
     };
+    /** Body_save_review_form_api_review_forms_post */
+    Body_save_review_form_api_review_forms_post: {
+      /**
+       * File
+       * Format: binary
+       */
+      file: string;
+      /** Name */
+      name: string;
+    };
     /** Body_upload_paper_api_upload_post */
     Body_upload_paper_api_upload_post: {
       /**
@@ -436,6 +494,8 @@ export interface components {
       review_form?: string | null;
       /** Conference Id */
       conference_id?: string | null;
+      /** Review Form Id */
+      review_form_id?: string | null;
     };
     /**
      * ChoiceOption
@@ -474,6 +534,7 @@ export interface components {
        * @default
        */
       notes: string;
+      page_limit?: components["schemas"]["PageLimit"] | null;
       /**
        * Guidelines
        * @default
@@ -513,8 +574,19 @@ export interface components {
       verified: boolean;
       /** Source Urls */
       source_urls: string[];
+      page_limit: components["schemas"]["PageLimit"] | null;
       /** Question Count */
       question_count: number;
+    };
+    /**
+     * DeletedForm
+     * @description Confirmation of a deleted review form.
+     */
+    DeletedForm: {
+      /** Message */
+      message: string;
+      /** Id */
+      id: string;
     };
     /**
      * DeletedModel
@@ -590,6 +662,12 @@ export interface components {
       criteria: components["schemas"]["ReviewCriteria"];
       /** Raw Response */
       raw_response: string;
+      /**
+       * Related Work
+       * @default []
+       */
+      related_work: components["schemas"]["RelatedPaper"][];
+      config?: components["schemas"]["ReviewConfig"] | null;
     };
     /**
      * GpuList
@@ -714,6 +792,36 @@ export interface components {
       system: string;
     };
     /**
+     * PageLimit
+     * @description How long a submission may be, from the conference's call for papers.
+     */
+    PageLimit: {
+      /**
+       * Pages
+       * @description Main-body pages allowed at submission
+       */
+      pages: number;
+      /**
+       * Excludes
+       * @description What does not count towards the limit, e.g. 'references and appendices'
+       * @default
+       */
+      excludes: string;
+      /**
+       * Note
+       * @description Other paper types or caps, e.g. 'short papers: 4 pages'
+       * @default
+       */
+      note: string;
+      /**
+       * Edition
+       * @description Edition whose call for papers states the limit
+       */
+      edition: string;
+      /** Source Url */
+      source_url: string;
+    };
+    /**
      * Question
      * @description A single question of a reviewer form.
      */
@@ -734,6 +842,36 @@ export interface components {
       prompt: string;
       /** Options */
       options?: components["schemas"]["ChoiceOption"][];
+    };
+    /**
+     * RelatedPaper
+     * @description A paper found on arXiv and judged relevant to the submission.
+     */
+    RelatedPaper: {
+      /**
+       * Ref
+       * @description Citation key used in the review, e.g. R1
+       */
+      ref: string;
+      /** Title */
+      title: string;
+      /** Authors */
+      authors?: string[];
+      /** Year */
+      year?: number | null;
+      /** Url */
+      url: string;
+      /**
+       * Abstract
+       * @default
+       */
+      abstract: string;
+      /**
+       * Relation
+       * @description How the paper relates to the submission, written by the model
+       * @default
+       */
+      relation: string;
     };
     /**
      * Review
@@ -760,6 +898,86 @@ export interface components {
       created_at: string;
       /** Similarity Score */
       similarity_score?: number | null;
+    };
+    /**
+     * ReviewConfig
+     * @description Settings used to produce a review. Reviews saved by older versions have none.
+     */
+    ReviewConfig: {
+      /**
+       * Engine
+       * @description Inference engine (ollama, vllm, openai)
+       */
+      engine: string;
+      /**
+       * Model
+       * @description Model that wrote the review
+       */
+      model: string;
+      detail: components["schemas"]["ReviewDetail"];
+      /** @description Mode actually used; a custom form is always reviewed in a single pass */
+      mode: components["schemas"]["ReviewMode"];
+      /** Temperature */
+      temperature: number;
+      /**
+       * Context Length
+       * @description Context window in tokens; the review could use all of it left after the prompt
+       */
+      context_length: number;
+      /**
+       * Paper Truncated
+       * @description The end of the paper was trimmed to fit the context
+       * @default false
+       */
+      paper_truncated: boolean;
+      /**
+       * Generation Calls
+       * @description Number of model calls that wrote the review
+       * @default 1
+       */
+      generation_calls: number;
+      /**
+       * Form
+       * @default default
+       * @enum {string}
+       */
+      form: "default" | "conference" | "custom";
+      /**
+       * Conference
+       * @description Conference form, e.g. 'NeurIPS 2025'
+       */
+      conference?: string | null;
+      /**
+       * Review Form Name
+       * @description Name of the custom review form
+       */
+      review_form_name?: string | null;
+      /**
+       * Vlm Model
+       * @description Vision model chosen to describe figures, or null when the step was off
+       */
+      vlm_model?: string | null;
+      /**
+       * Figures Described
+       * @default 0
+       */
+      figures_described: number;
+      /**
+       * Related Work
+       * @description arXiv related-work search was enabled
+       * @default false
+       */
+      related_work: boolean;
+      /**
+       * Gpu
+       * @description GPU index the review was requested on, or null for automatic
+       */
+      gpu?: number | null;
+      /**
+       * Duration Seconds
+       * @description Time from PDF parsing to the finished review
+       */
+      duration_seconds?: number | null;
     };
     /**
      * ReviewCriteria
@@ -826,6 +1044,14 @@ export interface components {
       } | null;
     };
     /**
+     * ReviewDetail
+     * @description How long and thorough the review should be. Steers the model through the prompt; never a token limit.
+     *
+     *     ``auto`` gives no length guidance at all: the model decides.
+     * @enum {string}
+     */
+    ReviewDetail: "auto" | "concise" | "standard" | "detailed";
+    /**
      * ReviewList
      * @description One page of stored reviews.
      */
@@ -839,6 +1065,12 @@ export interface components {
       /** Offset */
       offset: number;
     };
+    /**
+     * ReviewMode
+     * @description ``single``: the whole review in one generation. ``sections``: one generation per section, then the scores.
+     * @enum {string}
+     */
+    ReviewMode: "single" | "sections";
     /**
      * ReviewStatistics
      * @description Aggregate counts over all stored reviews.
@@ -854,6 +1086,48 @@ export interface components {
       recommendations: {
         [key: string]: number;
       };
+    };
+    /**
+     * SavedFormDetail
+     * @description A saved review form with its text.
+     */
+    SavedFormDetail: {
+      /** Id */
+      id: string;
+      /** Name */
+      name: string;
+      /** Filename */
+      filename: string;
+      /** Created At */
+      created_at: string;
+      /** Content */
+      content: string;
+    };
+    /**
+     * SavedFormList
+     * @description All saved review forms.
+     */
+    SavedFormList: {
+      /** Forms */
+      forms: components["schemas"]["SavedFormSummary"][];
+      /** Count */
+      count: number;
+    };
+    /**
+     * SavedFormSummary
+     * @description A saved review form, without its text.
+     */
+    SavedFormSummary: {
+      /** Id */
+      id: string;
+      /** Name */
+      name: string;
+      /** Filename */
+      filename: string;
+      /** Created At */
+      created_at: string;
+      /** Size */
+      size: number;
     };
     /**
      * SearchRequest
@@ -887,6 +1161,8 @@ export interface components {
     ServiceConfig: {
       /** Max Score */
       max_score: number;
+      review_detail: components["schemas"]["ReviewDetail"];
+      review_mode: components["schemas"]["ReviewMode"];
     };
     /**
      * SessionStatus
@@ -1022,6 +1298,13 @@ export interface components {
       criteria: components["schemas"]["ReviewCriteria"];
       /** Raw Response */
       raw_response: string;
+      /**
+       * Related Work
+       * @default []
+       */
+      related_work: components["schemas"]["RelatedPaper"][];
+      /** @default null */
+      config: components["schemas"]["ReviewConfig"] | null;
     };
     /**
      * ReviewResults
@@ -1570,6 +1853,121 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["ConferenceDetail"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_review_forms_api_review_forms_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SavedFormList"];
+        };
+      };
+    };
+  };
+  save_review_form_api_review_forms_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "multipart/form-data": components["schemas"]["Body_save_review_form_api_review_forms_post"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SavedFormDetail"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_review_form_api_review_forms__form_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        form_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SavedFormDetail"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  delete_review_form_api_review_forms__form_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        form_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["DeletedForm"];
         };
       };
       /** @description Validation Error */

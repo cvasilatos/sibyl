@@ -10,6 +10,13 @@
   ],
   "verified": true,
   "notes": "Form fields and scales from the official NeurIPS 2025 reviewer guidelines. The 2026 guidelines keep the same four criteria (Quality, Clarity, Significance, Originality) but interpret them per author-selected contribution type (General, Theory, Use-Inspired, Concept & Feasibility, Negative Results); the 2026 page does not list the form scales. Code-of-conduct and responsible-reviewing acknowledgements omitted.",
+  "page_limit": {
+    "pages": 9,
+    "excludes": "references, appendices and checklist",
+    "note": "camera-ready: 10 pages",
+    "edition": "2026",
+    "source_url": "https://neurips.cc/Conferences/2026/MainTrackHandbook"
+  },
   "guidelines": "Judge each paper on its own merits rather than against a target acceptance rate. Assess quality (are claims correct and well supported), clarity (for an ML audience), significance, and originality (new insights, including from evaluating existing methods, count). Be specific and substantiate every criticism; vague or unsupported criticism is unhelpful. Honest discussion of limitations should be rewarded, not penalized, and 'no' answers on the paper checklist are usually not grounds for rejection.",
   "questions": [
     {

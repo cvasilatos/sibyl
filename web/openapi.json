@@ -530,7 +530,7 @@
           "Upload"
         ],
         "summary": "Upload Paper",
-        "description": "Upload a PDF paper with either a conference template id or an optional UTF-8 text/Markdown review form.",
+        "description": "Upload a PDF paper with at most one review form: a conference template, a saved form, or a UTF-8 text/Markdown file.",
         "operationId": "upload_paper_api_upload_post",
         "requestBody": {
           "content": {
@@ -696,6 +696,152 @@
         }
       }
     },
+    "/api/review-forms": {
+      "get": {
+        "tags": [
+          "Review Forms"
+        ],
+        "summary": "List Review Forms",
+        "description": "List saved review forms, by name.",
+        "operationId": "list_review_forms_api_review_forms_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedFormList"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Review Forms"
+        ],
+        "summary": "Save Review Form",
+        "description": "Save an uploaded UTF-8 text or Markdown form under a name.",
+        "operationId": "save_review_form_api_review_forms_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_save_review_form_api_review_forms_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedFormDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/review-forms/{form_id}": {
+      "get": {
+        "tags": [
+          "Review Forms"
+        ],
+        "summary": "Get Review Form",
+        "description": "Return a saved form with its text.",
+        "operationId": "get_review_form_api_review_forms__form_id__get",
+        "parameters": [
+          {
+            "name": "form_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Form Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedFormDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Review Forms"
+        ],
+        "summary": "Delete Review Form",
+        "description": "Delete a saved form.",
+        "operationId": "delete_review_form_api_review_forms__form_id__delete",
+        "parameters": [
+          {
+            "name": "form_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Form Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletedForm"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/": {
       "get": {
         "summary": "Health Check",
@@ -777,6 +923,25 @@
         "title": "AvailableModels",
         "description": "Models the engine can download."
       },
+      "Body_save_review_form_api_review_forms_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "format": "binary",
+            "title": "File"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file",
+          "name"
+        ],
+        "title": "Body_save_review_form_api_review_forms_post"
+      },
       "Body_upload_paper_api_upload_post": {
         "properties": {
           "file": {
@@ -806,6 +971,17 @@
               }
             ],
             "title": "Conference Id"
+          },
+          "review_form_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Form Id"
           }
         },
         "type": "object",
@@ -878,6 +1054,16 @@
             "type": "string",
             "title": "Notes",
             "default": ""
+          },
+          "page_limit": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PageLimit"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "guidelines": {
             "type": "string",
@@ -964,6 +1150,16 @@
             "type": "array",
             "title": "Source Urls"
           },
+          "page_limit": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PageLimit"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "question_count": {
             "type": "integer",
             "title": "Question Count"
@@ -978,10 +1174,30 @@
           "edition",
           "verified",
           "source_urls",
+          "page_limit",
           "question_count"
         ],
         "title": "ConferenceSummary",
         "description": "A conference template, without its questions."
+      },
+      "DeletedForm": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "message",
+          "id"
+        ],
+        "title": "DeletedForm",
+        "description": "Confirmation of a deleted review form."
       },
       "DeletedModel": {
         "properties": {
@@ -1149,6 +1365,24 @@
           "raw_response": {
             "type": "string",
             "title": "Raw Response"
+          },
+          "related_work": {
+            "items": {
+              "$ref": "#/components/schemas/RelatedPaper"
+            },
+            "type": "array",
+            "title": "Related Work",
+            "default": []
+          },
+          "config": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReviewConfig"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -1484,6 +1718,45 @@
         "title": "Online",
         "description": "Root liveness check."
       },
+      "PageLimit": {
+        "properties": {
+          "pages": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Pages",
+            "description": "Main-body pages allowed at submission"
+          },
+          "excludes": {
+            "type": "string",
+            "title": "Excludes",
+            "description": "What does not count towards the limit, e.g. 'references and appendices'",
+            "default": ""
+          },
+          "note": {
+            "type": "string",
+            "title": "Note",
+            "description": "Other paper types or caps, e.g. 'short papers: 4 pages'",
+            "default": ""
+          },
+          "edition": {
+            "type": "string",
+            "title": "Edition",
+            "description": "Edition whose call for papers states the limit"
+          },
+          "source_url": {
+            "type": "string",
+            "title": "Source Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "pages",
+          "edition",
+          "source_url"
+        ],
+        "title": "PageLimit",
+        "description": "How long a submission may be, from the conference's call for papers."
+      },
       "Question": {
         "properties": {
           "id": {
@@ -1524,6 +1797,60 @@
         ],
         "title": "Question",
         "description": "A single question of a reviewer form."
+      },
+      "RelatedPaper": {
+        "properties": {
+          "ref": {
+            "type": "string",
+            "title": "Ref",
+            "description": "Citation key used in the review, e.g. R1"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "authors": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Authors"
+          },
+          "year": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Year"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "abstract": {
+            "type": "string",
+            "title": "Abstract",
+            "default": ""
+          },
+          "relation": {
+            "type": "string",
+            "title": "Relation",
+            "description": "How the paper relates to the submission, written by the model",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "ref",
+          "title",
+          "url"
+        ],
+        "title": "RelatedPaper",
+        "description": "A paper found on arXiv and judged relevant to the submission."
       },
       "Review": {
         "properties": {
@@ -1595,6 +1922,140 @@
         ],
         "title": "Review",
         "description": "Model for a stored review with metadata."
+      },
+      "ReviewConfig": {
+        "properties": {
+          "engine": {
+            "type": "string",
+            "title": "Engine",
+            "description": "Inference engine (ollama, vllm, openai)"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model",
+            "description": "Model that wrote the review"
+          },
+          "detail": {
+            "$ref": "#/components/schemas/ReviewDetail"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/ReviewMode",
+            "description": "Mode actually used; a custom form is always reviewed in a single pass"
+          },
+          "temperature": {
+            "type": "number",
+            "title": "Temperature"
+          },
+          "context_length": {
+            "type": "integer",
+            "title": "Context Length",
+            "description": "Context window in tokens; the review could use all of it left after the prompt"
+          },
+          "paper_truncated": {
+            "type": "boolean",
+            "title": "Paper Truncated",
+            "description": "The end of the paper was trimmed to fit the context",
+            "default": false
+          },
+          "generation_calls": {
+            "type": "integer",
+            "title": "Generation Calls",
+            "description": "Number of model calls that wrote the review",
+            "default": 1
+          },
+          "form": {
+            "type": "string",
+            "enum": [
+              "default",
+              "conference",
+              "custom"
+            ],
+            "title": "Form",
+            "default": "default"
+          },
+          "conference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conference",
+            "description": "Conference form, e.g. 'NeurIPS 2025'"
+          },
+          "review_form_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Form Name",
+            "description": "Name of the custom review form"
+          },
+          "vlm_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vlm Model",
+            "description": "Vision model chosen to describe figures, or null when the step was off"
+          },
+          "figures_described": {
+            "type": "integer",
+            "title": "Figures Described",
+            "default": 0
+          },
+          "related_work": {
+            "type": "boolean",
+            "title": "Related Work",
+            "description": "arXiv related-work search was enabled",
+            "default": false
+          },
+          "gpu": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gpu",
+            "description": "GPU index the review was requested on, or null for automatic"
+          },
+          "duration_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Seconds",
+            "description": "Time from PDF parsing to the finished review"
+          }
+        },
+        "type": "object",
+        "required": [
+          "engine",
+          "model",
+          "detail",
+          "mode",
+          "temperature",
+          "context_length"
+        ],
+        "title": "ReviewConfig",
+        "description": "Settings used to produce a review. Reviews saved by older versions have none."
       },
       "ReviewCriteria": {
         "properties": {
@@ -1696,6 +2157,17 @@
         "title": "ReviewCriteria",
         "description": "A review's assessment, as stored. Loosely typed so reviews saved by older versions still load."
       },
+      "ReviewDetail": {
+        "type": "string",
+        "enum": [
+          "auto",
+          "concise",
+          "standard",
+          "detailed"
+        ],
+        "title": "ReviewDetail",
+        "description": "How long and thorough the review should be. Steers the model through the prompt; never a token limit.\n\n``auto`` gives no length guidance at all: the model decides."
+      },
       "ReviewList": {
         "properties": {
           "reviews": {
@@ -1728,6 +2200,15 @@
         "title": "ReviewList",
         "description": "One page of stored reviews."
       },
+      "ReviewMode": {
+        "type": "string",
+        "enum": [
+          "single",
+          "sections"
+        ],
+        "title": "ReviewMode",
+        "description": "``single``: the whole review in one generation. ``sections``: one generation per section, then the scores."
+      },
       "ReviewStatistics": {
         "properties": {
           "total_reviews": {
@@ -1759,6 +2240,96 @@
         ],
         "title": "ReviewStatistics",
         "description": "Aggregate counts over all stored reviews."
+      },
+      "SavedFormDetail": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "filename": {
+            "type": "string",
+            "title": "Filename"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "filename",
+          "created_at",
+          "content"
+        ],
+        "title": "SavedFormDetail",
+        "description": "A saved review form with its text."
+      },
+      "SavedFormList": {
+        "properties": {
+          "forms": {
+            "items": {
+              "$ref": "#/components/schemas/SavedFormSummary"
+            },
+            "type": "array",
+            "title": "Forms"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "forms",
+          "count"
+        ],
+        "title": "SavedFormList",
+        "description": "All saved review forms."
+      },
+      "SavedFormSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "filename": {
+            "type": "string",
+            "title": "Filename"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "size": {
+            "type": "integer",
+            "title": "Size"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "filename",
+          "created_at",
+          "size"
+        ],
+        "title": "SavedFormSummary",
+        "description": "A saved review form, without its text."
       },
       "SearchRequest": {
         "properties": {
@@ -1811,11 +2382,19 @@
           "max_score": {
             "type": "integer",
             "title": "Max Score"
+          },
+          "review_detail": {
+            "$ref": "#/components/schemas/ReviewDetail"
+          },
+          "review_mode": {
+            "$ref": "#/components/schemas/ReviewMode"
           }
         },
         "type": "object",
         "required": [
-          "max_score"
+          "max_score",
+          "review_detail",
+          "review_mode"
         ],
         "title": "ServiceConfig",
         "description": "Configuration values the frontend needs."
@@ -2101,6 +2680,25 @@
           "raw_response": {
             "title": "Raw Response",
             "type": "string"
+          },
+          "related_work": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/RelatedPaper"
+            },
+            "title": "Related Work",
+            "type": "array"
+          },
+          "config": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReviewConfig"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
           }
         },
         "required": [

@@ -113,6 +113,19 @@ def test_bundled_templates_are_valid():
                 assert len({str(o.value) for o in q.options}) == len(q.options), f"{template.id}.{q.id} has duplicate values"
 
 
+def test_bundled_templates_have_a_sourced_page_limit():
+    for template in load_conferences().values():
+        limit = template.page_limit
+        assert limit is not None, f"{template.id} has no page_limit"
+        assert limit.source_url.startswith("https://"), template.id
+        assert limit.edition.isdigit(), template.id
+
+
+def test_list_conferences_includes_page_limit():
+    dac = next(c for c in list_conferences() if c["id"] == "dac")
+    assert dac["page_limit"]["pages"] == 6
+
+
 def test_list_conferences_is_sorted_by_area():
     from sibyl.services.conferences import AREA_ORDER
 

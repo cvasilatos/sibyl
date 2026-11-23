@@ -1,5 +1,6 @@
 import createClient from "openapi-fetch";
 import { API_URL } from "@/lib/config";
+import type { FormRef } from "@/lib/review-forms";
 import type { components, paths } from "./schema";
 
 /** Response and request models from the backend, generated into schema.d.ts by `npm run gen:api`. */
@@ -33,6 +34,15 @@ export const api = {
   listConferences: () => unwrap(client.GET("/api/conferences")),
   getConference: (conferenceId: string, signal?: AbortSignal) =>
     unwrap(client.GET("/api/conferences/{conference_id}", { params: { path: { conference_id: conferenceId } }, signal })),
+  listReviewForms: () => unwrap(client.GET("/api/review-forms")),
+  getReviewForm: (formId: string, signal?: AbortSignal) => unwrap(client.GET("/api/review-forms/{form_id}", { params: { path: { form_id: formId } }, signal })),
+  saveReviewForm(name: string, file: File) {
+    const formData = new FormData();
+    formData.append("name", name);
+    formData.append("file", file);
+    return unwrap(client.POST("/api/review-forms", { body: formData as never, bodySerializer: (body) => body }));
+  },
+  deleteReviewForm: (formId: string) => unwrap(client.DELETE("/api/review-forms/{form_id}", { params: { path: { form_id: formId } } })),
   listInstalledModels: () => unwrap(client.GET("/api/models")),
   deleteModel: (modelName: string) => unwrap(client.DELETE("/api/models/{model_name}", { params: { path: { model_name: modelName } } })),
   listAvailableModels: () => unwrap(client.GET("/api/models/available")),
@@ -51,11 +61,12 @@ export const api = {
     if (!data) throw new Error("Failed to download PDF");
     return data;
   },
-  uploadPaper(file: File, reviewForm?: File | null, conferenceId?: string | null) {
+  /** Upload a paper to review against a conference template or a saved custom form, or neither. */
+  uploadPaper(file: File, form?: FormRef | null) {
     const formData = new FormData();
     formData.append("file", file);
-    if (reviewForm) formData.append("review_form", reviewForm);
-    else if (conferenceId) formData.append("conference_id", conferenceId);
+    if (form?.kind === "conference") formData.append("conference_id", form.id);
+    else if (form?.kind === "custom") formData.append("review_form_id", form.id);
     // FormData goes through as-is; the generated body type describes the same multipart fields.
     return unwrap(client.POST("/api/upload", { body: formData as never, bodySerializer: (body) => body }));
   },

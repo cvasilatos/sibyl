@@ -257,3 +257,137 @@ def test_review_system_completes_custom_review_form():
     assert call["format"]["required"] == ["review_form_response", "score", "recommendation"]
     assert "novelty" not in call["format"]["properties"]
     assert review.criteria.novelty == ""
+
+
+# ---------------------------------------------------------------------------
+# Review length and section-by-section mode
+# ---------------------------------------------------------------------------
+
+
+DEFAULT_REPLY = {
+    "novelty": "n",
+    "methodology": "m",
+    "results": "r",
+    "clarity": "c",
+    "impact": "i",
+    "limitations": "l",
+    "strengths": "s",
+    "score": 4,
+    "recommendation": "Accept",
+    "detailed_feedback": "1. f",
+}
+
+
+def _schema_driven_client():
+    """Mocked Ollama client that answers each call with the fields its schema asks for."""
+    from unittest.mock import AsyncMock, MagicMock
+
+    from ollama import AsyncClient
+
+    def answer(**kwargs):
+        properties = kwargs["format"]["properties"]
+        return MagicMock(response=json.dumps({name: DEFAULT_REPLY.get(name, f"answer {name}") for name in properties}))
+
+    client = AsyncMock(spec=AsyncClient)
+    client.generate = AsyncMock(side_effect=answer)
+    return client
+
+
+@pytest.mark.parametrize("detail", ["auto", "concise", "standard", "detailed"])
+def test_detail_level_steers_length_in_the_prompt_without_a_token_limit(detail):
+    import asyncio
+
+    from sibyl.schemas.review_config import ReviewDetail, ReviewMode
+    from sibyl.services.reviewer import ReviewSystem, length_guidance
+
+    client = _schema_driven_client()
+    engine = _engine_with(client)
+    review = asyncio.run(ReviewSystem(engine, "m").review_paper("paper text", "T", "m", detail=ReviewDetail(detail), mode=ReviewMode.SINGLE))
+
+    call = client.generate.await_args.kwargs
+    assert length_guidance(ReviewDetail(detail)) in call["prompt"]
+    assert ("Length:" in call["prompt"]) == (detail != "auto")
+    # The output cap is the rest of the context window, not a configured number.
+    assert call["options"]["num_ctx"] == engine.context_length("m")  # the mocked show() reports no limit
+    assert call["options"]["num_predict"] > 8192
+    assert review.config is not None
+    assert review.config.detail == detail
+    assert review.config.mode == "single"
+    assert review.config.generation_calls == 1
+    assert review.config.form == "default"
+
+
+def test_sections_mode_writes_one_section_per_call_then_scores():
+    import asyncio
+
+    from sibyl.inference.ollama_engine import KEEP_LOADED
+    from sibyl.schemas.llm_reply import NARRATIVE_FIELDS
+    from sibyl.schemas.review_config import ReviewDetail, ReviewMode
+    from sibyl.services.reviewer import ReviewSystem
+
+    client = _schema_driven_client()
+    statuses: list[str] = []
+
+    async def on_status(message: str) -> None:
+        statuses.append(message)
+
+    review = asyncio.run(ReviewSystem(_engine_with(client), "m").review_paper("paper text", "T", "m", detail=ReviewDetail.DETAILED, mode=ReviewMode.SECTIONS, on_status=on_status))
+
+    calls = [c.kwargs for c in client.generate.await_args_list]
+    assert [list(c["format"]["properties"]) for c in calls] == [[name] for name in NARRATIVE_FIELDS] + [["score", "recommendation"]]
+    # Later calls see the sections already written; the model stays loaded until the last call.
+    assert "<your_review_so_far>" not in calls[0]["prompt"]
+    assert "## Novelty\nn" in calls[1]["prompt"]
+    assert all(c["keep_alive"] == KEEP_LOADED for c in calls[:-1])
+    assert calls[-1]["keep_alive"] != KEEP_LOADED
+    assert "numbered list" in calls[NARRATIVE_FIELDS.index("detailed_feedback")]["prompt"]
+    assert statuses[0].startswith("Section 1/9")
+    assert review.criteria.methodology == "m"
+    assert review.criteria.score == 4
+    assert "--- novelty ---" in review.raw_response
+    assert review.config is not None
+    assert review.config.mode == "sections"
+    assert review.config.generation_calls == len(NARRATIVE_FIELDS) + 1
+
+
+def test_sections_mode_answers_conference_questions_one_by_one():
+    import asyncio
+
+    from sibyl.schemas.review_config import ReviewMode
+    from sibyl.services.reviewer import ReviewSystem
+    from tests.services.test_conferences import TEMPLATE
+
+    client = _schema_driven_client()
+    calls_answers = {"soundness": 3, "decision": "accept"}
+    DEFAULT_REPLY.update(calls_answers)
+    try:
+        review = asyncio.run(ReviewSystem(_engine_with(client), "m").review_paper("paper text", "T", "m", conference=TEMPLATE, mode=ReviewMode.SECTIONS))
+    finally:
+        for key in calls_answers:
+            DEFAULT_REPLY.pop(key)
+
+    calls = [c.kwargs for c in client.generate.await_args_list]
+    assert [list(c["format"]["properties"]) for c in calls] == [["summary"], ["soundness", "decision", "score", "recommendation"]]
+    assert review.criteria.review_form_answers == {"summary": "answer summary", "soundness": 3, "decision": "accept"}
+    assert review.config is not None
+    assert review.config.form == "conference"
+    assert review.config.conference == "TestConf 2025"
+
+
+def test_sections_mode_falls_back_to_one_pass_for_custom_forms():
+    import asyncio
+
+    from sibyl.schemas.review_config import ReviewMode
+    from sibyl.services.reviewer import ReviewSystem
+
+    DEFAULT_REPLY["review_form_response"] = "# Q\nA"
+    try:
+        client = _schema_driven_client()
+        review = asyncio.run(ReviewSystem(_engine_with(client), "m").review_paper("paper text", "T", "m", review_form="# Q", mode=ReviewMode.SECTIONS))
+    finally:
+        DEFAULT_REPLY.pop("review_form_response")
+
+    assert client.generate.await_count == 1
+    assert review.config is not None
+    assert review.config.mode == "single"
+    assert review.config.form == "custom"

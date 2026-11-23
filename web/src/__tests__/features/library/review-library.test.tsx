@@ -21,7 +21,12 @@ function stored(id: string, paper_title: string, reviewer_model: string, recomme
 }
 
 const reviews = [stored("r1", "Paper One", "qwen3:8b"), stored("r2", "Paper Two", "llama3:8b", "Reject")];
-const full = (id: string) => ({ ...stored(id, "Paper One", "qwen3:8b"), criteria: { score: 7, recommendation: "Accept", novelty: `Novelty of ${id}` }, raw_response: "{}" });
+const full = (id: string) => ({
+  ...stored(id, "Paper One", "qwen3:8b"),
+  criteria: { score: 7, recommendation: "Accept", novelty: `Novelty of ${id}` },
+  raw_response: "{}",
+  related_work: [],
+});
 
 function routes(overrides: Record<string, unknown> = {}) {
   return {

@@ -25,13 +25,14 @@ async def chat_json(base_url: str, request: GenerationRequest, api_key: str | No
             {"type": "text", "text": request.prompt},
             *({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image}"}} for image in request.images),
         ]
-    payload = {
+    payload: dict[str, Any] = {
         "model": request.model,
         "messages": [{"role": "system", "content": request.system}, {"role": "user", "content": user_content}],
         "temperature": request.temperature,
-        "max_tokens": request.max_tokens,
         "response_format": {"type": "json_schema", "json_schema": {"name": "paper_review", "schema": request.schema, "strict": True}},
     }
+    if request.max_tokens is not None:  # otherwise the server lets the model use the rest of its context
+        payload["max_tokens"] = request.max_tokens
     headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
     async with httpx.AsyncClient(base_url=base_url.rstrip("/"), timeout=timeout, headers=headers) as client:
         response = await client.post("/chat/completions", json=payload)

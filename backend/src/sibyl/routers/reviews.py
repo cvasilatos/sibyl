@@ -19,6 +19,7 @@ from sibyl.schemas.reviews import DeletedReview, DeletedReviews, FullReview, Rev
 from sibyl.schemas.search_request import SearchRequest
 from sibyl.schemas.session_status import SessionStatus
 from sibyl.schemas.system import Health, ServiceConfig
+from sibyl.services.reviewer import DEFAULT_DETAIL, DEFAULT_MODE
 from sibyl.state import review_sessions, storage
 
 router = APIRouter()
@@ -53,7 +54,7 @@ async def health_check() -> Health:
 @router.get("/config")
 async def get_config() -> ServiceConfig:
     """Get service configuration values."""
-    return ServiceConfig(max_score=MAX_SCORE)
+    return ServiceConfig(max_score=MAX_SCORE, review_detail=DEFAULT_DETAIL, review_mode=DEFAULT_MODE)
 
 
 @router.post("/search")

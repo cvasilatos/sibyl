@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Spinner } from "@/components/ui/spinner";
 import { queries } from "@/lib/api/queries";
-import ConferenceSelect from "./ConferenceSelect";
-import CustomFormPicker from "./CustomFormPicker";
+import { DETAIL_LABELS, MODE_LABELS } from "@/lib/review-config";
+import type { ReviewDetail, ReviewMode } from "@/lib/types";
 import PaperDropzone from "./PaperDropzone";
+import ReviewFormSelect from "./ReviewFormSelect";
 import { useReview, VLM_DEFAULT, VLM_NONE } from "./review-context";
 
 /** The paper dropzone (left) and the review options with the start button (right). */
@@ -56,6 +57,53 @@ export default function ReviewForm() {
           </div>
         )}
 
+        <div className="space-y-2">
+          <label htmlFor="detail-select" className="text-sm font-medium">
+            Review Length
+          </label>
+          <NativeSelect id="detail-select" value={review.selectedDetail} onChange={(e) => review.setSelectedDetail(e.target.value as ReviewDetail)} disabled={review.isReviewing}>
+            {Object.entries(DETAIL_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </NativeSelect>
+          <p className="text-xs text-muted-foreground">Model decides: no length guidance. The other levels tell the model how much to write; none cuts the review off</p>
+        </div>
+
+        <div className="space-y-2">
+          <label htmlFor="mode-select" className="text-sm font-medium">
+            Generation
+          </label>
+          <NativeSelect id="mode-select" value={review.selectedMode} onChange={(e) => review.setSelectedMode(e.target.value as ReviewMode)} disabled={review.isReviewing}>
+            {Object.entries(MODE_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </NativeSelect>
+          <p className="text-xs text-muted-foreground">
+            {review.selectedMode === "sections" && review.selectedFormKind === "custom"
+              ? "Custom forms have no fixed sections, so this one is reviewed at once"
+              : "Section by section: one call per section, longer reviews from small models, but slower"}
+          </p>
+        </div>
+
+        <div className="space-y-1">
+          <label htmlFor="related-work" className="flex items-center gap-2 text-sm font-medium">
+            <input
+              id="related-work"
+              type="checkbox"
+              className="h-4 w-4 accent-primary"
+              checked={review.relatedWork}
+              onChange={(e) => review.setRelatedWork(e.target.checked)}
+              disabled={review.isReviewing}
+            />
+            Search arXiv for related work
+          </label>
+          <p className="text-xs text-muted-foreground">Judges novelty against prior work. Sends search keywords (never the paper) to arXiv.</p>
+        </div>
+
         {review.availableGpus.length > 0 && (
           <div className="space-y-2">
             <label htmlFor="gpu-select" className="text-sm font-medium">
@@ -78,8 +126,7 @@ export default function ReviewForm() {
           </div>
         )}
 
-        <ConferenceSelect />
-        <CustomFormPicker />
+        <ReviewFormSelect />
 
         <Button onClick={review.startReview} disabled={!review.selectedFile || review.isReviewing} className="w-full" size="lg">
           {review.isReviewing ? (

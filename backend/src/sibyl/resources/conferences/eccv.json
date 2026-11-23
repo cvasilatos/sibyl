@@ -12,6 +12,13 @@
   ],
   "verified": true,
   "notes": "Form fields and scales from the official ECCV 2024 reviewer tutorial (program chairs). Rating and confidence levels are named, not numbered, on the form; numeric values are our mapping. ECCV 2026 keeps the same section structure (Summary, Strengths, Weaknesses, Rating and Justification, Additional Comments) and adds contribution types (Algorithms/General, Theory/Foundational, Applied/Systems, Datasets/Benchmarks, Concept & Feasibility), but its scales are not public. Omitted: guidelines acknowledgment, dataset-claim administrative field, confidential comments, helper disclosure, post-rebuttal final rating.",
+  "page_limit": {
+    "pages": 14,
+    "excludes": "references",
+    "note": "Springer LNCS format; no appendices in the main paper",
+    "edition": "2026",
+    "source_url": "https://eccv.ecva.net/Conferences/2026/SubmissionPolicies"
+  },
   "guidelines": "Judge each paper on its own merits; there is no quota. Assess the paper against its declared contribution type (e.g., do not penalize a theory paper for lacking SOTA results, or a dataset paper for limited method novelty). Be specific: back every judgment with detail and give specific references for claims of prior work. Be professional and constructive, refer to 'the paper' rather than 'you', and avoid common mistakes such as the novelty fallacy, blank assertions, and demanding things not required by policy (dataset release, SOTA results, theorems). Ask whether the paper presents sufficient knowledge advancement and whether any error invalidates it.",
   "questions": [
     {

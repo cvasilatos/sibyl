@@ -1,12 +1,13 @@
 "use client";
 
-import { BookOpen, FileText, type LucideIcon, Monitor, Settings } from "lucide-react";
+import { BookOpen, ClipboardList, FileText, type LucideIcon, Monitor, Settings } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const TABS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/review", label: "Review Paper", icon: FileText },
+  { href: "/forms", label: "Review Forms", icon: ClipboardList },
   { href: "/library", label: "Library", icon: BookOpen },
   { href: "/models", label: "Models", icon: Settings },
   { href: "/gpu", label: "GPU", icon: Monitor },

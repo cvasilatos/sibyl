@@ -12,6 +12,13 @@
   ],
   "verified": false,
   "notes": "The ICCV 2025 OpenReview form is not public. OpenReview venue config confirms fields named final_recommendation and confidence_level. The 6-point recommendation scale is reported by third-party community sources (cspaper) and is consistent with observed score ranges; confidence wording and field order are reconstructed from the CVPR-family form. ICCV is biennial; 2025 is the latest edition.",
+  "page_limit": {
+    "pages": 8,
+    "excludes": "references",
+    "note": "",
+    "edition": "2025",
+    "source_url": "https://iccv.thecvf.com/Conferences/2025/AuthorGuidelines"
+  },
   "guidelines": "Organize the main critique as strengths and weaknesses with explanation; one-phrase bullet lists are not a detailed review. Back up any claim that the work has been done before with specific references and how closely they relate, and give specific, constructive suggestions. Weigh novelty and impact alongside benchmark performance; do not reject solely for not beating the state of the art, for minor easily fixed flaws, or for missing comparisons to arXiv papers. There is no target acceptance rate. Do not request substantial new experiments for the rebuttal. Honest limitations and societal-impact discussions should be weighed positively, but their absence is not grounds for rejection. Refer to 'the paper' rather than 'you' or 'the authors', and keep the tone courteous.",
   "questions": [
     {

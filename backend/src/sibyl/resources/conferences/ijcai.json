@@ -13,6 +13,13 @@
   ],
   "verified": true,
   "notes": "Most recent complete public official form is IJCAI-ECAI 2022; the reproducibility question is confirmed unchanged on the 2026 site and the 2025 CFP confirms the ethics flag, but 2023-2026 forms are not public. Overall assessment levels are unnumbered on the form; the 9..1 values are our mapping. Expertise/confidence levels likewise mapped 4..1. Confidential comments omitted.",
+  "page_limit": {
+    "pages": 7,
+    "excludes": "references (up to two extra pages; 9 total)",
+    "note": "",
+    "edition": "2027",
+    "source_url": "https://2027.ijcai.org/ijcai-2027-call-for-papers-main-track/"
+  },
   "guidelines": "Evaluate novelty and originality, technical soundness/correctness, significance and expected impact, relevance to AI, clarity of exposition, and credibility/reproducibility. Judge the current submission, not possible future versions; questions to the authors must not ask for new results. Lack of code, data or full proofs cannot be the key reason for rejection, and reviewers are not required to read supplementary material. Borderline ratings should be used sparingly.",
   "questions": [
     {

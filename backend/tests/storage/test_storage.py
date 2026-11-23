@@ -7,6 +7,8 @@ from unittest.mock import patch
 import pytest
 
 from sibyl.schemas.llm_reply import LLMReply, Recommendation
+from sibyl.schemas.related_work import RelatedPaper
+from sibyl.schemas.review_config import ReviewConfig, ReviewDetail, ReviewMode
 from sibyl.services.reviewer import PaperReview
 from sibyl.storage.engine import Engine
 from sibyl.storage.review import Review
@@ -94,6 +96,20 @@ def test_get_review(storage, sample_review):
     assert retrieved["reviewer_model"] == "TestModel v1.0"
     assert retrieved["score"] == 4
     assert retrieved["recommendation"] == "Accept"
+
+
+def test_get_review_keeps_related_work(storage, sample_review):
+    """Related papers found for a review are stored with it; reviews without them load with an empty list."""
+    paper = RelatedPaper(ref="R1", title="Prior Work", authors=["A. Author"], year=2023, url="https://arxiv.org/abs/2301.00001", abstract="abs", relation="Same task")
+    with_related = sample_review.model_copy(update={"related_work": [paper]})
+
+    retrieved = storage.get_review(storage.save_review(review=with_related, pdf_filename="p.pdf"))
+    assert retrieved is not None
+    assert [RelatedPaper.model_validate(p) for p in retrieved["related_work"]] == [paper]
+
+    plain = storage.get_review(storage.save_review(review=sample_review, pdf_filename="p.pdf"))
+    assert plain is not None
+    assert plain["related_work"] == []
 
 
 def test_get_nonexistent_review(storage):
@@ -283,3 +299,42 @@ def test_list_reviews_with_text_search(storage, sample_review):
     # No-match search returns empty list
     results = storage.list_reviews(search="zzz_no_match_zzz")
     assert len(results) == 0
+
+
+def test_save_review_recreates_empty_collection_sized_for_another_model(storage, sample_review):
+    """An emptied library made with another embedding model (e.g. 384-dim MiniLM) accepts new 768-dim reviews."""
+    with patch.object(storage, "_generate_embedding", return_value=[0.1] * 384):
+        old_id = storage.save_review(review=sample_review, pdf_filename="old.pdf")
+    storage.delete_review(old_id)
+
+    with patch.object(storage, "_generate_embedding", return_value=[0.1] * 768):
+        review_id = storage.save_review(review=sample_review, pdf_filename="new.pdf")
+
+    assert storage.count_reviews() == 1
+    assert storage.get_review(review_id) is not None
+
+
+def test_save_review_explains_mismatch_and_keeps_no_pdf(storage, sample_review, tmp_path):
+    """A library that still holds reviews from another embedding model is not wiped; the error says what to do."""
+    with patch.object(storage, "_generate_embedding", return_value=[0.1] * 384):
+        storage.save_review(review=sample_review, pdf_filename="old.pdf")
+    pdf = tmp_path / "paper.pdf"
+    pdf.write_bytes(b"%PDF")
+
+    with patch.object(storage, "_generate_embedding", return_value=[0.1] * 768), pytest.raises(RuntimeError, match="SIBYL_EMBEDDINGS"):
+        storage.save_review(review=sample_review, pdf_filename="paper.pdf", pdf_path=pdf)
+
+    assert storage.count_reviews() == 1
+    assert list(storage.pdf_storage.iterdir()) == []
+
+
+def test_get_review_keeps_its_configuration(storage, sample_review):
+    """The settings that produced a review are stored with it; older reviews load without them."""
+    config = ReviewConfig(engine="ollama", model="qwen3:8b", detail=ReviewDetail.DETAILED, mode=ReviewMode.SECTIONS, temperature=0.7, context_length=32768, generation_calls=9)
+    retrieved = storage.get_review(storage.save_review(review=sample_review.model_copy(update={"config": config}), pdf_filename="p.pdf"))
+    assert retrieved is not None
+    assert ReviewConfig.model_validate(retrieved["config"]) == config
+
+    plain = storage.get_review(storage.save_review(review=sample_review, pdf_filename="p.pdf"))
+    assert plain is not None
+    assert plain["config"] is None

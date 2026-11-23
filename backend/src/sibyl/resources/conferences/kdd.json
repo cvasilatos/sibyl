@@ -12,6 +12,13 @@
   ],
   "verified": false,
   "notes": "Research Track form reconstructed from real KDD 2025 OpenReview review printouts (authentic field names and level texts) since no official page publishes it; KDD 2026 appears to use the same factors. Levels never observed in those reviews (all '1' levels, Relevance 2, Reproducibility 2) are labelled from a third-party reconstruction without the official description. KDD reviewers give no overall score (the AC decides). Omitted: 'Resubmission' field and generative-AI disclosure.",
+  "page_limit": {
+    "pages": 8,
+    "excludes": "references and appendices",
+    "note": "camera-ready: 12 pages total",
+    "edition": "2027",
+    "source_url": "https://kdd2027.kdd.org/research-track-call-for-papers/"
+  },
   "guidelines": "Evaluate technical merit, originality, potential impact, quality of execution, quality of presentation, related work, reproducibility of results, and ethics. Distinguish truly new ideas from combinations, adaptations or minor extensions of existing work. Each review should give authors concrete points they can respond to in the rebuttal. Reviews of accepted papers are made public on OpenReview, so write professionally.",
   "questions": [
     {
