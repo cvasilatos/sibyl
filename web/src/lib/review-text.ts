@@ -22,7 +22,7 @@ function relatedWorkText(papers: RelatedPaper[]): string {
     const relation = paper.relation ? `\n     ${paper.relation}` : "";
     return `[${paper.ref}] ${paper.title}${year}. ${paper.url}${relation}`;
   });
-  return `Related Work (arXiv)\n--------------------\n${lines.join("\n")}`;
+  return `Related Work\n------------\n${lines.join("\n")}`;
 }
 
 function configText(config: ReviewConfig): string {

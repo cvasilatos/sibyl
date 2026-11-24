@@ -1850,7 +1850,7 @@
           "url"
         ],
         "title": "RelatedPaper",
-        "description": "A paper found on arXiv and judged relevant to the submission."
+        "description": "A paper found by literature search (arXiv, Semantic Scholar) and judged relevant to the submission."
       },
       "Review": {
         "properties": {
@@ -2017,7 +2017,7 @@
           "related_work": {
             "type": "boolean",
             "title": "Related Work",
-            "description": "arXiv related-work search was enabled",
+            "description": "Related-work search (arXiv, Semantic Scholar) was enabled",
             "default": false
           },
           "gpu": {
@@ -2637,12 +2637,23 @@
         "type": "object"
       },
       "ReviewProgress": {
-        "description": "A step of a running review.",
+        "description": "A progress update within one step of a running review.",
         "properties": {
           "status": {
             "const": "progress",
             "default": "progress",
             "title": "Status",
+            "type": "string"
+          },
+          "step": {
+            "enum": [
+              "parse",
+              "figures",
+              "related_work",
+              "review",
+              "save"
+            ],
+            "title": "Step",
             "type": "string"
           },
           "progress": {
@@ -2657,6 +2668,7 @@
           }
         },
         "required": [
+          "step",
           "progress",
           "message"
         ],
@@ -2730,6 +2742,36 @@
           "reviews"
         ],
         "title": "ReviewResults",
+        "type": "object"
+      },
+      "ReviewStarted": {
+        "description": "First message of a review: the steps this run will go through, in order (skipped steps are left out).",
+        "properties": {
+          "status": {
+            "const": "started",
+            "default": "started",
+            "title": "Status",
+            "type": "string"
+          },
+          "steps": {
+            "items": {
+              "enum": [
+                "parse",
+                "figures",
+                "related_work",
+                "review",
+                "save"
+              ],
+              "type": "string"
+            },
+            "title": "Steps",
+            "type": "array"
+          }
+        },
+        "required": [
+          "steps"
+        ],
+        "title": "ReviewStarted",
         "type": "object"
       },
       "SocketError": {

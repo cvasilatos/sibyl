@@ -42,6 +42,14 @@ def test_stop_process_tree_stops_children():
     cli.stop_process_tree(process)
     assert process.poll() is not None
     if sys.platform != "win32":
+        # The killed child is reaped by init asynchronously, so give the group a moment to disappear.
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline:
+            try:
+                cli.os.killpg(process.pid, 0)
+            except ProcessLookupError:
+                break
+            time.sleep(0.05)
         with pytest.raises(ProcessLookupError):
             cli.os.killpg(process.pid, 0)  # the whole group is gone
 

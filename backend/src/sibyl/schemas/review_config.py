@@ -41,6 +41,6 @@ class ReviewConfig(BaseModel):
     review_form_name: str | None = Field(default=None, description="Name of the custom review form")
     vlm_model: str | None = Field(default=None, description="Vision model chosen to describe figures, or null when the step was off")
     figures_described: int = 0
-    related_work: bool = Field(default=False, description="arXiv related-work search was enabled")
+    related_work: bool = Field(default=False, description="Related-work search (arXiv, Semantic Scholar) was enabled")
     gpu: int | None = Field(default=None, description="GPU index the review was requested on, or null for automatic")
     duration_seconds: float | None = Field(default=None, description="Time from PDF parsing to the finished review")

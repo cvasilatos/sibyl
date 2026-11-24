@@ -1,10 +1,10 @@
-"""A related paper found on arXiv, as shown to the reviewer and returned with the review."""
+"""A related paper found by literature search (arXiv, Semantic Scholar), as shown to the reviewer and returned with the review."""
 
 from pydantic import BaseModel, Field
 
 
 class RelatedPaper(BaseModel):
-    """A paper found on arXiv and judged relevant to the submission."""
+    """A paper found by literature search (arXiv, Semantic Scholar) and judged relevant to the submission."""
 
     ref: str = Field(description="Citation key used in the review, e.g. R1")
     title: str

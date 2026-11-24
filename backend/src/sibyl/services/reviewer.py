@@ -179,6 +179,9 @@ class _Run:
     context_length: int
     slot: int
     on_status: Callable[[str], Awaitable[None]] | None
+    on_progress: Callable[[int, int], Awaitable[None]] | None = None
+    planned: int = 1
+    """Model calls this review makes; set by the section-by-section writers."""
     parts: list[tuple[str, str]] = field(default_factory=list)
 
     def raw_response(self) -> str:
@@ -216,6 +219,7 @@ class ReviewSystem:
         on_status: Callable[[str], Awaitable[None]] | None = None,
         detail: ReviewDetail | None = None,
         mode: ReviewMode | None = None,
+        on_progress: Callable[[int, int], Awaitable[None]] | None = None,
     ) -> PaperReview:
         """Generate a review for a research paper.
 
@@ -225,11 +229,12 @@ class ReviewSystem:
             model: Name of the LLM model to use (defaults to the one given at construction)
             review_form: Optional plain-text or Markdown review form to complete
             conference: Optional conference template whose official form must be answered
-            related_work: Optional related papers found on arXiv, shown to the model to judge novelty
+            related_work: Optional related papers found by literature search, shown to the model to judge novelty
             slot: GPU slot (0 = auto, n = GPU n-1)
             on_status: Optional async callback for progress messages
             detail: How long the review should be (defaults to ``SIBYL_REVIEW_DETAIL``)
             mode: One generation or one per section (defaults to ``SIBYL_REVIEW_MODE``); custom forms always use one
+            on_progress: Optional async callback, called before each model call with (calls done, calls planned)
 
         Returns:
             Structured review of the paper, with the settings that produced it in ``config``
@@ -284,7 +289,7 @@ class ReviewSystem:
         # Everything that stays the same across calls comes first, so engines with prefix caching reuse it.
         shared = f"Review the research paper below.{form_text}{related_text}\n<research_paper>\n{paper_text}\n</research_paper>\n"
         temperature = FORM_TEMPERATURE if (review_form or conference) else TEMPERATURE
-        run = _Run(model=model, temperature=temperature, context_length=limit, slot=slot, on_status=on_status)
+        run = _Run(model=model, temperature=temperature, context_length=limit, slot=slot, on_status=on_status, on_progress=on_progress)
 
         if mode is ReviewMode.SINGLE:
             raw = await self._generate(run, "review", f"{shared}\n{task}\n{guidance}\n\nOutput JSON schema:\n{schema_text}\n", schema, last=True)
@@ -311,6 +316,8 @@ class ReviewSystem:
 
     async def _generate(self, run: _Run, name: str, prompt: str, schema: dict[str, Any], *, last: bool, step: str | None = None) -> str:  # noqa: PLR0913
         """Run one schema-constrained call and return its JSON text; ``last`` lets the engine unload the model after it."""
+        if run.on_progress:
+            await run.on_progress(len(run.parts), run.planned)
         on_status = run.on_status
         if step and run.on_status:
             report = run.on_status
@@ -351,7 +358,7 @@ class ReviewSystem:
         """Write Sibyl's default review one section per call, then score it."""
         written: list[tuple[str, str]] = []
         sections: dict[str, str] = {}
-        total = len(NARRATIVE_FIELDS) + 1
+        total = run.planned = len(NARRATIVE_FIELDS) + 1
         for i, name in enumerate(NARRATIVE_FIELDS, 1):
             label = section_label(name)
             description = LLMReply.model_fields[name].description or label
@@ -375,7 +382,7 @@ class ReviewSystem:
         ratings = {q.id: properties[q.id] for q in conference.questions if q.type == "choice"}
         written: list[tuple[str, str]] = []
         answers: dict[str, Any] = {}
-        total = len(text_questions) + 1
+        total = run.planned = len(text_questions) + 1
         for i, q in enumerate(text_questions, 1):
             schema = single_answer_schema(q.id, properties[q.id])
             prompt = (

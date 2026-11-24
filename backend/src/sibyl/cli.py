@@ -5,6 +5,7 @@ Linux, macOS and Windows. ``sibyl.main`` is imported inside the commands: it loa
 ``sibyl --help`` should not wait for.
 """
 
+import contextlib
 import os
 import shutil
 import signal
@@ -95,6 +96,9 @@ def stop_process_tree(process: subprocess.Popen[bytes]) -> None:
             os.killpg(process.pid, signal.SIGKILL)
         except ProcessLookupError:
             pass
+        # Children that ignored SIGTERM (or had not exited yet when the parent did) must not outlive it.
+        with contextlib.suppress(ProcessLookupError):
+            os.killpg(process.pid, signal.SIGKILL)
     process.wait()
 
 

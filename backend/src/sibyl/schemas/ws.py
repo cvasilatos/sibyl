@@ -38,10 +38,23 @@ class ReviewResults(BaseModel):
     reviews: list[ReviewResult]
 
 
+ReviewStep = Literal["parse", "figures", "related_work", "review", "save"]
+"""A stage of the review pipeline: parse the PDF (text and figure images), describe the figures with a vision model,
+search arXiv for related work, write the review, save it."""
+
+
+class ReviewStarted(BaseModel):
+    """First message of a review: the steps this run will go through, in order (skipped steps are left out)."""
+
+    status: Literal["started"] = "started"
+    steps: list[ReviewStep]
+
+
 class ReviewProgress(BaseModel):
-    """A step of a running review."""
+    """A progress update within one step of a running review."""
 
     status: Literal["progress"] = "progress"
+    step: ReviewStep
     progress: int = Field(ge=0, le=100)
     message: str
 
@@ -56,7 +69,7 @@ class ReviewCompleted(BaseModel):
     results: ReviewResults
 
 
-ReviewSessionMessage = Annotated[ReviewProgress | ReviewCompleted | SocketError, Field(discriminator="status")]
+ReviewSessionMessage = Annotated[ReviewStarted | ReviewProgress | ReviewCompleted | SocketError, Field(discriminator="status")]
 """Anything sent on ``/ws/session/{session_id}``."""
 
 
@@ -73,5 +86,5 @@ class PullProgress(BaseModel):
     total: int | None = None
 
 
-WS_MESSAGES: tuple[type[BaseModel], ...] = (ReviewProgress, ReviewCompleted, SocketError, PullProgress)
+WS_MESSAGES: tuple[type[BaseModel], ...] = (ReviewStarted, ReviewProgress, ReviewCompleted, SocketError, PullProgress)
 """Models added to the OpenAPI schema so clients can type WebSocket messages."""

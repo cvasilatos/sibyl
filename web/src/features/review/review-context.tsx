@@ -20,7 +20,8 @@ function useReviewState() {
   const [chosenModel, setSelectedModel] = useState("");
   const [chosenVlm, setSelectedVlm] = useState(VLM_DEFAULT);
   const [chosenGpuIndex, setSelectedGpuIndex] = useState<number | null>(null);
-  const [relatedWork, setRelatedWork] = useState(true);
+  const [searchArxiv, setSearchArxiv] = useState(true);
+  const [searchSemanticScholar, setSearchSemanticScholar] = useState(true);
   // Unset until the user picks one: follow the server defaults (SIBYL_REVIEW_DETAIL / SIBYL_REVIEW_MODE).
   const [chosenDetail, setSelectedDetail] = useState<ReviewDetail | null>(null);
   const [chosenMode, setSelectedMode] = useState<ReviewMode | null>(null);
@@ -83,7 +84,10 @@ function useReviewState() {
       form: selectedForm,
       model: selectedModel,
       vlm: selectedVlm,
-      relatedWork,
+      relatedSources: [
+        ...(searchArxiv ? (["arxiv"] as const) : []),
+        ...(searchSemanticScholar ? (["semantic_scholar"] as const) : []),
+      ],
       gpuIndex: selectedGpuIndex,
       detail: selectedDetail,
       mode: selectedMode,
@@ -94,7 +98,8 @@ function useReviewState() {
     selectedForm,
     selectedModel,
     selectedVlm,
-    relatedWork,
+    searchArxiv,
+    searchSemanticScholar,
     selectedGpuIndex,
     selectedDetail,
     selectedMode,
@@ -116,13 +121,16 @@ function useReviewState() {
       setSelectedMode,
       selectedVlm,
       setSelectedVlm,
-      relatedWork,
-      setRelatedWork,
+      searchArxiv,
+      setSearchArxiv,
+      searchSemanticScholar,
+      setSearchSemanticScholar,
       availableGpus,
       selectedGpuIndex,
       setSelectedGpuIndex,
       results: session.results,
       isReviewing: session.isReviewing,
+      progress: session.progress,
       startReview,
     }),
     [
@@ -136,11 +144,13 @@ function useReviewState() {
       selectedDetail,
       selectedMode,
       selectedVlm,
-      relatedWork,
+      searchArxiv,
+      searchSemanticScholar,
       availableGpus,
       selectedGpuIndex,
       session.results,
       session.isReviewing,
+      session.progress,
       startReview,
     ],
   );

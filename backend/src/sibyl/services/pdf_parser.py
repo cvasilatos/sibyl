@@ -9,14 +9,19 @@ import os
 import re
 import threading
 from collections import defaultdict
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from pathlib import Path
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from decima.logger import CustomLogger
+from marker.builders.layout import LayoutBuilder
+from marker.builders.line import LineBuilder
+from marker.builders.ocr import OcrBuilder
+from marker.builders.structure import StructureBuilder
 from marker.converters.pdf import PdfConverter
 from marker.models import create_model_dict
 from marker.output import text_from_rendered
+from marker.renderers import BaseRenderer
 
 from sibyl.services.hardware import torch_device
 
@@ -29,6 +34,70 @@ logger: CustomLogger = cast("CustomLogger", logging.getLogger(__name__))
 
 
 _device_locks: defaultdict[str, threading.Lock] = defaultdict(threading.Lock)
+
+type StageReport = Callable[[str, float], None]
+"""Called (from the parsing thread) as each stage of the PDF conversion starts: ``(message, fraction of parsing done)``."""
+
+_BUILDER_STAGES: tuple[tuple[type, str, float], ...] = (
+    (LayoutBuilder, "Recognizing the page layout", 0.20),
+    (LineBuilder, "Detecting text lines", 0.45),
+    (OcrBuilder, "Recognizing text (OCR)", 0.60),
+    (StructureBuilder, "Building the document structure", 0.75),
+    (BaseRenderer, "Writing Markdown and exporting figure images", 0.95),
+)
+"""Marker's pipeline stages, in the order it runs them, with where each starts within parsing (rough share of time).
+Model loading takes 0-15%, rendering the pages to images 15-20%, and the post-processors 77-95%."""
+_PROCESSORS_START, _PROCESSORS_END = 0.77, 0.95
+
+
+def _stage_name(stage: object) -> str:
+    """Return a readable name for a Marker processor: ``SectionHeaderProcessor`` -> ``section header``."""
+    name = type(stage).__name__.removesuffix("Processor")
+    return re.sub(r"(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])", " ", name).lower()
+
+
+class _Stage:
+    """A Marker pipeline stage that reports before it runs; anything else is passed through to the stage."""
+
+    def __init__(self, stage: Any, message: str, done: float, report: StageReport) -> None:  # noqa: ANN401
+        self._stage = stage
+        self._message = message
+        self._done = done
+        self._report = report
+
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:  # noqa: ANN401
+        self._report(self._message, self._done)
+        return self._stage(*args, **kwargs)
+
+    def __getattr__(self, name: str) -> Any:  # noqa: ANN401
+        return getattr(self._stage, name)
+
+
+class _ReportingConverter(PdfConverter):
+    """Marker's PDF converter, reporting each stage (layout, lines, OCR, structure, post-processors, rendering)."""
+
+    def __init__(self, artifact_dict: dict, report: StageReport) -> None:
+        self._report = report
+        super().__init__(artifact_dict=artifact_dict)
+        processors: list[Any] = list(self.processor_list or [])  # Marker types the attribute loosely; it is a list here
+        count = len(processors)
+        width = _PROCESSORS_END - _PROCESSORS_START
+        self.processor_list = [
+            _Stage(processor, f"Post-processing ({index}/{count}): {_stage_name(processor)}", _PROCESSORS_START + width * (index - 1) / count, report)
+            for index, processor in enumerate(processors, start=1)
+        ]
+
+    def resolve_dependencies(self, cls: type) -> Any:  # noqa: ANN401
+        """Build a pipeline object as Marker does; the builders and the renderer are wrapped to report when they run."""
+        resolved = super().resolve_dependencies(cls)
+        for stage_cls, message, done in _BUILDER_STAGES:
+            if isinstance(resolved, stage_cls):
+                return _Stage(resolved, message, done, self._report)
+        return resolved
+
+
+def _ignore_stage(_message: str, _done: float) -> None:
+    """Stage report used when the caller gave none."""
 
 
 @functools.cache
@@ -102,19 +171,20 @@ class PDFParser:
 
         return "\n\n".join(text_content)
 
-    def get_metadata(self, ollama_host: int) -> dict:
+    def get_metadata(self, ollama_host: int, on_stage: StageReport | None = None) -> dict:
         """Extract metadata from the PDF.
 
         Args:
             ollama_host: Review slot (0 = auto, n = GPU n-1); selects CUDA, Apple MPS, or CPU
+            on_stage: Optional callback, called from this thread as each conversion stage starts
 
         Returns:
             Dictionary containing PDF metadata
 
         """
-        return self._extract_metadata_grobid(ollama_host)
+        return self._extract_metadata_grobid(ollama_host, on_stage or _ignore_stage)
 
-    def _extract_metadata_grobid(self, ollama_host: int) -> dict:
+    def _extract_metadata_grobid(self, ollama_host: int, report: StageReport) -> dict:
         """Extract metadata using GROBID service.
 
         Returns:
@@ -125,7 +195,9 @@ class PDFParser:
         # Cached models are shared, so convert one PDF per device at a time. Making the device the thread's default CUDA
         # device keeps anything Marker allocates on a bare "cuda" on the selected GPU instead of GPU 0.
         with _device_locks[device], _default_cuda_device(device):
-            converter = PdfConverter(artifact_dict=_marker_models(device))
+            report(f"Loading the PDF models on {device}", 0.0)
+            converter = _ReportingConverter(_marker_models(device), report)
+            report("Rendering the pages", 0.15)
             rendered = converter(io.BytesIO(self._pdf_path.read_bytes()))
         text, _, images = text_from_rendered(rendered)
         self.logger.info(f"Extracted {len(text)} characters and {len(images)} images from PDF")

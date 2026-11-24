@@ -38,7 +38,7 @@ describe("reviewToText", () => {
 });
 
 describe("reviewToText related work", () => {
-  it("lists the arXiv papers the review cites", () => {
+  it("lists the related papers the review cites", () => {
     const related_work = [
       {
         ref: "R1",
@@ -52,7 +52,7 @@ describe("reviewToText related work", () => {
     ];
     const text = reviewToText({ ...review, related_work });
     expect(text).toContain(
-      "Related Work (arXiv)\n--------------------\n[R1] Prior Work (2024). https://arxiv.org/abs/1\n     Same task.\n",
+      "Related Work\n------------\n[R1] Prior Work (2024). https://arxiv.org/abs/1\n     Same task.\n",
     );
   });
 });

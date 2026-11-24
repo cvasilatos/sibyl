@@ -156,26 +156,20 @@ class FigureDescriber:
         images: dict[str, Image],
         slot: int = AUTO_SLOT,
         on_status: Callable[[str], Awaitable[None]] | None = None,
+        on_progress: Callable[[int, int], Awaitable[None]] | None = None,
     ) -> tuple[str, int]:
         """Return the Markdown with figure descriptions inlined and the number of figures described.
+
+        ``on_progress`` is called with (figures done, figures to describe) before each figure and once at the end.
 
         Never raises for VLM problems: a figure the VLM could not describe is marked as not shown.
         """
         figures = find_figures(markdown, images)
         descriptions: dict[str, str] = {}
         if figures and self._model and await self.ensure_model(self._model, on_status):
-            selected = figures[:MAX_FIGURES]
             if len(figures) > MAX_FIGURES:
                 logger.warning("Paper has %s figures; describing the first %s", len(figures), MAX_FIGURES)
-            for index, figure in enumerate(selected, start=1):
-                if on_status:
-                    await on_status(f"Describing figure {index}/{len(selected)} with {self._model}...")
-                try:
-                    result = await self._describe(figure, self._model, slot, keep_loaded=index < len(selected))
-                except Exception:
-                    logger.exception("VLM %s failed on %s", self._model, figure.name)
-                    continue
-                descriptions[figure.name] = render_description(figure, self._model, result)
+            descriptions = await self._describe_all(figures[:MAX_FIGURES], self._model, slot, on_status, on_progress)
 
         def replace(match: re.Match[str]) -> str:
             name = match.group(1)
@@ -187,6 +181,31 @@ class FigureDescriber:
             return NOT_SHOWN
 
         return _PLACEHOLDER.sub(replace, markdown), len(descriptions)
+
+    async def _describe_all(
+        self,
+        figures: list[Figure],
+        model: str,
+        slot: int,
+        on_status: Callable[[str], Awaitable[None]] | None,
+        on_progress: Callable[[int, int], Awaitable[None]] | None,
+    ) -> dict[str, str]:
+        """Describe each figure in turn; return the rendered descriptions by placeholder name (failures are skipped)."""
+        descriptions: dict[str, str] = {}
+        for index, figure in enumerate(figures, start=1):
+            if on_progress:
+                await on_progress(index - 1, len(figures))
+            if on_status:
+                await on_status(f"Describing figure {index}/{len(figures)} with {model}...")
+            try:
+                result = await self._describe(figure, model, slot, keep_loaded=index < len(figures))
+            except Exception:
+                logger.exception("VLM %s failed on %s", model, figure.name)
+                continue
+            descriptions[figure.name] = render_description(figure, model, result)
+        if on_progress:
+            await on_progress(len(figures), len(figures))
+        return descriptions
 
     async def _describe(self, figure: Figure, model: str, slot: int, *, keep_loaded: bool) -> FigureDescription:
         caption = f"Caption from the paper:\n{figure.caption}\n\n" if figure.caption else "No caption was found for this figure.\n\n"

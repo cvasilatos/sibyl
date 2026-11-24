@@ -25,8 +25,11 @@ export type GpuResponse = Schemas["GpuList"];
 export type Review = Schemas["ReviewResult"];
 export type ReviewResults = Schemas["ReviewResults"];
 export type SocketError = Schemas["SocketError"];
-/** Anything sent on /ws/session/{id}. */
-export type ReviewSessionMessage = Schemas["ReviewProgress"] | Schemas["ReviewCompleted"] | SocketError;
+export type ReviewStarted = Schemas["ReviewStarted"];
+/** A stage of the review pipeline (parse, figures, related_work, review, save). */
+export type ReviewStep = ReviewStarted["steps"][number];
+/** Anything sent on /ws/session/{id}: the planned steps, progress within them, then the results or an error. */
+export type ReviewSessionMessage = ReviewStarted | Schemas["ReviewProgress"] | Schemas["ReviewCompleted"] | SocketError;
 /** Anything sent on /ws/pull: engine progress lines, then status "success", or an error. */
 export type PullProgress = Schemas["PullProgress"];
 export type PullMessage = PullProgress | SocketError;

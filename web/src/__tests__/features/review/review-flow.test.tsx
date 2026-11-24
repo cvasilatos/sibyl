@@ -119,12 +119,14 @@ describe("review flow", () => {
     expect(url.searchParams.get("host")).toBe("2"); // GPU 1 is host 2; 0 means any
     expect(url.searchParams.get("vlm")).toBe("none");
     expect(url.searchParams.get("related")).toBe("true");
+    expect(url.searchParams.get("sources")).toBe("arxiv,semantic_scholar");
     expect(url.searchParams.get("detail")).toBe("standard"); // server defaults until the user picks
     expect(url.searchParams.get("mode")).toBe("single");
     expect(api.calls("POST /api/upload")).toBe(1);
     expect(screen.getByRole("button", { name: /Reviewing/ })).toBeDisabled();
 
-    act(() => FakeWebSocket.last().receive({ status: "progress", progress: 50, message: "Reviewing" }));
+    act(() => FakeWebSocket.last().receive({ status: "started", steps: ["parse", "review", "save"] }));
+    act(() => FakeWebSocket.last().receive({ status: "progress", step: "review", progress: 50, message: "Reviewing" }));
     act(() => FakeWebSocket.last().receive(completed));
 
     expect(await screen.findByText("Very novel")).toBeInTheDocument();
@@ -142,6 +144,57 @@ describe("review flow", () => {
     expect(settings.getByText("Detailed")).toBeInTheDocument();
     expect(settings.getByText("GPU 1")).toBeInTheDocument();
     expect(settings.getByText("2 min 5 s")).toBeInTheDocument();
+  });
+
+  it("shows the review's steps and progress under the paper", async () => {
+    mockApi(routes());
+    const { pdfInput } = renderReviewPage();
+    await screen.findByLabelText("Select Model for Review");
+    expect(screen.queryByLabelText("Review progress")).not.toBeInTheDocument();
+    await userEvent.upload(pdfInput, pdf());
+    await userEvent.click(screen.getByRole("button", { name: /Start Review/ }));
+    await waitFor(() => expect(FakeWebSocket.instances).toHaveLength(1));
+
+    const panel = within(screen.getByLabelText("Review progress"));
+    act(() => FakeWebSocket.last().receive({ status: "started", steps: ["parse", "figures", "review", "save"] }));
+    act(() =>
+      FakeWebSocket.last().receive({
+        status: "progress",
+        step: "figures",
+        progress: 40,
+        message: "Describing figure 1/3",
+      }),
+    );
+
+    const state = (label: RegExp) => panel.getByText(label).closest("li")?.dataset.state;
+    expect(state(/Parse the PDF/)).toBe("done");
+    expect(state(/Describe figures/)).toBe("active");
+    expect(state(/Write the review/)).toBe("pending");
+    expect(panel.queryByText(/related work/)).not.toBeInTheDocument(); // not in this run's plan
+    expect(panel.getByText("Describing figure 1/3")).toBeInTheDocument();
+    expect(panel.getByRole("progressbar", { name: "Overall review progress" })).toHaveAttribute("aria-valuenow", "40");
+
+    act(() => FakeWebSocket.last().receive(completed));
+    expect(await panel.findByText("Review complete")).toBeInTheDocument();
+    expect(state(/Save the review/)).toBe("done");
+  });
+
+  it("marks the step that failed", async () => {
+    mockApi(routes());
+    const { pdfInput } = renderReviewPage();
+    await screen.findByLabelText("Select Model for Review");
+    await userEvent.upload(pdfInput, pdf());
+    await userEvent.click(screen.getByRole("button", { name: /Start Review/ }));
+    await waitFor(() => expect(FakeWebSocket.instances).toHaveLength(1));
+
+    act(() => FakeWebSocket.last().receive({ status: "started", steps: ["parse", "review", "save"] }));
+    act(() => FakeWebSocket.last().receive({ status: "progress", step: "review", progress: 50, message: "Reviewing" }));
+    act(() => FakeWebSocket.last().receive({ status: "error", message: "Model crashed" }));
+
+    const panel = within(screen.getByLabelText("Review progress"));
+    expect(panel.getByText("Review failed")).toBeInTheDocument();
+    expect(panel.getByText("Write the review").closest("li")?.dataset.state).toBe("failed");
+    expect(panel.getByText("Model crashed")).toBeInTheDocument();
   });
 
   it("sends the chosen review length and generation mode", async () => {
@@ -166,11 +219,26 @@ describe("review flow", () => {
     expect(screen.getByLabelText("Generation")).toHaveValue("sections");
   });
 
+  it("searches only the checked related-work sources", async () => {
+    mockApi(routes());
+    const { pdfInput } = renderReviewPage();
+    await screen.findByLabelText("Select Model for Review");
+    await userEvent.click(screen.getByLabelText("Search arXiv for related work"));
+    await userEvent.upload(pdfInput, pdf());
+    await userEvent.click(screen.getByRole("button", { name: /Start Review/ }));
+
+    await waitFor(() => expect(FakeWebSocket.instances).toHaveLength(1));
+    const params = new URL(FakeWebSocket.last().url).searchParams;
+    expect(params.get("related")).toBe("true");
+    expect(params.get("sources")).toBe("semantic_scholar");
+  });
+
   it("can skip the related-work search", async () => {
     mockApi(routes());
     const { pdfInput } = renderReviewPage();
     await screen.findByLabelText("Select Model for Review");
     await userEvent.click(screen.getByLabelText("Search arXiv for related work"));
+    await userEvent.click(screen.getByLabelText("Search Semantic Scholar for related work"));
     await userEvent.upload(pdfInput, pdf());
     await userEvent.click(screen.getByRole("button", { name: /Start Review/ }));
 

@@ -6,11 +6,11 @@ function byline(paper: RelatedPaper): string {
   return [authors, paper.year].filter(Boolean).join(" · ");
 }
 
-/** The arXiv papers the reviewer was shown, with the refs ([R1], ...) the review cites them by. */
+/** The related papers the reviewer was shown, with the refs ([R1], ...) the review cites them by. */
 export default function RelatedWorkList({ papers }: { papers: RelatedPaper[] }) {
   return (
     <div className="space-y-4">
-      <h4 className="font-semibold text-sm">📚 Related Work Found on arXiv</h4>
+      <h4 className="font-semibold text-sm">📚 Related Work</h4>
       <ol className="space-y-2 bg-muted p-3 rounded-md text-sm" aria-label="Related work">
         {papers.map((paper) => (
           <li key={paper.ref} className="flex gap-2">

@@ -10,9 +10,10 @@ import { DETAIL_LABELS, MODE_LABELS } from "@/lib/review-config";
 import type { ReviewDetail, ReviewMode } from "@/lib/types";
 import PaperDropzone from "./PaperDropzone";
 import ReviewFormSelect from "./ReviewFormSelect";
+import ReviewProgressPanel from "./ReviewProgressPanel";
 import { useReview, VLM_DEFAULT, VLM_NONE } from "./review-context";
 
-/** The paper dropzone (left) and the review options with the start button (right). */
+/** The paper dropzone with the review's progress below it (left), and the review options with the start button (right). */
 export default function ReviewForm() {
   const review = useReview();
   // Observing the list here refetches it each time the form opens, to pick up models installed outside Sibyl.
@@ -20,7 +21,10 @@ export default function ReviewForm() {
 
   return (
     <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-[7fr_3fr]">
-      <PaperDropzone />
+      <div className="flex flex-col gap-4">
+        <PaperDropzone />
+        <ReviewProgressPanel />
+      </div>
 
       <div className="flex flex-col gap-4">
         {review.availableModels.length > 0 && (
@@ -117,19 +121,30 @@ export default function ReviewForm() {
         </div>
 
         <div className="space-y-1">
-          <label htmlFor="related-work" className="flex items-center gap-2 text-sm font-medium">
+          <label htmlFor="related-arxiv" className="flex items-center gap-2 text-sm font-medium">
             <input
-              id="related-work"
+              id="related-arxiv"
               type="checkbox"
               className="h-4 w-4 accent-primary"
-              checked={review.relatedWork}
-              onChange={(e) => review.setRelatedWork(e.target.checked)}
+              checked={review.searchArxiv}
+              onChange={(e) => review.setSearchArxiv(e.target.checked)}
               disabled={review.isReviewing}
             />
             Search arXiv for related work
           </label>
+          <label htmlFor="related-semantic-scholar" className="flex items-center gap-2 text-sm font-medium">
+            <input
+              id="related-semantic-scholar"
+              type="checkbox"
+              className="h-4 w-4 accent-primary"
+              checked={review.searchSemanticScholar}
+              onChange={(e) => review.setSearchSemanticScholar(e.target.checked)}
+              disabled={review.isReviewing}
+            />
+            Search Semantic Scholar for related work
+          </label>
           <p className="text-xs text-muted-foreground">
-            Judges novelty against prior work. Sends search keywords (never the paper) to arXiv.
+            Judges novelty against prior work. Sends search keywords (never the paper) to the checked sites.
           </p>
         </div>
 

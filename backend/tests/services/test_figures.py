@@ -116,9 +116,16 @@ def test_enrich_replaces_placeholders_with_descriptions():
     async def on_status(message: str) -> None:
         statuses.append(message)
 
-    text, count = asyncio.run(FigureDescriber(engine, "qwen2.5vl:7b").enrich(MARKDOWN, _images(), slot=2, on_status=on_status))  # ty: ignore[invalid-argument-type]  # duck-typed fake engine
+    progress: list[tuple[int, int]] = []
+
+    async def on_progress(done: int, total: int) -> None:
+        progress.append((done, total))
+
+    describer = FigureDescriber(engine, "qwen2.5vl:7b")  # ty: ignore[invalid-argument-type]  # duck-typed fake engine
+    text, count = asyncio.run(describer.enrich(MARKDOWN, _images(), slot=2, on_status=on_status, on_progress=on_progress))
 
     assert count == 2
+    assert progress == [(0, 2), (1, 2), (2, 2)]
     assert "![](" not in text
     assert '<figure_description source="vision model qwen2.5vl:7b" page="1">\nA line plot (1).' in text
     assert "- Axis labels are tiny" in text

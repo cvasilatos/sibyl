@@ -188,8 +188,10 @@ def test_ws_review_session_with_conference(client, monkeypatch):
 
     seen_slots: list[int] = []
 
-    def fake_metadata(_self, slot):
+    def fake_metadata(_self, slot, on_stage=None):
         seen_slots.append(slot)
+        if on_stage:
+            on_stage("Recognizing the page layout", 0.2)
         return {"title": "A Paper", "text": "paper body"}
 
     monkeypatch.setattr(PDFParser, "get_metadata", fake_metadata)
@@ -203,7 +205,7 @@ def test_ws_review_session_with_conference(client, monkeypatch):
     upload = client.post("/api/upload", files={"file": ("p.pdf", b"%PDF-1.4", "application/pdf")}, data={"conference_id": "testconf"}).json()
 
     messages = []
-    with client.websocket_connect(f"/ws/session/{upload['session_id']}?model=m&host=0") as ws:
+    with client.websocket_connect(f"/ws/session/{upload['session_id']}?model=m&host=0&vlm=none&related=true&sources=") as ws:
         while True:
             message = ws.receive_json()
             messages.append(message)
@@ -218,3 +220,8 @@ def test_ws_review_session_with_conference(client, monkeypatch):
     assert criteria["review_form_answers"]["soundness"] == 2
     assert any("TestConf 2025 reviewer form" in m.get("message", "") for m in messages)
     assert seen_slots == [0]
+    # The plan comes first (figures are off, and related work has no source to search), then each update names its step, in plan order.
+    assert messages[0] == {"status": "started", "steps": ["parse", "review", "save"]}
+    steps = [m["step"] for m in messages if m["status"] == "progress"]
+    assert steps == sorted(steps, key=messages[0]["steps"].index)
+    assert set(steps) == {"parse", "review", "save"}

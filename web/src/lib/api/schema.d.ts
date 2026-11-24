@@ -845,7 +845,7 @@ export interface components {
     };
     /**
      * RelatedPaper
-     * @description A paper found on arXiv and judged relevant to the submission.
+     * @description A paper found by literature search (arXiv, Semantic Scholar) and judged relevant to the submission.
      */
     RelatedPaper: {
       /**
@@ -964,7 +964,7 @@ export interface components {
       figures_described: number;
       /**
        * Related Work
-       * @description arXiv related-work search was enabled
+       * @description Related-work search (arXiv, Semantic Scholar) was enabled
        * @default false
        */
       related_work: boolean;
@@ -1272,7 +1272,7 @@ export interface components {
     };
     /**
      * ReviewProgress
-     * @description A step of a running review.
+     * @description A progress update within one step of a running review.
      */
     ReviewProgress: {
       /**
@@ -1281,6 +1281,11 @@ export interface components {
        * @constant
        */
       status: "progress";
+      /**
+       * Step
+       * @enum {string}
+       */
+      step: "parse" | "figures" | "related_work" | "review" | "save";
       /** Progress */
       progress: number;
       /** Message */
@@ -1315,6 +1320,20 @@ export interface components {
       paper_title: string;
       /** Reviews */
       reviews: components["schemas"]["ReviewResult"][];
+    };
+    /**
+     * ReviewStarted
+     * @description First message of a review: the steps this run will go through, in order (skipped steps are left out).
+     */
+    ReviewStarted: {
+      /**
+       * Status
+       * @default started
+       * @constant
+       */
+      status: "started";
+      /** Steps */
+      steps: ("parse" | "figures" | "related_work" | "review" | "save")[];
     };
     /**
      * SocketError

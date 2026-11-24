@@ -328,10 +328,19 @@ def test_sections_mode_writes_one_section_per_call_then_scores():
     client = _schema_driven_client()
     statuses: list[str] = []
 
+    progress: list[tuple[int, int]] = []
+
     async def on_status(message: str) -> None:
         statuses.append(message)
 
-    review = asyncio.run(ReviewSystem(_engine_with(client), "m").review_paper("paper text", "T", "m", detail=ReviewDetail.DETAILED, mode=ReviewMode.SECTIONS, on_status=on_status))
+    async def on_progress(done: int, planned: int) -> None:
+        progress.append((done, planned))
+
+    review = asyncio.run(
+        ReviewSystem(_engine_with(client), "m").review_paper(
+            "paper text", "T", "m", detail=ReviewDetail.DETAILED, mode=ReviewMode.SECTIONS, on_status=on_status, on_progress=on_progress
+        )
+    )
 
     calls = [c.kwargs for c in client.chat.await_args_list]
     assert [list(c["format"]["properties"]) for c in calls] == [[name] for name in NARRATIVE_FIELDS] + [["score", "recommendation"]]
@@ -342,6 +351,8 @@ def test_sections_mode_writes_one_section_per_call_then_scores():
     assert calls[-1]["keep_alive"] != KEEP_LOADED
     assert "numbered list" in calls[NARRATIVE_FIELDS.index("detailed_feedback")]["messages"][1]["content"]
     assert statuses[0].startswith("Section 1/9")
+    total = len(NARRATIVE_FIELDS) + 1
+    assert progress == [(done, total) for done in range(total)]  # reported before each call
     assert review.criteria.methodology == "m"
     assert review.criteria.score == 4
     assert "--- novelty ---" in review.raw_response

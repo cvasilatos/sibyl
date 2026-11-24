@@ -75,3 +75,53 @@ def test_release_models_drops_the_cached_marker_models(monkeypatch):
     pdf_parser._marker_models("cpu")
     pdf_parser._marker_models.cache_clear()
     assert loads == ["cpu", "cpu"]  # cached until released, then loaded again by the next review
+
+
+def test_stage_reports_before_running_and_passes_attributes_through():
+    from sibyl.services.pdf_parser import _Stage
+
+    events: list[str] = []
+
+    class Builder:
+        disable_ocr = True
+
+        def __call__(self, document, provider):
+            events.append(f"ran {document} {provider}")
+            return "result"
+
+    stage = _Stage(Builder(), "Detecting text lines", 0.45, lambda message, done: events.append(f"{message} {done}"))
+
+    assert stage("doc", "pdf") == "result"
+    assert events == ["Detecting text lines 0.45", "ran doc pdf"]
+    assert stage.disable_ocr is True
+
+
+def test_stage_names_read_like_words():
+    from sibyl.services.pdf_parser import _stage_name
+
+    class SectionHeaderProcessor:
+        pass
+
+    class LLMTableProcessor:
+        pass
+
+    assert _stage_name(SectionHeaderProcessor()) == "section header"
+    assert _stage_name(LLMTableProcessor()) == "llm table"
+
+
+def test_converter_wraps_builders_and_leaves_other_objects(monkeypatch):
+    from marker.builders.layout import LayoutBuilder
+    from marker.converters.pdf import PdfConverter
+
+    from sibyl.services.pdf_parser import _ReportingConverter, _Stage
+
+    layout = object.__new__(LayoutBuilder)
+    other = object()
+    monkeypatch.setattr(PdfConverter, "resolve_dependencies", lambda _self, cls: layout if cls is LayoutBuilder else other)
+    converter = object.__new__(_ReportingConverter)
+    converter._report = lambda _message, _done: None
+
+    wrapped = converter.resolve_dependencies(LayoutBuilder)
+    assert isinstance(wrapped, _Stage)
+    assert wrapped._stage is layout
+    assert converter.resolve_dependencies(object) is other
