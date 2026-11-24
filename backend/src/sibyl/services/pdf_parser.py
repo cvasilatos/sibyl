@@ -1,5 +1,6 @@
 """PDF parsing utilities for extracting text from research papers."""
 
+import contextlib
 import functools
 import io
 import logging
@@ -7,6 +8,7 @@ import os
 import re
 import threading
 from collections import defaultdict
+from collections.abc import Iterator
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
@@ -33,6 +35,18 @@ def _marker_models(device: str) -> dict:
     """Load Marker's layout/OCR models once per device instead of on every review."""
     logger.info(f"Loading Marker models on {device}")
     return create_model_dict(device=device)
+
+
+@contextlib.contextmanager
+def _default_cuda_device(device: str) -> Iterator[None]:
+    """Make ``device`` (``cuda:N``) the current thread's default CUDA device; no-op for CPU and MPS."""
+    if not device.startswith("cuda:"):
+        yield
+        return
+    import torch  # noqa: PLC0415
+
+    with torch.cuda.device(int(device.split(":", 1)[1])):
+        yield
 
 
 class PDFParser:
@@ -94,7 +108,9 @@ class PDFParser:
 
         """
         device = torch_device(ollama_host)
-        with _device_locks[device]:  # cached models are shared, so convert one PDF per device at a time
+        # Cached models are shared, so convert one PDF per device at a time. Making the device the thread's default CUDA
+        # device keeps anything Marker allocates on a bare "cuda" on the selected GPU instead of GPU 0.
+        with _device_locks[device], _default_cuda_device(device):
             converter = PdfConverter(artifact_dict=_marker_models(device))
             rendered = converter(io.BytesIO(self._pdf_path.read_bytes()))
         text, _, images = text_from_rendered(rendered)

@@ -28,11 +28,20 @@ def torch_device(slot: int) -> str:
     import torch  # noqa: PLC0415
 
     if torch.cuda.is_available():
-        index = max(slot - 1, 0)
+        index = slot - 1 if slot > 0 else least_busy_gpu()
         return f"cuda:{index if index < torch.cuda.device_count() else 0}"
     if torch.backends.mps.is_available():
         return "mps"
     return "cpu"
+
+
+def least_busy_gpu() -> int:
+    """Index of the NVIDIA GPU with the lowest utilization (then most free memory); 0 if unknown."""
+    with contextlib.suppress(Exception):
+        gpus = list_gpus()["gpus"] if NVML_AVAILABLE else []
+        if gpus:
+            return int(min(gpus, key=lambda g: (g["gpu_utilization"], -g["memory_free"]))["index"])
+    return 0
 
 
 def nvidia_gpu_count() -> int:

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import os
 from collections.abc import Mapping
@@ -11,6 +12,7 @@ import httpx
 from ollama import AsyncClient
 
 from sibyl.inference.base import AUTO_SLOT, GenerationRequest, InferenceEngine, cap_context, estimate_tokens, max_context_setting
+from sibyl.inference.ollama_gpus import OllamaGpuServers, required_memory
 from sibyl.services.model_catalog import ModelCatalog
 
 if TYPE_CHECKING:
@@ -47,10 +49,19 @@ class OllamaEngine(InferenceEngine):
     label = "Ollama"
     supports_downloads = True
 
-    def __init__(self, hosts: list[str] | None = None, keep_alive: str | None = None) -> None:
-        """Create clients for every configured Ollama host."""
+    def __init__(self, hosts: list[str] | None = None, keep_alive: str | None = None, gpu_servers: OllamaGpuServers | None = None) -> None:
+        """Create clients for every configured Ollama host.
+
+        With a single host (no ``OLLAMA_HOSTS``) on a multi-GPU machine, Sibyl starts its own per-GPU Ollama servers so
+        reviews honor the chosen GPU (see ``ollama_gpus``).
+        """
         self.hosts = hosts or ollama_hosts_from_env()
         self.clients = [AsyncClient(host=host) for host in self.hosts]
+        if gpu_servers is None and hosts is None and len(self.hosts) == 1:
+            gpu_servers = OllamaGpuServers.from_env()
+        self.gpu_servers = gpu_servers
+        self._gpu_clients: dict[str, AsyncClient] = {}
+        self._model_sizes: dict[str, int] = {}
         # "0" unloads the model right after each review, freeing VRAM for PDF parsing on shared GPUs.
         self.keep_alive = keep_alive if keep_alive is not None else os.getenv("OLLAMA_KEEP_ALIVE", "0")
         self._native_context: dict[str, int | None] = {}
@@ -69,6 +80,40 @@ class OllamaEngine(InferenceEngine):
             logger.warning("Slot %s requested but only %s Ollama host(s) configured; using the first", slot, len(self.clients))
             return self.clients[0]
         return self.clients[index]
+
+    async def model_size(self, model: str) -> int:
+        """Size in bytes of an installed model's file (0 if unknown), cached."""
+        if model not in self._model_sizes:
+            with contextlib.suppress(Exception):
+                for m in (await self.admin.list()).models:
+                    self._model_sizes[m.model or ""] = m.size or 0
+        return self._model_sizes.get(model, 0)
+
+    @contextlib.asynccontextmanager
+    async def client_for_request(self, request: GenerationRequest) -> AsyncIterator[AsyncClient]:
+        """Client for the GPU the request asked for; on auto, the least busy GPU that fits the model, else all GPUs."""
+        servers = self.gpu_servers
+        if servers is None:
+            yield self.client_for_slot(request.slot)
+            return
+        if request.slot == AUTO_SLOT:
+            need = required_memory(await self.model_size(request.model), request.context_length)
+            gpu = servers.choose(request.model, need)
+            if gpu is None:  # too big for any single GPU (or no stats): the main server splits it across GPUs
+                logger.info("%s needs ~%.0f GiB: no single GPU has room, splitting it across GPUs", request.model, need / 2**30)
+                yield self.admin
+                return
+        else:
+            gpu = request.slot - 1
+            if gpu not in servers.gpus:
+                logger.warning("GPU %s requested but this machine has GPUs %s; letting Ollama choose", gpu, servers.gpus)
+                yield self.admin
+                return
+        async with servers.lease(gpu, request.model, request.on_status) as url:
+            logger.info("Running %s on GPU %s", request.model, gpu)
+            if url not in self._gpu_clients:
+                self._gpu_clients[url] = AsyncClient(host=url)
+            yield self._gpu_clients[url]
 
     async def native_context_length(self, model: str) -> int | None:
         """Return the model's own context limit (``<arch>.context_length`` from ``ollama show``), cached; ``None`` if unknown."""
@@ -108,6 +153,7 @@ class OllamaEngine(InferenceEngine):
 
     async def pull(self, model: str) -> AsyncIterator[dict[str, Any]]:  # noqa: D102
         self._native_context.pop(model, None)
+        self._model_sizes.pop(model, None)
         async for part in await self.admin.pull(model=model, stream=True):
             yield part.model_dump() if hasattr(part, "model_dump") else dict(part)
 
@@ -121,18 +167,23 @@ class OllamaEngine(InferenceEngine):
         user: dict[str, Any] = {"role": "user", "content": request.prompt}
         if request.images:
             user["images"] = request.images
-        response = await self.client_for_slot(request.slot).chat(
-            model=request.model,
-            messages=[{"role": "system", "content": request.system}, user],
-            stream=False,
-            format=request.schema,
-            options={
-                "temperature": request.temperature,
-                "num_predict": request.max_tokens if request.max_tokens is not None else output_room(request),
-                # Without this Ollama falls back to a small default context and silently drops most of the paper.
-                "num_ctx": request.context_length,
-            },
-            # Keep a model loaded between consecutive requests (e.g. one per figure) instead of reloading it each time.
-            keep_alive=KEEP_LOADED if request.keep_loaded else self.keep_alive,
-        )
+        async with self.client_for_request(request) as client:
+            response = await client.chat(
+                model=request.model,
+                messages=[{"role": "system", "content": request.system}, user],
+                stream=False,
+                format=request.schema,
+                options={
+                    "temperature": request.temperature,
+                    "num_predict": request.max_tokens if request.max_tokens is not None else output_room(request),
+                    # Without this Ollama falls back to a small default context and silently drops most of the paper.
+                    "num_ctx": request.context_length,
+                },
+                # Keep a model loaded between consecutive requests (e.g. one per figure) instead of reloading it each time.
+                keep_alive=KEEP_LOADED if request.keep_loaded else self.keep_alive,
+            )
         return response.message.content or ""
+
+    async def aclose(self) -> None:  # noqa: D102
+        if self.gpu_servers is not None:
+            await self.gpu_servers.shutdown()

@@ -1,6 +1,7 @@
 """Tests for inference engines, context budgeting and hardware helpers."""
 
 import asyncio
+import contextlib
 import json
 import socket
 import sys
@@ -14,6 +15,7 @@ import pytest
 from sibyl.inference import AUTO_SLOT, GenerationRequest, create_engine
 from sibyl.inference.base import estimate_tokens
 from sibyl.inference.ollama_engine import MIN_OUTPUT_TOKENS, OllamaEngine, output_room
+from sibyl.inference.ollama_gpus import pick_gpu
 from sibyl.inference.openai_engine import OpenAICompatibleEngine, chat_json
 from sibyl.inference.vllm_engine import VLLMEngine, VLLMServerPool, select_download_files
 from sibyl.services import hardware
@@ -320,3 +322,52 @@ def test_apple_gpu_listed_on_macos():
     assert data["available"] is True
     assert data["vendor"] == "apple"
     assert data["gpus"][0]["memory_total"] > 0
+
+
+# --- Per-GPU Ollama servers -----------------------------------------------------------------------
+
+
+def _gpu(index, free_gib, util):
+    return {"index": index, "memory_free": free_gib * 2**30, "gpu_utilization": util}
+
+
+def test_pick_gpu_prefers_idle_gpu_with_room():
+    gpus = [_gpu(0, 120, 100), _gpu(1, 100, 0), _gpu(2, 120, 93), _gpu(3, 139, 0)]
+    assert pick_gpu(gpus, 30 * 2**30, {}) == 3  # idle and most free memory
+    assert pick_gpu(gpus, 30 * 2**30, {3: 1}) == 1  # GPU 3 already runs a Sibyl request
+    assert pick_gpu(gpus, 130 * 2**30, {}) == 3  # only GPU 3 fits
+    assert pick_gpu(gpus, 200 * 2**30, {}) is None  # split across GPUs
+
+
+class _FakeServers:
+    def __init__(self, choice):
+        self.gpus = [0, 1, 2, 3]
+        self.choice = choice
+        self.leased: list[int] = []
+
+    def choose(self, model, need):  # noqa: ARG002
+        return self.choice
+
+    @contextlib.asynccontextmanager
+    async def lease(self, gpu, model, on_status=None):  # noqa: ARG002
+        self.leased.append(gpu)
+        yield f"http://127.0.0.1:{11500 + gpu}"
+
+
+@pytest.mark.parametrize(("slot", "choice", "leased", "main"), [(3, None, [2], False), (AUTO_SLOT, 1, [1], False), (AUTO_SLOT, None, [], True), (9, None, [], True)])
+def test_ollama_routes_requests_to_gpu_servers(slot, choice, leased, main):
+    servers = _FakeServers(choice)
+    engine = OllamaEngine(hosts=["http://a:1"], gpu_servers=servers)  # type: ignore[arg-type]
+    engine._model_sizes["m"] = 5 * 2**30
+
+    async def run():
+        async with engine.client_for_request(_request(slot=slot)) as client:
+            return client
+
+    client = asyncio.run(run())
+    assert servers.leased == leased
+    assert (client is engine.admin) == main
+
+
+def test_ollama_engine_with_explicit_hosts_does_not_start_gpu_servers():
+    assert OllamaEngine(hosts=["http://a:1"]).gpu_servers is None
