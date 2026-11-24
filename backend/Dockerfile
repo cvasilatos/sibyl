@@ -1,3 +1,6 @@
+ARG OLLAMA_VERSION=latest
+FROM ollama/ollama:${OLLAMA_VERSION} AS ollama
+
 FROM python:3.12-slim
 
 WORKDIR /app
@@ -29,6 +32,10 @@ ARG INSTALL_VLLM=false
 ARG VLLM_VERSION=0.11.0
 RUN if [ "$INSTALL_VLLM" = "true" ]; then uv tool install "vllm==${VLLM_VERSION}"; fi
 
+# Ollama binary and its CUDA runtime, so the backend can start one `ollama serve` per GPU it detects
+# (see sibyl.inference.ollama_gpus). Same image as the compose `ollama` service.
+COPY --from=ollama /usr/bin/ollama /usr/bin/ollama
+COPY --from=ollama /usr/lib/ollama /usr/lib/ollama
 
 EXPOSE 8000
 

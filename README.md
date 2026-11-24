@@ -102,9 +102,9 @@ Apple GPU (MPS), and the GPU tab shows Apple GPU load and unified memory. On 16 
 ```bash
 cp backend/.env.example backend/.env
 
-# Option A: Ollama, one container per GPU
-docker compose up -d
-docker compose exec ollama-0 ollama pull qwen3:8b
+# Option A: Ollama (GPUs are detected automatically; one server per GPU on demand)
+docker compose up -d --build
+docker compose exec ollama ollama pull qwen3:8b
 
 # Option B: vLLM, faster on NVIDIA. Download models from the Models tab.
 mkdir -p /data/cv43/sibyl/hf_cache

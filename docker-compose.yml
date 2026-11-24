@@ -1,5 +1,8 @@
 services:
-  ollama-0:
+  # Main Ollama server on all GPUs: pulls models and runs the ones too big for a single GPU.
+  # The backend detects the GPUs itself (NVML) and starts one pinned `ollama serve` per GPU on
+  # demand, sharing this model store, so nothing here depends on how many GPUs the machine has.
+  ollama:
     image: ollama/ollama:latest
     volumes:
       - ollama_data:/root/.ollama
@@ -11,112 +14,9 @@ services:
         reservations:
           devices:
             - driver: nvidia
+              count: all
               capabilities: [ gpu ]
-              device_ids: [ '0' ]
 
-  ollama-1:
-    image: ollama/ollama:latest
-    volumes:
-      - ollama_data:/root/.ollama
-    restart: unless-stopped
-    environment:
-      - OLLAMA_HOST=0.0.0.0:11434
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              capabilities: [ gpu ]
-              device_ids: [ '1' ]
-
-  ollama-2:
-    image: ollama/ollama:latest
-    volumes:
-      - ollama_data:/root/.ollama
-    restart: unless-stopped
-    environment:
-      - OLLAMA_HOST=0.0.0.0:11434
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              capabilities: [ gpu ]
-              device_ids: [ '2' ]
-
-  ollama-3:
-    image: ollama/ollama:latest
-    volumes:
-      - ollama_data:/root/.ollama
-    restart: unless-stopped
-    environment:
-      - OLLAMA_HOST=0.0.0.0:11434
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              capabilities: [ gpu ]
-              device_ids: [ '3' ]
-
-  ollama-4:
-    image: ollama/ollama:latest
-    volumes:
-      - ollama_data:/root/.ollama
-    restart: unless-stopped
-    environment:
-      - OLLAMA_HOST=0.0.0.0:11434
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              capabilities: [ gpu ]
-              device_ids: [ '4' ]
-
-  ollama-5:
-    image: ollama/ollama:latest
-    volumes:
-      - ollama_data:/root/.ollama
-    restart: unless-stopped
-    environment:
-      - OLLAMA_HOST=0.0.0.0:11434
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              capabilities: [ gpu ]
-              device_ids: [ '5' ]
-  ollama-6:
-    image: ollama/ollama:latest
-    volumes:
-      - ollama_data:/root/.ollama
-    restart: unless-stopped
-    environment:
-      - OLLAMA_HOST=0.0.0.0:11434
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              capabilities: [ gpu ]
-              device_ids: [ '6' ]
-
-  ollama-7:
-    image: ollama/ollama:latest
-    volumes:
-      - ollama_data:/root/.ollama
-    restart: unless-stopped
-    environment:
-      - OLLAMA_HOST=0.0.0.0:11434
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              capabilities: [ gpu ]
-              device_ids: [ '7' ]
   backend:
     build:
       context: ./backend
@@ -127,8 +27,9 @@ services:
       - backend/.env
     environment:
       - SIBYL_ENGINE=ollama
-      # One Ollama server per GPU: GPU n in the UI maps to the n-th host.
-      - OLLAMA_HOSTS=http://ollama-0:11434,http://ollama-1:11434,http://ollama-2:11434,http://ollama-3:11434,http://ollama-4:11434,http://ollama-5:11434,http://ollama-6:11434,http://ollama-7:11434
+      - OLLAMA_BASE_URL=http://ollama:11434
+      # Per-GPU servers read models from the shared store pulled by the main server.
+      - SIBYL_OLLAMA_MODELS=/root/.ollama/models
     deploy:
       resources:
         reservations:
@@ -137,16 +38,10 @@ services:
               count: all
               capabilities: [ gpu ]
     depends_on:
-      - ollama-0
-      - ollama-1
-      - ollama-2
-      - ollama-3
-      - ollama-4
-      - ollama-5
-      - ollama-6
-      - ollama-7
+      - ollama
     volumes:
       - sibyl_storage:/app/sibyl_storage
+      - ollama_data:/root/.ollama
     restart: unless-stopped
 
   web:
