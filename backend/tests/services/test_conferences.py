@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 
 from sibyl.inference.ollama_engine import OllamaEngine
 from sibyl.services.conferences import ConferenceTemplate, list_conferences, load_conferences
+from sibyl.services.gpu_activity import GpuActivity
 from sibyl.services.reviewer import FORM_TEMPERATURE, ReviewSystem, conference_schema
 
 TEMPLATE = ConferenceTemplate.model_validate(
@@ -143,6 +144,7 @@ def client(monkeypatch):
 
     monkeypatch.setattr(conferences, "load_conferences", lambda: {"testconf": TEMPLATE})
     app.state.engine = OllamaEngine(hosts=["http://ollama.test:11434"])
+    app.state.gpu_activity = GpuActivity(AsyncMock())  # set by the lifespan, which TestClient(app) does not run
     return TestClient(app)
 
 

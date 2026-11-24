@@ -3,9 +3,13 @@
 import asyncio
 import contextlib
 import logging
+import os
 from contextlib import asynccontextmanager
+from logging.handlers import RotatingFileHandler
+from pathlib import Path
 from typing import Any, cast
 
+from anyio import to_thread
 from decima.logger import CustomLogger
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,9 +19,53 @@ from sibyl.inference import create_engine
 from sibyl.routers import conferences, gpu, review_forms, reviews, upload, ws
 from sibyl.schemas.system import Online
 from sibyl.schemas.ws import WS_MESSAGES
+from sibyl.services import pdf_parser
 from sibyl.services.figures import prefetch_vlm
+from sibyl.services.gpu_activity import GpuActivity
 
-CustomLogger.setup_logging("logs", "app", level="DEBUG", class_length=30)
+LOG_DIR = Path("logs")
+KEEP_LOG_FILES = 10
+"""Log files of earlier runs to keep; older ones are deleted at startup."""
+JSON_LOG_BYTES = 10 * 1024**2
+"""Size at which the JSON log is rotated (one previous file is kept)."""
+QUIET_LOGGERS = ("httpx", "httpcore", "urllib3", "filelock", "PIL", "multipart", "asyncio")
+"""Libraries that log every request or file access below WARNING."""
+UNLOGGED_PATHS = ("/api/gpu",)
+"""Endpoints the web app polls; logging every successful read would fill the disk."""
+
+
+class _DropPolledRequests(logging.Filter):
+    """Drop uvicorn access-log lines for successful reads of ``UNLOGGED_PATHS``."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        args = record.args
+        if isinstance(args, tuple) and len(args) == 5:  # noqa: PLR2004 (client, method, path, http version, status)
+            _, method, path, _, status = args
+            return not (method == "GET" and isinstance(status, int) and status < 400 and str(path).split("?", 1)[0].startswith(UNLOGGED_PATHS))  # noqa: PLR2004
+        return True
+
+
+def setup_logging() -> None:
+    """Log at ``SIBYL_LOG_LEVEL`` (INFO by default), keep noisy libraries quiet and delete all but the newest log files."""
+    CustomLogger.setup_logging(str(LOG_DIR), "app", level=os.getenv("SIBYL_LOG_LEVEL", "INFO").upper(), class_length=30)
+    for name in QUIET_LOGGERS:
+        logging.getLogger(name).setLevel(logging.WARNING)
+    logging.getLogger("uvicorn.access").addFilter(_DropPolledRequests())
+    root = logging.getLogger()
+    for handler in list(root.handlers):  # decima appends to one JSON log forever: cap it instead
+        if isinstance(handler, logging.FileHandler) and handler.baseFilename.endswith(".jsonl"):
+            rotating = RotatingFileHandler(handler.baseFilename, maxBytes=JSON_LOG_BYTES, backupCount=1)
+            rotating.setFormatter(handler.formatter)
+            rotating.setLevel(handler.level)
+            root.removeHandler(handler)
+            handler.close()
+            root.addHandler(rotating)
+    for old in sorted(LOG_DIR.glob("app-*.log"), reverse=True)[KEEP_LOG_FILES:]:
+        with contextlib.suppress(OSError):
+            old.unlink()
+
+
+setup_logging()
 logger: CustomLogger = cast("CustomLogger", logging.getLogger("sibyl.main"))
 logger.info("Starting Sibyl application...")
 
@@ -29,6 +77,13 @@ async def lifespan(app: FastAPI):  # noqa: ANN201, D103
     app.state.engine = create_engine()
     logger.info(f"Inference engine: {app.state.engine.label}")
 
+    async def release_gpus() -> None:
+        await app.state.engine.release_gpus()
+        await to_thread.run_sync(pdf_parser.release_models)
+
+    # Nothing runs on the GPUs until a review starts; once reviews stop, model servers and PDF models are released.
+    app.state.gpu_activity = GpuActivity(release_gpus)
+
     # Download the figure-describing vision model in the background; the server is usable meanwhile.
     vlm_task = asyncio.create_task(prefetch_vlm(app.state.engine))
     vlm_task.add_done_callback(lambda t: t.cancelled() or t.exception() is None or logger.error(f"Vision model prefetch failed: {t.exception()}"))
@@ -36,6 +91,7 @@ async def lifespan(app: FastAPI):  # noqa: ANN201, D103
     yield
 
     logger.info("Shutting down: Cleaning up...")
+    await app.state.gpu_activity.aclose()
     vlm_task.cancel()
     with contextlib.suppress(asyncio.CancelledError):
         await vlm_task

@@ -37,9 +37,10 @@ async def pull_model(websocket: WebSocket, model_name: str = Query()) -> None:
 
     try:
         engine: InferenceEngine = websocket.app.state.engine
-        async for part in engine.pull(model_name):
-            logger.debug(f"Pulling model {model_name}: {part}")
+        logger.info(f"Downloading model {model_name}")
+        async for part in engine.pull(model_name):  # progress goes to the client only: a log line per chunk fills the disk
             await websocket.send_json(PullProgress.model_validate(part).model_dump())
+        logger.info(f"Downloaded model {model_name}")
 
     except Exception as e:
         logger.exception(f"Error during model pull for {model_name}")
@@ -136,6 +137,25 @@ async def websocket_endpoint(  # noqa: PLR0913
         await websocket.send_json(ReviewProgress(progress=value, message=message).model_dump())
 
     started = time.monotonic()
+    # GPU work (model servers, PDF models) starts inside this block and is released once no review has run for a while.
+    async with websocket.app.state.gpu_activity.review():
+        await _run_review(websocket, session, progress, model=model, host=host, vlm=vlm, related=related, detail=detail, mode=mode, started=started)
+
+
+async def _run_review(  # noqa: PLR0913
+    websocket: WebSocket,
+    session: "ReviewSession",
+    progress: "Callable[[int, str], Awaitable[None]]",
+    *,
+    model: str,
+    host: int,
+    vlm: str | None,
+    related: bool | None,
+    detail: ReviewDetail | None,
+    mode: ReviewMode | None,
+    started: float,
+) -> None:
+    """Parse the paper, describe its figures, find related work, review it and save the result, reporting progress."""
     try:
         await progress(10, "Extracting text from PDF...")
 

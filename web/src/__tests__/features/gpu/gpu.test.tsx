@@ -1,5 +1,6 @@
-import { screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { act, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import GpuLoadSummary from "@/features/gpu/GpuLoadSummary";
 import GpuMonitor from "@/features/gpu/GpuMonitor";
 import { mockApi } from "../../helpers/fetch";
@@ -20,6 +21,10 @@ const gpu = {
 };
 
 describe("GPU views", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("share one /api/gpu request when shown together", async () => {
     const api = mockApi({ "GET /api/gpu": { available: true, count: 1, gpus: [gpu] } });
     renderWithQuery(
@@ -31,6 +36,34 @@ describe("GPU views", () => {
     expect(await screen.findByText("RTX 4090")).toBeInTheDocument();
     expect(screen.getByText("VRAM")).toBeInTheDocument(); // only the summary has it
     expect(api.calls("GET /api/gpu")).toBe(1);
+  });
+
+  it("reads the load once on the review page and again only when asked", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const api = mockApi({ "GET /api/gpu": { available: true, count: 1, gpus: [gpu] } });
+    renderWithQuery(<GpuLoadSummary />);
+    expect(await screen.findByText("GPU 0: RTX 4090")).toBeInTheDocument();
+
+    await act(() => vi.advanceTimersByTimeAsync(60_000));
+    expect(api.calls("GET /api/gpu")).toBe(1); // no polling
+
+    await userEvent.click(screen.getByRole("button", { name: "Refresh" }));
+    await waitFor(() => expect(api.calls("GET /api/gpu")).toBe(2));
+  });
+
+  it("polls only while the GPU page is open", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const api = mockApi({ "GET /api/gpu": { available: true, count: 1, gpus: [gpu] } });
+    const { unmount } = renderWithQuery(<GpuMonitor />);
+    expect(await screen.findByText("RTX 4090")).toBeInTheDocument();
+
+    await act(() => vi.advanceTimersByTimeAsync(4_500));
+    expect(api.calls("GET /api/gpu")).toBeGreaterThanOrEqual(3);
+
+    unmount();
+    const afterLeaving = api.calls("GET /api/gpu");
+    await act(() => vi.advanceTimersByTimeAsync(60_000));
+    expect(api.calls("GET /api/gpu")).toBe(afterLeaving);
   });
 
   it("explains when there is no NVIDIA GPU", async () => {

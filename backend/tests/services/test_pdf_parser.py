@@ -61,3 +61,17 @@ def test_get_marker_title_strips_whitespace():
     parser = PDFParser("/test/file.pdf")
     markdown = "#   Spaced Title   \n\nContent."
     assert parser.get_marker_title(markdown) == "Spaced Title"
+
+
+def test_release_models_drops_the_cached_marker_models(monkeypatch):
+    from sibyl.services import pdf_parser
+
+    loads: list[str] = []
+    monkeypatch.setattr(pdf_parser, "create_model_dict", lambda device: loads.append(device) or {})
+    pdf_parser._marker_models.cache_clear()
+    pdf_parser._marker_models("cpu")
+    pdf_parser._marker_models("cpu")
+    pdf_parser.release_models()
+    pdf_parser._marker_models("cpu")
+    pdf_parser._marker_models.cache_clear()
+    assert loads == ["cpu", "cpu"]  # cached until released, then loaded again by the next review

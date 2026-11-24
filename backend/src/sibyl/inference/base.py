@@ -111,6 +111,9 @@ class InferenceEngine(ABC):
         """Describe this engine for the frontend."""
         return {"name": self.name, "label": self.label, "supports_downloads": self.supports_downloads}
 
+    async def release_gpus(self) -> None:  # noqa: B027
+        """Free the GPU memory this engine holds (model servers, loaded models) while no review runs; reviews start them again."""
+
     async def aclose(self) -> None:  # noqa: B027
         """Release engine resources (processes, connections)."""
 

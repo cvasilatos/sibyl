@@ -1,10 +1,12 @@
 import tempfile
 from pathlib import Path
+from unittest.mock import AsyncMock
 
 import pytest
 from fastapi.testclient import TestClient
 
 from sibyl.main import app
+from sibyl.services.gpu_activity import GpuActivity
 
 
 @pytest.fixture
@@ -13,6 +15,7 @@ def client():
     from sibyl.inference.ollama_engine import OllamaEngine
 
     app.state.engine = OllamaEngine(hosts=["http://ollama.test:11434"])
+    app.state.gpu_activity = GpuActivity(AsyncMock())  # set by the lifespan, which TestClient(app) does not run
     return TestClient(app)
 
 
@@ -478,3 +481,25 @@ def test_ws_pull_model_success_path(client):
 
     assert any(m.get("status") == "pulling" for m in received)
     assert any(m.get("status") == "success" for m in received)
+
+
+@pytest.mark.parametrize(
+    ("method", "path", "status", "logged"),
+    [("GET", "/api/gpu", 200, False), ("GET", "/api/gpu/1?x=1", 200, False), ("GET", "/api/gpu", 503, True), ("GET", "/api/models", 200, True), ("POST", "/api/upload", 200, True)],
+)
+def test_access_log_skips_gpu_polling(method, path, status, logged):
+    import logging
+
+    from sibyl.main import _DropPolledRequests
+
+    record = logging.LogRecord("uvicorn.access", logging.INFO, "", 0, '%s - "%s %s HTTP/%s" %d', ("127.0.0.1:5", method, path, "1.1", status), None)
+    assert _DropPolledRequests().filter(record) is logged
+
+
+def test_json_log_is_size_capped():
+    import logging
+    from logging.handlers import RotatingFileHandler
+
+    json_logs = [h for h in logging.getLogger().handlers if isinstance(h, logging.FileHandler) and h.baseFilename.endswith(".jsonl")]
+    assert json_logs
+    assert all(isinstance(h, RotatingFileHandler) and h.maxBytes > 0 for h in json_logs)

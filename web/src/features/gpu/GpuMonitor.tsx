@@ -15,7 +15,12 @@ const REFRESH_MS = 2000;
 export default function GpuMonitor() {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
-  const { data, error, refetch } = useQuery({ ...queries.gpus(), refetchInterval: autoRefresh ? REFRESH_MS : false });
+  // The only place that polls the GPUs, and only while this page is open and the browser tab is visible.
+  const { data, error, refetch } = useQuery({
+    ...queries.gpus(),
+    refetchOnMount: "always",
+    refetchInterval: autoRefresh ? REFRESH_MS : false,
+  });
 
   const gpus = data?.gpus ?? [];
   const displayedGpus = selectedIndex !== null ? gpus.filter((g) => g.index === selectedIndex) : gpus;

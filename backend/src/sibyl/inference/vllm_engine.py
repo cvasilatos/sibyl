@@ -273,7 +273,7 @@ class VLLMServerPool:
         self.log_dir.mkdir(parents=True, exist_ok=True)
         log_path = self.log_dir / f"vllm-gpu{gpu}.log"
         await status(f"Starting vLLM for {model} on GPU {gpu}...")
-        with log_path.open("ab") as log:
+        with log_path.open("wb") as log:  # only the latest run: servers restart for every review after an idle period
             process = await asyncio.create_subprocess_exec(
                 *args,
                 stdout=log,
@@ -400,6 +400,9 @@ class VLLMEngine(InferenceEngine):
             if request.on_status and not request.images:
                 await request.on_status(f"Generating review with {request.model}...")
             return await chat_json(base_url, request, timeout=self.timeout)
+
+    async def release_gpus(self) -> None:  # noqa: D102
+        await self.pool.shutdown()
 
     async def aclose(self) -> None:  # noqa: D102
         await self.pool.shutdown()

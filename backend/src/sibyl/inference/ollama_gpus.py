@@ -186,7 +186,7 @@ class OllamaGpuServers:
         self.log_dir.mkdir(parents=True, exist_ok=True)
         log_path = self.log_dir / f"ollama-gpu{gpu}.log"
         logger.info("Starting Ollama on GPU %s (port %s)", gpu, port)
-        with log_path.open("ab") as log:
+        with log_path.open("wb") as log:  # only the latest run: servers restart for every review after an idle period
             process = await asyncio.create_subprocess_exec(self.command, "serve", stdout=log, stderr=asyncio.subprocess.STDOUT, env=env, start_new_session=True)
         server = _Server(gpu=gpu, port=port, process=process)
         loop = asyncio.get_running_loop()

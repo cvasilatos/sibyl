@@ -2,6 +2,7 @@
 
 import contextlib
 import functools
+import gc
 import io
 import logging
 import os
@@ -35,6 +36,19 @@ def _marker_models(device: str) -> dict:
     """Load Marker's layout/OCR models once per device instead of on every review."""
     logger.info(f"Loading Marker models on {device}")
     return create_model_dict(device=device)
+
+
+def release_models() -> None:
+    """Drop the cached Marker models and return their GPU memory to the driver; the next review loads them again."""
+    if _marker_models.cache_info().currsize == 0:
+        return
+    logger.info("Unloading Marker models")
+    _marker_models.cache_clear()
+    gc.collect()
+    import torch  # noqa: PLC0415
+
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
 
 
 @contextlib.contextmanager

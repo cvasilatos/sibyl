@@ -13,7 +13,7 @@ declare module "@tanstack/react-query" {
 
 /**
  * Every backend read, as TanStack Query options. Components share a cache entry when they use the same key,
- * so e.g. the GPU monitor and the GPU load summary poll /api/gpu once, at the shorter of their intervals.
+ * so e.g. the GPU monitor and the GPU load summary read /api/gpu once and show the same reading.
  */
 export const queries = {
   maxScore: () =>
@@ -66,7 +66,11 @@ export const queries = {
       staleTime: Number.POSITIVE_INFINITY,
       select: (data) => data.tags,
     }),
-  gpus: () => queryOptions({ queryKey: ["gpus"], queryFn: api.listGpus }),
+  /**
+   * GPU list and load. Read once and never refetched on its own: only the GPU page polls it (while open), and the
+   * review page's load summary refreshes it on demand, so the GPUs are not queried while nobody looks at them.
+   */
+  gpus: () => queryOptions({ queryKey: ["gpus"], queryFn: api.listGpus, staleTime: Number.POSITIVE_INFINITY }),
   reviews: () =>
     queryOptions({ queryKey: ["reviews", "list"], queryFn: () => api.listReviews(), select: (data) => data.reviews }),
   statistics: () => queryOptions({ queryKey: ["reviews", "statistics"], queryFn: api.getStatistics }),

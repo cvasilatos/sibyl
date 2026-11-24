@@ -65,6 +65,8 @@ class OllamaEngine(InferenceEngine):
         # "0" unloads the model right after each review, freeing VRAM for PDF parsing on shared GPUs.
         self.keep_alive = keep_alive if keep_alive is not None else os.getenv("OLLAMA_KEEP_ALIVE", "0")
         self._native_context: dict[str, int | None] = {}
+        self._used: set[tuple[AsyncClient, str]] = set()
+        """Models Sibyl ran on servers it does not own, so ``release_gpus`` can unload what is still loaded there."""
 
     @property
     def admin(self) -> AsyncClient:
@@ -94,23 +96,27 @@ class OllamaEngine(InferenceEngine):
         """Client for the GPU the request asked for; on auto, the least busy GPU that fits the model, else all GPUs."""
         servers = self.gpu_servers
         if servers is None:
-            yield self.client_for_slot(request.slot)
+            client = self.client_for_slot(request.slot)
+            self._used.add((client, request.model))
+            yield client
             return
         if request.slot == AUTO_SLOT:
             need = required_memory(await self.model_size(request.model), request.context_length)
             gpu = servers.choose(request.model, need)
             if gpu is None:  # too big for any single GPU (or no stats): the main server splits it across GPUs
                 logger.info("%s needs ~%.0f GiB: no single GPU has room, splitting it across GPUs", request.model, need / 2**30)
+                self._used.add((self.admin, request.model))
                 yield self.admin
                 return
         else:
             gpu = request.slot - 1
             if gpu not in servers.gpus:
                 logger.warning("GPU %s requested but this machine has GPUs %s; letting Ollama choose", gpu, servers.gpus)
+                self._used.add((self.admin, request.model))
                 yield self.admin
                 return
         async with servers.lease(gpu, request.model, request.on_status) as url:
-            logger.info("Running %s on GPU %s", request.model, gpu)
+            logger.debug("Running %s on GPU %s", request.model, gpu)
             if url not in self._gpu_clients:
                 self._gpu_clients[url] = AsyncClient(host=url)
             yield self._gpu_clients[url]
@@ -183,6 +189,25 @@ class OllamaEngine(InferenceEngine):
                 keep_alive=KEEP_LOADED if request.keep_loaded else self.keep_alive,
             )
         return response.message.content or ""
+
+    async def release_gpus(self) -> None:
+        """Stop Sibyl's per-GPU Ollama servers and unload the models Sibyl left loaded on the other Ollama servers.
+
+        Only models Sibyl ran are unloaded: the main server may be shared with other users.
+        """
+        if self.gpu_servers is not None:
+            await self.gpu_servers.shutdown()
+        used, self._used = self._used, set()
+        for client in {client for client, _ in used}:
+            try:
+                loaded = {m.model for m in (await client.ps()).models}
+            except Exception as e:  # server down: nothing of ours is loaded there
+                logger.debug("Could not list loaded Ollama models: %s", e)
+                continue
+            for model in sorted(loaded & {model for c, model in used if c is client}):
+                logger.info("Unloading %s from Ollama", model)
+                with contextlib.suppress(Exception):
+                    await client.chat(model=model, messages=[], keep_alive=0)
 
     async def aclose(self) -> None:  # noqa: D102
         if self.gpu_servers is not None:

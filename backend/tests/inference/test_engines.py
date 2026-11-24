@@ -371,3 +371,30 @@ def test_ollama_routes_requests_to_gpu_servers(slot, choice, leased, main):
 
 def test_ollama_engine_with_explicit_hosts_does_not_start_gpu_servers():
     assert OllamaEngine(hosts=["http://a:1"]).gpu_servers is None
+
+
+def test_ollama_release_stops_gpu_servers_and_unloads_only_models_sibyl_ran():
+    servers = _FakeServers(None)
+    servers.shutdown = AsyncMock()  # type: ignore[attr-defined]
+    engine = OllamaEngine(hosts=["http://a:1"], gpu_servers=servers)  # type: ignore[arg-type]
+    engine._model_sizes["big"] = 5 * 2**30
+    admin = MagicMock()
+    admin.ps = AsyncMock(return_value=MagicMock(models=[MagicMock(model="big"), MagicMock(model="someone-elses")]))
+    admin.chat = AsyncMock()
+    engine.clients = [admin]
+
+    async def run():
+        async with engine.client_for_request(_request(model="big", slot=AUTO_SLOT)):  # too big for one GPU: main server
+            pass
+        await engine.release_gpus()
+        await engine.release_gpus()  # nothing left to unload
+
+    asyncio.run(run())
+    assert servers.shutdown.await_count == 2  # type: ignore[attr-defined]
+    admin.chat.assert_awaited_once_with(model="big", messages=[], keep_alive=0)
+
+
+def test_vllm_release_stops_its_servers():
+    pool = MagicMock(shutdown=AsyncMock())
+    asyncio.run(VLLMEngine(store=MagicMock(), pool=pool).release_gpus())
+    pool.shutdown.assert_awaited_once()
