@@ -36,7 +36,7 @@ export default function ReviewForm() {
               id="model-select"
               value={review.selectedModel}
               onChange={(e) => review.setSelectedModel(e.target.value)}
-              disabled={review.isReviewing}
+              disabled={review.isSubmitting}
             >
               {review.availableModels.map((model) => (
                 <option key={model} value={model}>
@@ -59,7 +59,7 @@ export default function ReviewForm() {
               id="vlm-select"
               value={review.selectedVlm}
               onChange={(e) => review.setSelectedVlm(e.target.value)}
-              disabled={review.isReviewing}
+              disabled={review.isSubmitting}
             >
               <option value={VLM_DEFAULT}>Server default</option>
               <option value={VLM_NONE}>None (captions only)</option>
@@ -83,7 +83,7 @@ export default function ReviewForm() {
             id="detail-select"
             value={review.selectedDetail}
             onChange={(e) => review.setSelectedDetail(e.target.value as ReviewDetail)}
-            disabled={review.isReviewing}
+            disabled={review.isSubmitting}
           >
             {Object.entries(DETAIL_LABELS).map(([value, label]) => (
               <option key={value} value={value}>
@@ -105,7 +105,7 @@ export default function ReviewForm() {
             id="mode-select"
             value={review.selectedMode}
             onChange={(e) => review.setSelectedMode(e.target.value as ReviewMode)}
-            disabled={review.isReviewing}
+            disabled={review.isSubmitting}
           >
             {Object.entries(MODE_LABELS).map(([value, label]) => (
               <option key={value} value={value}>
@@ -128,7 +128,7 @@ export default function ReviewForm() {
               className="h-4 w-4 accent-primary"
               checked={review.searchArxiv}
               onChange={(e) => review.setSearchArxiv(e.target.checked)}
-              disabled={review.isReviewing}
+              disabled={review.isSubmitting}
             />
             Search arXiv for related work
           </label>
@@ -139,7 +139,7 @@ export default function ReviewForm() {
               className="h-4 w-4 accent-primary"
               checked={review.searchSemanticScholar}
               onChange={(e) => review.setSearchSemanticScholar(e.target.checked)}
-              disabled={review.isReviewing}
+              disabled={review.isSubmitting}
             />
             Search Semantic Scholar for related work
           </label>
@@ -157,7 +157,7 @@ export default function ReviewForm() {
               id="gpu-select"
               value={review.selectedGpuIndex ?? "auto"}
               onChange={(e) => review.setSelectedGpuIndex(e.target.value === "auto" ? null : Number(e.target.value))}
-              disabled={review.isReviewing}
+              disabled={review.isSubmitting}
             >
               <option value="auto">Auto</option>
               {review.availableGpus.map((gpu) => (
@@ -166,7 +166,9 @@ export default function ReviewForm() {
                 </option>
               ))}
             </NativeSelect>
-            <p className="text-xs text-muted-foreground">Choose which GPU host to use for this review run</p>
+            <p className="text-xs text-muted-foreground">
+              Auto takes the first free GPU; a chosen GPU may mean waiting for it
+            </p>
           </div>
         )}
 
@@ -174,14 +176,14 @@ export default function ReviewForm() {
 
         <Button
           onClick={review.startReview}
-          disabled={!review.selectedFile || review.isReviewing}
+          disabled={!review.selectedFile || review.isSubmitting}
           className="w-full"
           size="lg"
         >
-          {review.isReviewing ? (
+          {review.isSubmitting ? (
             <>
-              <Spinner className="mr-2" label="Reviewing" />
-              Reviewing…
+              <Spinner className="mr-2" label="Uploading" />
+              Uploading…
             </>
           ) : (
             <>

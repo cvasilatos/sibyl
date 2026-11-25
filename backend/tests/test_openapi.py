@@ -18,7 +18,7 @@ def test_schema_lists_websocket_messages(tmp_path: Path) -> None:
     out = tmp_path / "openapi.json"
     main(["openapi", str(out)])
     schemas = json.loads(out.read_text())["components"]["schemas"]
-    for name in ("ReviewStarted", "ReviewProgress", "ReviewCompleted", "ReviewResults", "ReviewResult", "SocketError", "PullProgress"):
+    for name in ("ReviewJob", "ReviewResults", "ReviewResult", "SocketError", "PullProgress"):
         assert name in schemas, name
     assert schemas["ReviewResult"]["properties"]["criteria"]["$ref"] == "#/components/schemas/ReviewCriteria"
-    assert schemas["ReviewCompleted"]["properties"]["status"]["const"] == "completed"
+    assert schemas["SocketError"]["properties"]["status"]["const"] == "error"

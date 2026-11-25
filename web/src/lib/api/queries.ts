@@ -1,6 +1,14 @@
-import { QueryCache, QueryClient, queryOptions } from "@tanstack/react-query";
+import { MutationCache, QueryCache, QueryClient, queryOptions } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
-import { api } from "./index";
+import type { ReviewJob } from "@/lib/types";
+import { api, UnauthorizedError } from "./index";
+
+/** How often the review queue is read while a review is queued or running, and otherwise (others may submit). */
+export const ACTIVE_QUEUE_POLL_MS = 2000;
+export const IDLE_QUEUE_POLL_MS = 15000;
+
+/** Whether a review is still waiting or running. */
+export const isActiveJob = (job: Pick<ReviewJob, "status">) => job.status === "queued" || job.status === "running";
 
 declare module "@tanstack/react-query" {
   interface Register {
@@ -16,6 +24,20 @@ declare module "@tanstack/react-query" {
  * so e.g. the GPU monitor and the GPU load summary read /api/gpu once and show the same reading.
  */
 export const queries = {
+  /** The signed-in user, or null when nobody is: the app shows the sign-in page instead. */
+  currentUser: () =>
+    queryOptions({ queryKey: ["auth", "me"], queryFn: api.getCurrentUser, staleTime: Number.POSITIVE_INFINITY }),
+  /**
+   * The review queue: everyone's queued and running reviews and the user's finished ones. Reviews run on the server,
+   * so this is how the page follows them; it is read every few seconds while one is active, rarely otherwise.
+   */
+  reviewJobs: () =>
+    queryOptions({
+      queryKey: ["reviewJobs"],
+      queryFn: api.listReviewJobs,
+      refetchInterval: (query) =>
+        query.state.data?.jobs.some(isActiveJob) ? ACTIVE_QUEUE_POLL_MS : IDLE_QUEUE_POLL_MS,
+    }),
   maxScore: () =>
     queryOptions({
       queryKey: ["config", "maxScore"],
@@ -87,19 +109,33 @@ export const invalidates = {
   models: { queryKey: ["models"] },
   reviews: { queryKey: ["reviews"] },
   reviewForms: { queryKey: ["reviewForms"] },
+  reviewJobs: { queryKey: ["reviewJobs"] },
+  currentUser: { queryKey: ["auth"] },
 } as const;
 
 export function createQueryClient(): QueryClient {
-  return new QueryClient({
+  // A 401 anywhere means the sign-in expired: forget the user, so the app shows the sign-in page.
+  const signedOut = (error: unknown) => {
+    if (!(error instanceof UnauthorizedError)) return false;
+    client.setQueryData(queries.currentUser().queryKey, null);
+    return true;
+  };
+  const client: QueryClient = new QueryClient({
+    mutationCache: new MutationCache({ onError: (error) => void signedOut(error) }),
     queryCache: new QueryCache({
       onError: (error, query) => {
+        if (signedOut(error)) return;
         const message = query.meta?.errorToast;
         if (message) toast({ title: "Warning", description: message, variant: "destructive" });
         else console.error(`Query ${JSON.stringify(query.queryKey)} failed:`, error);
       },
     }),
     defaultOptions: {
-      queries: { retry: 1, refetchOnWindowFocus: false },
+      queries: {
+        retry: (failures, error) => !(error instanceof UnauthorizedError) && failures < 1,
+        refetchOnWindowFocus: false,
+      },
     },
   });
+  return client;
 }

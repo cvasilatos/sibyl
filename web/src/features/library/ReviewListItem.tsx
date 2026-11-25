@@ -19,7 +19,8 @@ type Props = {
   expanded: boolean;
   onToggle: () => void;
   onShowPaper: () => void;
-  onDelete: () => void;
+  /** Deletes the review; omitted when the user may not (only its owner and admins may). */
+  onDelete?: () => void;
   deleting: boolean;
   onError: (message: string) => void;
 };
@@ -55,6 +56,7 @@ export default function ReviewListItem({
           </button>
           <p className="mb-2 text-xs text-muted-foreground">
             {review.pdf_filename} • {review.reviewer_model} • {formatDate(review.created_at)}
+            {review.owner ? ` • by ${review.owner}` : ""}
           </p>
           <div className="mb-2 flex items-center gap-2">
             <span className="text-sm font-semibold text-primary">
@@ -75,15 +77,17 @@ export default function ReviewListItem({
           >
             {downloadPdf.isPending ? <Spinner label="Downloading" /> : <Download className="h-4 w-4" />}
           </Button>
-          <Button
-            size="sm"
-            variant="destructive"
-            onClick={onDelete}
-            disabled={deleting}
-            aria-label={`Delete review for ${review.paper_title}`}
-          >
-            {deleting ? <Spinner label="Deleting" /> : <Trash2 className="h-4 w-4" />}
-          </Button>
+          {onDelete && (
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={onDelete}
+              disabled={deleting}
+              aria-label={`Delete review for ${review.paper_title}`}
+            >
+              {deleting ? <Spinner label="Deleting" /> : <Trash2 className="h-4 w-4" />}
+            </Button>
+          )}
           <Button
             size="sm"
             variant="ghost"

@@ -8,7 +8,6 @@ from fastapi.testclient import TestClient
 from sibyl import config
 from sibyl.main import app
 from sibyl.services import review_forms
-from sibyl.state import review_sessions
 
 FORM = "# Workshop Review\n\n## Strengths\n[Your answer]\n"
 
@@ -40,7 +39,7 @@ def test_save_list_get_delete(client: TestClient, storage: Path) -> None:
 
     listing = client.get("/api/review-forms").json()
     assert listing["count"] == 1
-    assert listing["forms"][0] == {"id": saved["id"], "name": "My Workshop", "filename": "form.md", "created_at": saved["created_at"], "size": len(FORM.encode())}
+    assert listing["forms"][0] == {"id": saved["id"], "name": "My Workshop", "filename": "form.md", "created_at": saved["created_at"], "size": len(FORM.encode()), "owner": "local"}
 
     assert client.get(f"/api/review-forms/{saved['id']}").json()["content"] == FORM
 
@@ -70,22 +69,22 @@ def test_ids_never_leave_the_store(form_id: str) -> None:
     assert review_forms.delete_form(form_id) is False
 
 
-def test_upload_with_saved_form(client: TestClient) -> None:
-    """An upload naming a saved form reviews against that form's text."""
+def test_submit_with_saved_form(client: TestClient, held_queue) -> None:
+    """A review naming a saved form answers that form's text."""
     saved = save(client, "Workshop")
-    response = client.post("/api/upload", data={"review_form_id": saved["id"]}, files={"file": ("paper.pdf", b"%PDF", "application/pdf")})
+    response = client.post("/api/review-jobs", data={"review_form_id": saved["id"], "model": "m"}, files={"file": ("paper.pdf", b"%PDF", "application/pdf")})
     assert response.status_code == 200
     body = response.json()
-    assert body["review_form_filename"] == "Workshop"
-    session = review_sessions.pop(body["session_id"])
-    assert session.get("review_form") == FORM
+    assert body["form_name"] == "Workshop"
+    settings = held_queue._jobs[body["id"]].settings
+    assert (settings.review_form, settings.review_form_filename) == (FORM, "Workshop")
 
 
-def test_upload_rejects_unknown_or_combined_forms(client: TestClient) -> None:
+def test_submit_rejects_unknown_or_combined_forms(client: TestClient, held_queue) -> None:
     """An unknown saved form, or more than one kind of form, is refused."""
     pdf = {"file": ("paper.pdf", b"%PDF", "application/pdf")}
-    assert client.post("/api/upload", data={"review_form_id": "0" * 32}, files=pdf).status_code == 400
+    assert client.post("/api/review-jobs", data={"review_form_id": "0" * 32, "model": "m"}, files=pdf).status_code == 400
     saved = save(client, "Workshop")
-    both = client.post("/api/upload", data={"review_form_id": saved["id"], "conference_id": "neurips"}, files=pdf)
+    both = client.post("/api/review-jobs", data={"review_form_id": saved["id"], "conference_id": "neurips", "model": "m"}, files=pdf)
     assert both.status_code == 400
     assert "only one" in both.json()["detail"]

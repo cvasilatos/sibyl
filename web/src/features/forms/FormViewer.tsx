@@ -42,7 +42,11 @@ export default function FormViewer({ form, conference, savedForm, onUse }: Props
         conference.verified ? null : "partly reconstructed from public guidelines",
       ]
     : savedForm
-      ? ["Your form", `from ${savedForm.filename}`, `added ${new Date(savedForm.created_at).toLocaleDateString()}`]
+      ? [
+          savedForm.owner ? `Saved by ${savedForm.owner}` : "Saved form",
+          `from ${savedForm.filename}`,
+          `added ${new Date(savedForm.created_at).toLocaleDateString()}`,
+        ]
       : [];
 
   const copy = async () => {

@@ -89,6 +89,11 @@ def _local_embedder() -> Embedder:
     return embed
 
 
+def _owner(metadata: dict[str, str | int | float | bool | None]) -> str | None:
+    """Who saved a review; None for reviews saved before Sibyl had users."""
+    return str(metadata.get("owner") or "") or None
+
+
 class Engine:
     """Vector database storage for reviews with semantic search using ChromaDB."""
 
@@ -131,13 +136,21 @@ class Engine:
             self._embedder = _ollama_embedder() if self.embeddings == "ollama" else _local_embedder()
         return self._embedder(text)
 
-    def save_review(self, review: PaperReview, pdf_filename: str, pdf_path: str | Path | None = None, paper_text: str | None = None) -> str:
+    def save_review(
+        self,
+        review: PaperReview,
+        pdf_filename: str,
+        pdf_path: str | Path | None = None,
+        paper_text: str | None = None,
+        owner: str | None = None,
+    ) -> str:
         """Save a review to the vector database.
 
         Args:
             review: The PaperReview object to save
             pdf_filename: Original filename of the PDF
             pdf_path: Optional path to the PDF file to store
+            owner: Username of who ran the review; only they (and admins) may delete it
             paper_text: Optional full text of the paper
 
         Returns:
@@ -181,6 +194,7 @@ class Engine:
             "score": review.criteria.score,
             "recommendation": review.criteria.recommendation,
             "created_at": datetime.now(tz=UTC).isoformat(),
+            "owner": owner or "",
             "review_json": json.dumps(
                 {
                     "paper_title": review.paper_title,
@@ -272,6 +286,7 @@ class Engine:
                         recommendation=str(metadata.get("recommendation", "")),
                         review_summary=review_summary,
                         created_at=str(metadata.get("created_at", "")),
+                        owner=_owner(metadata),
                         similarity_score=similarity,
                     )
                 )
@@ -307,7 +322,7 @@ class Engine:
                 metadata = cast("dict[str, str | int | float | bool | None]", result_metadatas[i])
 
                 if search_lower and not any(
-                    search_lower in str(metadata.get(field) or "").lower() for field in ("paper_title", "pdf_filename", "reviewer_model", "recommendation")
+                    search_lower in str(metadata.get(field) or "").lower() for field in ("paper_title", "pdf_filename", "reviewer_model", "recommendation", "owner")
                 ):
                     continue
 
@@ -327,6 +342,7 @@ class Engine:
                         recommendation=str(metadata.get("recommendation", "")),
                         review_summary=review_summary,
                         created_at=str(metadata.get("created_at", "")),
+                        owner=_owner(metadata),
                     )
                 )
 
@@ -367,6 +383,7 @@ class Engine:
                 "score": cast("int", metadata.get("score", 0)),
                 "recommendation": str(metadata.get("recommendation", "")),
                 "created_at": str(metadata.get("created_at", "")),
+                "owner": _owner(metadata),
                 "criteria": review_data.get("criteria", {}),
                 "raw_response": review_data.get("raw_response", ""),
                 "related_work": review_data.get("related_work", []),
@@ -397,14 +414,14 @@ class Engine:
         self.logger.info(f"Review deleted: {review_id}")
         return True
 
-    def delete_all_reviews(self) -> int:
-        """Delete all reviews from storage.
+    def delete_all_reviews(self, owner: str | None = None) -> int:
+        """Delete all reviews from storage, or only ``owner``'s.
 
         Returns:
             Number of reviews deleted
 
         """
-        all_results = self.collection.get(include=["metadatas"])
+        all_results = self.collection.get(include=["metadatas"], where={"owner": owner} if owner is not None else None)
 
         if not all_results["ids"]:
             return 0
@@ -419,7 +436,7 @@ class Engine:
 
         self.collection.delete(ids=all_results["ids"])
         count = len(all_results["ids"])
-        self.logger.info(f"Deleted all {count} reviews")
+        self.logger.info(f"Deleted {count} reviews{f' of {owner}' if owner is not None else ''}")
         return count
 
     def count_reviews(self) -> int:

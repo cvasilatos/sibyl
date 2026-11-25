@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import NavTabs from "@/components/NavTabs";
 import { Toaster } from "@/components/ui/toaster";
+import UserMenu from "@/features/auth/UserMenu";
 import { GlobalDownloadProgress } from "@/features/models/GlobalDownloadProgress";
 import Providers from "./providers";
 
@@ -25,12 +26,15 @@ export default function RootLayout({
           <GlobalDownloadProgress />
           <div className="flex min-h-screen flex-col bg-background">
             <header className="border-b bg-card px-4 py-4 md:px-8">
-              <div className="mb-4 flex items-center gap-3">
-                <span className="text-3xl">🔮</span>
-                <div>
-                  <h1 className="text-xl font-bold leading-tight">Sibyl</h1>
-                  <p className="text-sm text-muted-foreground">AI-Powered Research Paper Review</p>
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <span className="text-3xl">🔮</span>
+                  <div>
+                    <h1 className="text-xl font-bold leading-tight">Sibyl</h1>
+                    <p className="text-sm text-muted-foreground">AI-Powered Research Paper Review</p>
+                  </div>
                 </div>
+                <UserMenu />
               </div>
               <NavTabs />
             </header>

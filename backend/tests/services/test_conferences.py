@@ -160,18 +160,16 @@ def test_conference_endpoints(client):
     assert client.get("/api/conferences/nope").status_code == 404
 
 
-def test_upload_with_conference(client):
-    from sibyl.state import review_sessions
-
+def test_submit_with_conference(client, held_queue):
     files = {"file": ("paper.pdf", b"%PDF-1.4", "application/pdf")}
-    response = client.post("/api/upload", files=files, data={"conference_id": "testconf"})
+    response = client.post("/api/review-jobs", files=files, data={"conference_id": "testconf", "model": "m"})
     assert response.status_code == 200
-    assert response.json()["conference_id"] == "testconf"
-    assert review_sessions[response.json()["session_id"]]["conference_id"] == "testconf"
+    assert response.json()["form_name"] == "TestConf 2025"
+    assert held_queue._jobs[response.json()["id"]].settings.conference_id == "testconf"
 
-    assert client.post("/api/upload", files=files, data={"conference_id": "nope"}).status_code == 400
+    assert client.post("/api/review-jobs", files=files, data={"conference_id": "nope", "model": "m"}).status_code == 400
     both = {**files, "review_form": ("form.md", b"# Q", "text/markdown")}
-    assert client.post("/api/upload", files=both, data={"conference_id": "testconf"}).status_code == 400
+    assert client.post("/api/review-jobs", files=both, data={"conference_id": "testconf", "model": "m"}).status_code == 400
 
 
 def test_engine_endpoint(client):
@@ -181,10 +179,10 @@ def test_engine_endpoint(client):
     assert data["platform"]
 
 
-def test_ws_review_session_with_conference(client, monkeypatch):
-    """Full review flow over the WebSocket: upload with a conference, parse, generate, store."""
-    from sibyl.routers import ws
+def test_review_pipeline_with_conference(client, monkeypatch, tmp_path):
+    """A full review run: parse, generate against the conference form, store, reporting each step in plan order."""
     from sibyl.services.pdf_parser import PDFParser
+    from sibyl.services.review_pipeline import ReviewInputs, planned_steps, run_review
 
     seen_slots: list[int] = []
 
@@ -195,33 +193,36 @@ def test_ws_review_session_with_conference(client, monkeypatch):
         return {"title": "A Paper", "text": "paper body"}
 
     monkeypatch.setattr(PDFParser, "get_metadata", fake_metadata)
-    monkeypatch.setattr(ws.storage, "save_review", lambda **_kwargs: "review_123")
+    storage = MagicMock()
+    storage.save_review = MagicMock(return_value="review_123")
 
     reply = {"conference_review": {"summary": "Fine.", "soundness": 2, "decision": "reject"}, **NORMALIZED}
     ollama = AsyncMock()
     ollama.chat = AsyncMock(return_value=MagicMock(message=MagicMock(content=json.dumps(reply))))
-    client.app.state.engine.clients = [ollama]
+    engine = client.app.state.engine
+    engine.clients = [ollama]
 
-    upload = client.post("/api/upload", files={"file": ("p.pdf", b"%PDF-1.4", "application/pdf")}, data={"conference_id": "testconf"}).json()
-
+    pdf = tmp_path / "p.pdf"
+    pdf.write_bytes(b"%PDF-1.4")
+    inputs = ReviewInputs(pdf_path=pdf, filename="p.pdf", model="m", owner="alice", vlm="none", related=True, sources=(), conference_id="testconf")
     messages = []
-    with client.websocket_connect(f"/ws/session/{upload['session_id']}?model=m&host=0&vlm=none&related=true&sources=") as ws:
-        while True:
-            message = ws.receive_json()
-            messages.append(message)
-            if message["status"] in {"completed", "error"}:
-                break
 
-    final = messages[-1]
-    assert final["status"] == "completed", final
-    assert final["review_id"] == "review_123"
-    criteria = final["results"]["reviews"][0]["criteria"]
-    assert criteria["conference"] == "testconf"
-    assert criteria["review_form_answers"]["soundness"] == 2
-    assert any("TestConf 2025 reviewer form" in m.get("message", "") for m in messages)
+    async def send(message):
+        messages.append(message)
+
+    review_id, results = asyncio.run(run_review(engine, storage, inputs, host=0, send=send))
+
+    assert review_id == "review_123"
+    assert storage.save_review.call_args.kwargs["owner"] == "alice"
+    criteria = results.reviews[0].criteria
+    assert criteria.conference == "testconf"
+    assert criteria.review_form_answers is not None
+    assert criteria.review_form_answers["soundness"] == 2
+    assert any("TestConf 2025 reviewer form" in m.message for m in messages)
     assert seen_slots == [0]
-    # The plan comes first (figures are off, and related work has no source to search), then each update names its step, in plan order.
-    assert messages[0] == {"status": "started", "steps": ["parse", "review", "save"]}
-    steps = [m["step"] for m in messages if m["status"] == "progress"]
-    assert steps == sorted(steps, key=messages[0]["steps"].index)
+    # Figures are off, and related work has no source to search; each update names its step, in plan order.
+    plan = planned_steps(engine.name, inputs)
+    assert plan == ["parse", "review", "save"]
+    steps = [m.step for m in messages]
+    assert steps == sorted(steps, key=plan.index)
     assert set(steps) == {"parse", "review", "save"}

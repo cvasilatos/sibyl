@@ -1,4 +1,4 @@
-"""Response models for service status, configuration and uploads."""
+"""Response models for service status and configuration."""
 
 from pydantic import BaseModel
 
@@ -28,12 +28,3 @@ class Online(BaseModel):
 
     status: str
     system: str
-
-
-class UploadResult(BaseModel):
-    """A paper uploaded and waiting for review."""
-
-    session_id: str
-    filename: str | None
-    review_form_filename: str | None
-    conference_id: str | None

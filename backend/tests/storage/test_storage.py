@@ -338,3 +338,19 @@ def test_get_review_keeps_its_configuration(storage, sample_review):
     plain = storage.get_review(storage.save_review(review=sample_review, pdf_filename="p.pdf"))
     assert plain is not None
     assert plain["config"] is None
+
+
+def test_reviews_record_their_owner(storage, sample_review):
+    """Every view of a review names who ran it; "delete all" can be limited to one owner."""
+    alices = storage.save_review(sample_review, "a.pdf", owner="alice")
+    bobs = storage.save_review(sample_review, "b.pdf", owner="bob")
+    legacy = storage.save_review(sample_review, "c.pdf")
+
+    assert storage.get_review(alices)["owner"] == "alice"
+    assert storage.get_review(legacy)["owner"] is None
+    assert {r.id: r.owner for r in storage.list_reviews()} == {alices: "alice", bobs: "bob", legacy: None}
+    assert [r.id for r in storage.list_reviews(search="bob")] == [bobs]
+    assert {r.owner for r in storage.search_reviews("machine learning")} == {"alice", "bob", None}
+
+    assert storage.delete_all_reviews(owner="alice") == 1
+    assert {r.id for r in storage.list_reviews()} == {bobs, legacy}

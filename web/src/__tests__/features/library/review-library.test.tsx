@@ -6,7 +6,7 @@ import ReviewLibrary from "@/features/library/ReviewLibrary";
 import { mockApi } from "../../helpers/fetch";
 import { renderWithQuery } from "../../helpers/render";
 
-function stored(id: string, paper_title: string, reviewer_model: string, recommendation = "Accept") {
+function stored(id: string, paper_title: string, reviewer_model: string, recommendation = "Accept", owner = "alice") {
   return {
     id,
     paper_title,
@@ -17,10 +17,11 @@ function stored(id: string, paper_title: string, reviewer_model: string, recomme
     recommendation,
     created_at: "2026-01-01T00:00:00",
     review_summary: `Summary of ${id}`,
+    owner,
   };
 }
 
-const reviews = [stored("r1", "Paper One", "qwen3:8b"), stored("r2", "Paper Two", "llama3:8b", "Reject")];
+const reviews = [stored("r1", "Paper One", "qwen3:8b"), stored("r2", "Paper Two", "llama3:8b", "Reject", "bob")];
 const full = (id: string) => ({
   ...stored(id, "Paper One", "qwen3:8b"),
   criteria: { score: 7, recommendation: "Accept", novelty: `Novelty of ${id}` },
@@ -106,5 +107,15 @@ describe("ReviewLibrary", () => {
     renderWithQuery(<Library />);
     await userEvent.click(await screen.findByRole("button", { name: "Delete review for Paper One" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Storage is read-only");
+  });
+
+  it("lets a user delete only the reviews they ran", async () => {
+    mockApi(routes({ "GET /api/auth/me": { username: "alice", is_admin: false, auth_enabled: true } }));
+    renderWithQuery(<Library />);
+    expect(await screen.findByText("Paper Two")).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Delete review for Paper One" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Delete review for Paper Two" })).not.toBeInTheDocument();
+    expect(screen.getByText(/by bob/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Delete All Mine/ })).toBeEnabled();
   });
 });

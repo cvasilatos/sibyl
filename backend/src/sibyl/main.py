@@ -11,17 +11,20 @@ from typing import Any, cast
 
 from anyio import to_thread
 from decima.logger import CustomLogger
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic.json_schema import models_json_schema
 
+from sibyl import config
 from sibyl.inference import create_engine
-from sibyl.routers import conferences, gpu, review_forms, reviews, upload, ws
+from sibyl.routers import auth, conferences, gpu, review_forms, review_jobs, reviews, system, ws
 from sibyl.schemas.system import Online
 from sibyl.schemas.ws import WS_MESSAGES
 from sibyl.services import pdf_parser
 from sibyl.services.figures import prefetch_vlm
 from sibyl.services.gpu_activity import GpuActivity
+from sibyl.services.review_queue import ReviewQueue
+from sibyl.state import storage
 
 LOG_DIR = Path("logs")
 KEEP_LOG_FILES = 10
@@ -30,7 +33,7 @@ JSON_LOG_BYTES = 10 * 1024**2
 """Size at which the JSON log is rotated (one previous file is kept)."""
 QUIET_LOGGERS = ("httpx", "httpcore", "urllib3", "filelock", "PIL", "multipart", "asyncio")
 """Libraries that log every request or file access below WARNING."""
-UNLOGGED_PATHS = ("/api/gpu",)
+UNLOGGED_PATHS = ("/api/gpu", "/api/review-jobs", "/api/auth/me")
 """Endpoints the web app polls; logging every successful read would fill the disk."""
 
 
@@ -84,6 +87,11 @@ async def lifespan(app: FastAPI):  # noqa: ANN201, D103
     # Nothing runs on the GPUs until a review starts; once reviews stop, model servers and PDF models are released.
     app.state.gpu_activity = GpuActivity(release_gpus)
 
+    # Reviews run in the background, one per GPU, whether or not anyone keeps the page open.
+    app.state.review_queue = ReviewQueue(app.state.engine, storage, app.state.gpu_activity, config.STORAGE_PATH / "review_jobs", app.state.engine.review_gpus())
+    app.state.review_queue.load()
+    app.state.review_queue.dispatch()
+
     # Download the figure-describing vision model in the background; the server is usable meanwhile.
     vlm_task = asyncio.create_task(prefetch_vlm(app.state.engine))
     vlm_task.add_done_callback(lambda t: t.cancelled() or t.exception() is None or logger.error(f"Vision model prefetch failed: {t.exception()}"))
@@ -91,6 +99,7 @@ async def lifespan(app: FastAPI):  # noqa: ANN201, D103
     yield
 
     logger.info("Shutting down: Cleaning up...")
+    await app.state.review_queue.aclose()
     await app.state.gpu_activity.aclose()
     vlm_task.cancel()
     with contextlib.suppress(asyncio.CancelledError):
@@ -118,20 +127,32 @@ app = SibylAPI(
     lifespan=lifespan,
 )
 
+
+def cors_origins() -> list[str]:
+    """Web app origins allowed to call the API with the session cookie (``SIBYL_CORS_ORIGINS``, comma separated)."""
+    return [origin.strip().rstrip("/") for origin in os.getenv("SIBYL_CORS_ORIGINS", "").split(",") if origin.strip()]
+
+
+# The session cookie is SameSite=Lax, so other sites never send it; without SIBYL_CORS_ORIGINS any origin on the same
+# site (e.g. the web app on another port of this host) may call the API with it.
 app.add_middleware(
     CORSMiddleware,  # type: ignore[invalid-argument-type]
-    allow_origins=["*"],
+    allow_origins=cors_origins(),
+    allow_origin_regex=None if cors_origins() else ".*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-app.include_router(reviews.router, prefix="/api", tags=["Reviews"])
-app.include_router(upload.router, prefix="/api", tags=["Upload"])
-app.include_router(ws.router, prefix="/ws", tags=["WebSocket"])
-app.include_router(gpu.router, prefix="/api", tags=["GPU"])
-app.include_router(conferences.router, prefix="/api", tags=["Conferences"])
-app.include_router(review_forms.router, prefix="/api", tags=["Review Forms"])
+signed_in = [Depends(auth.require_user)]
+app.include_router(system.router, prefix="/api", tags=["System"])
+app.include_router(auth.router, prefix="/api", tags=["Auth"])
+app.include_router(reviews.router, prefix="/api", tags=["Reviews"], dependencies=signed_in)
+app.include_router(review_jobs.router, prefix="/api", tags=["Review Queue"], dependencies=signed_in)
+app.include_router(ws.router, prefix="/ws", tags=["WebSocket"])  # checks the session itself: WebSockets cannot answer 401
+app.include_router(gpu.router, prefix="/api", tags=["GPU"], dependencies=signed_in)
+app.include_router(conferences.router, prefix="/api", tags=["Conferences"], dependencies=signed_in)
+app.include_router(review_forms.router, prefix="/api", tags=["Review Forms"], dependencies=signed_in)
 
 
 @app.get("/")

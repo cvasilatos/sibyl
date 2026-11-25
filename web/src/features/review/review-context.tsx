@@ -6,15 +6,14 @@ import { toast } from "@/hooks/use-toast";
 import { queries } from "@/lib/api/queries";
 import { type FormRef, formKey, parseFormKey } from "@/lib/review-forms";
 import type { ReviewDetail, ReviewMode } from "@/lib/types";
-import { useReviewSession } from "./use-review-session";
+import { useReviewJobs } from "./use-review-jobs";
 
 /** Vision-model choices besides installed models: use the server's configured default, or skip figure descriptions. */
 export const VLM_DEFAULT = "";
 export const VLM_NONE = "none";
 
 function useReviewState() {
-  const session = useReviewSession();
-  const { clearResults } = session;
+  const session = useReviewJobs();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [chosenForm, setChosenForm] = useState<FormRef | null>(null);
   const [chosenModel, setSelectedModel] = useState("");
@@ -48,29 +47,19 @@ function useReviewState() {
       : chosenForm;
   const selectedFormKey = selectedForm ? formKey(selectedForm) : null;
 
-  const selectFile = useCallback(
-    (file: File) => {
-      if (file.type !== "application/pdf") {
-        toast({ title: "Invalid File", description: "Please select a PDF file", variant: "destructive" });
-        return;
-      }
-      setSelectedFile(file);
-      clearResults();
-    },
-    [clearResults],
-  );
+  const selectFile = useCallback((file: File) => {
+    if (file.type !== "application/pdf") {
+      toast({ title: "Invalid File", description: "Please select a PDF file", variant: "destructive" });
+      return;
+    }
+    setSelectedFile(file);
+  }, []);
 
   /** Pick a review form by its key ("conference:<id>" or "custom:<id>"), or null for the generic review. */
-  const selectForm = useCallback(
-    (key: string | null) => {
-      setChosenForm(parseFormKey(key));
-      clearResults();
-    },
-    [clearResults],
-  );
+  const selectForm = useCallback((key: string | null) => setChosenForm(parseFormKey(key)), []);
 
   const { start } = session;
-  const startReview = useCallback(() => {
+  const startReview = useCallback(async () => {
     if (!selectedFile || !selectedModel) {
       toast({
         title: "Cannot Start Review",
@@ -79,7 +68,7 @@ function useReviewState() {
       });
       return;
     }
-    start({
+    const queued = await start({
       file: selectedFile,
       form: selectedForm,
       model: selectedModel,
@@ -92,6 +81,7 @@ function useReviewState() {
       detail: selectedDetail,
       mode: selectedMode,
     });
+    if (queued) setSelectedFile(null); // queued: the next paper can be picked while it runs
   }, [
     start,
     selectedFile,
@@ -129,8 +119,13 @@ function useReviewState() {
       selectedGpuIndex,
       setSelectedGpuIndex,
       results: session.results,
-      isReviewing: session.isReviewing,
+      isSubmitting: session.isSubmitting,
       progress: session.progress,
+      jobs: session.jobs,
+      selectedJob: session.selectedJob,
+      selectJob: session.selectJob,
+      cancelJob: session.cancel,
+      cancellingJobId: session.cancellingId,
       startReview,
     }),
     [
@@ -149,8 +144,13 @@ function useReviewState() {
       availableGpus,
       selectedGpuIndex,
       session.results,
-      session.isReviewing,
+      session.isSubmitting,
       session.progress,
+      session.jobs,
+      session.selectedJob,
+      session.selectJob,
+      session.cancel,
+      session.cancellingId,
       startReview,
     ],
   );
@@ -160,7 +160,7 @@ type ReviewState = ReturnType<typeof useReviewState>;
 
 const ReviewContext = createContext<ReviewState | undefined>(undefined);
 
-/** Holds the review draft (paper, form, models, GPU) and the running session. Lives in the root layout so both survive page changes. */
+/** Holds the review draft (paper, form, models, GPU) and follows the review queue. Lives in the root layout so both survive page changes. */
 export function ReviewProvider({ children }: { children: ReactNode }) {
   return <ReviewContext.Provider value={useReviewState()}>{children}</ReviewContext.Provider>;
 }

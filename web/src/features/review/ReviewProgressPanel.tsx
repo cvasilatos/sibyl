@@ -3,7 +3,7 @@
 import { CheckCircle2, Circle, XCircle } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Spinner } from "@/components/ui/spinner";
-import type { ReviewStep } from "@/lib/types";
+import type { ReviewJobStatus, ReviewStep } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useReview } from "./review-context";
 
@@ -17,10 +17,21 @@ const STEP_LABELS: Record<ReviewStep, string> = {
 
 type StepState = "done" | "active" | "failed" | "pending";
 
-function stepState(index: number, currentIndex: number, outcome: "running" | "completed" | "failed"): StepState {
+function stepState(index: number, currentIndex: number, outcome: ReviewJobStatus): StepState {
   if (outcome === "completed" || index < currentIndex) return "done";
-  if (index === currentIndex) return outcome === "failed" ? "failed" : "active";
+  if (index === currentIndex) {
+    if (outcome === "failed" || outcome === "cancelled") return "failed";
+    return outcome === "running" ? "active" : "pending";
+  }
   return "pending";
+}
+
+function title(outcome: ReviewJobStatus, position: number | null): string {
+  if (outcome === "completed") return "Review complete";
+  if (outcome === "failed") return "Review failed";
+  if (outcome === "cancelled") return "Review cancelled";
+  if (outcome === "queued") return position ? `Queued: #${position} in line` : "Queued";
+  return "Reviewing…";
 }
 
 function StepIcon({ state }: { state: StepState }) {
@@ -30,25 +41,27 @@ function StepIcon({ state }: { state: StepState }) {
   return <Circle className="h-4 w-4 text-muted-foreground/50" aria-hidden />;
 }
 
-/** The steps of the running (or last) review with an overall progress bar, shown under the paper dropzone. */
+/** The steps of the selected review (by default the user's newest) with an overall progress bar, under the dropzone. */
 export default function ReviewProgressPanel() {
   const { progress } = useReview();
   if (!progress) return null;
-  const { steps, current, percent, message, outcome } = progress;
+  const { steps, current, percent, message, outcome, position, filename } = progress;
   const currentIndex = current ? steps.indexOf(current) : -1;
+  const stopped = outcome === "failed" || outcome === "cancelled";
 
   return (
     <section aria-label="Review progress" className="space-y-3 rounded-lg border bg-card p-4">
       <div className="flex items-center justify-between gap-2 text-sm">
-        <span className="font-medium">
-          {outcome === "completed" ? "Review complete" : outcome === "failed" ? "Review failed" : "Reviewing…"}
+        <span className="min-w-0">
+          <span className="font-medium">{title(outcome, position)}</span>
+          <span className="block truncate text-xs text-muted-foreground">{filename}</span>
         </span>
         <span className="tabular-nums text-muted-foreground">{percent}%</span>
       </div>
       <Progress
         value={percent}
         aria-label="Overall review progress"
-        className={cn(outcome === "failed" && "bg-destructive/20 [&>div]:bg-destructive")}
+        className={cn(stopped && "bg-destructive/20 [&>div]:bg-destructive")}
       />
       {steps.length > 0 && (
         <ol className="space-y-2">
@@ -81,9 +94,9 @@ export default function ReviewProgressPanel() {
           })}
         </ol>
       )}
-      {/* Before the first step (uploading) or a failure outside any step (connection lost), show the message alone. */}
+      {/* Before the first step (waiting in the queue) or a failure outside any step, show the message alone. */}
       {currentIndex === -1 && outcome !== "completed" && (
-        <p className={cn("text-xs", outcome === "failed" ? "text-destructive" : "text-muted-foreground")}>{message}</p>
+        <p className={cn("text-xs", stopped ? "text-destructive" : "text-muted-foreground")}>{message}</p>
       )}
     </section>
   );

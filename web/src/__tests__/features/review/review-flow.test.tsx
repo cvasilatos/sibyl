@@ -3,11 +3,11 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import ResultsPanel from "@/features/review/ResultsPanel";
 import ReviewForm from "@/features/review/ReviewForm";
+import ReviewQueue from "@/features/review/ReviewQueue";
 import { ReviewProvider } from "@/features/review/review-context";
 import { reviewFormProblem } from "@/lib/review-forms";
 import { mockApi } from "../../helpers/fetch";
 import { renderWithQuery } from "../../helpers/render";
-import { FakeWebSocket, installFakeWebSocket } from "../../helpers/websocket";
 
 const toast = vi.hoisted(() => vi.fn(() => ({ id: "t", dismiss: vi.fn(), update: vi.fn() })));
 vi.mock("@/hooks/use-toast", () => ({ toast, useToast: () => ({ toast, toasts: [], dismiss: vi.fn() }) }));
@@ -40,25 +40,48 @@ const config = {
   gpu: 1,
   duration_seconds: 125.4,
 };
-const completed = {
-  status: "completed",
-  progress: 100,
-  message: "Review complete!",
-  review_id: "r1",
-  results: {
-    paper_title: "My Paper",
-    reviews: [
-      {
-        paper_title: "My Paper",
-        reviewer_model: "llama3:8b",
-        criteria,
-        raw_response: "{}",
-        related_work: [relatedPaper],
-        config,
-      },
-    ],
-  },
+const results = {
+  paper_title: "My Paper",
+  reviews: [
+    {
+      paper_title: "My Paper",
+      reviewer_model: "llama3:8b",
+      criteria,
+      raw_response: "{}",
+      related_work: [relatedPaper],
+      config,
+    },
+  ],
 };
+
+type Job = Record<string, unknown> & { id: string; status: string };
+
+function job(overrides: Partial<Job> = {}): Job {
+  return {
+    id: "j1",
+    owner: "local",
+    filename: "paper.pdf",
+    model: "llama3:8b",
+    form_name: null,
+    status: "queued",
+    position: 1,
+    requested_gpu: null,
+    gpu: null,
+    steps: ["parse", "review", "save"],
+    step: null,
+    progress: 0,
+    message: "Waiting for a free GPU",
+    created_at: "2026-11-25T10:00:00Z",
+    started_at: null,
+    finished_at: null,
+    review_id: null,
+    results: null,
+    ...overrides,
+  };
+}
+
+/** The server's review queue, which tests change between reads. */
+let queue: Job[] = [];
 
 function routes() {
   return {
@@ -79,7 +102,15 @@ function routes() {
     },
     "GET /api/conferences": { conferences: [], count: 0 },
     "GET /api/review-forms": { forms: [], count: 0 },
-    "POST /api/upload": { session_id: "s1", filename: "paper.pdf", message: "ok" },
+    "GET /api/review-jobs": () => ({ jobs: queue, slots: 2 }),
+    "POST /api/review-jobs": () => {
+      queue = [job()];
+      return queue[0];
+    },
+    "DELETE /api/review-jobs/j1": () => {
+      queue = [job({ status: "cancelled", message: "Cancelled by local", position: null })];
+      return queue[0];
+    },
   };
 }
 
@@ -87,47 +118,63 @@ function renderReviewPage() {
   const view = renderWithQuery(
     <ReviewProvider>
       <ReviewForm />
+      <ReviewQueue />
       <ResultsPanel />
     </ReviewProvider>,
   );
   const pdfInput = view.container.querySelector<HTMLInputElement>('input[accept=".pdf"]');
   if (!pdfInput) throw new Error("PDF input not found");
-  return { ...view, pdfInput };
+  /** Make the server's queue `jobs` and let the page read it (it polls; tests do not wait for that). */
+  const serverHas = async (...jobs: Job[]) => {
+    queue = jobs;
+    await act(() => view.client.invalidateQueries({ queryKey: ["reviewJobs"] }));
+    await waitFor(() => expect(view.client.getQueryData<{ jobs: Job[] }>(["reviewJobs"])?.jobs).toEqual(jobs));
+  };
+  return { ...view, pdfInput, serverHas };
 }
 
 const pdf = () => new File(["%PDF"], "paper.pdf", { type: "application/pdf" });
 
+async function submitPaper(pdfInput: HTMLInputElement) {
+  await userEvent.upload(pdfInput, pdf());
+  await userEvent.click(screen.getByRole("button", { name: /Start Review/ }));
+}
+
 describe("review flow", () => {
   beforeEach(() => {
-    installFakeWebSocket();
+    queue = [];
     toast.mockClear();
   });
 
-  it("uploads the paper, follows the session and shows the results", async () => {
+  it("queues the paper with the chosen settings, follows it and shows the results", async () => {
     const api = mockApi(routes());
-    const { pdfInput } = renderReviewPage();
+    const { pdfInput, serverHas } = renderReviewPage();
     await userEvent.selectOptions(await screen.findByLabelText("Select Model for Review"), "llama3:8b");
     await userEvent.selectOptions(await screen.findByLabelText("Select GPU"), "1");
     await userEvent.selectOptions(await screen.findByLabelText("Vision Model for Figures"), "None (captions only)");
-    await userEvent.upload(pdfInput, pdf());
-    await userEvent.click(screen.getByRole("button", { name: /Start Review/ }));
+    await submitPaper(pdfInput);
 
-    await waitFor(() => expect(FakeWebSocket.instances).toHaveLength(1));
-    const url = new URL(FakeWebSocket.last().url);
-    expect(url.pathname).toBe("/ws/session/s1");
-    expect(url.searchParams.get("model")).toBe("llama3:8b");
-    expect(url.searchParams.get("host")).toBe("2"); // GPU 1 is host 2; 0 means any
-    expect(url.searchParams.get("vlm")).toBe("none");
-    expect(url.searchParams.get("related")).toBe("true");
-    expect(url.searchParams.get("sources")).toBe("arxiv,semantic_scholar");
-    expect(url.searchParams.get("detail")).toBe("standard"); // server defaults until the user picks
-    expect(url.searchParams.get("mode")).toBe("single");
-    expect(api.calls("POST /api/upload")).toBe(1);
-    expect(screen.getByRole("button", { name: /Reviewing/ })).toBeDisabled();
+    await waitFor(() => expect(api.calls("POST /api/review-jobs")).toBe(1));
+    const [fields = {}] = await api.formFields("POST /api/review-jobs");
+    expect(fields).toEqual({
+      model: "llama3:8b",
+      gpu: "1",
+      vlm: "none",
+      related: "true",
+      sources: "arxiv,semantic_scholar",
+      detail: "standard", // server defaults until the user picks
+      mode: "single",
+    });
+    expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: "Review Queued" }));
+    // Queued: the paper is cleared so the next one can be picked while this one waits.
+    await waitFor(() => expect(screen.getByRole("button", { name: /Start Review/ })).toBeDisabled());
+    expect(await screen.findByText("Queued: #1 in line")).toBeInTheDocument();
 
-    act(() => FakeWebSocket.last().receive({ status: "started", steps: ["parse", "review", "save"] }));
-    act(() => FakeWebSocket.last().receive({ status: "progress", step: "review", progress: 50, message: "Reviewing" }));
-    act(() => FakeWebSocket.last().receive(completed));
+    await serverHas(
+      job({ status: "running", position: null, gpu: 1, step: "review", progress: 50, message: "Reviewing" }),
+    );
+    expect(await screen.findByText("Reviewing…")).toBeInTheDocument();
+    await serverHas(job({ status: "completed", position: null, gpu: 1, progress: 100, review_id: "r1", results }));
 
     expect(await screen.findByText("Very novel")).toBeInTheDocument();
     expect(screen.getByText("8/10")).toBeInTheDocument();
@@ -136,7 +183,6 @@ describe("review flow", () => {
       "https://arxiv.org/abs/2401.00001",
     );
     expect(screen.getByText("Same task, different method.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Start Review/ })).toBeEnabled();
     expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: "✅ Review Complete" }));
 
     const settings = within(screen.getByLabelText("Review settings"));
@@ -148,24 +194,22 @@ describe("review flow", () => {
 
   it("shows the review's steps and progress under the paper", async () => {
     mockApi(routes());
-    const { pdfInput } = renderReviewPage();
+    const { pdfInput, serverHas } = renderReviewPage();
     await screen.findByLabelText("Select Model for Review");
     expect(screen.queryByLabelText("Review progress")).not.toBeInTheDocument();
-    await userEvent.upload(pdfInput, pdf());
-    await userEvent.click(screen.getByRole("button", { name: /Start Review/ }));
-    await waitFor(() => expect(FakeWebSocket.instances).toHaveLength(1));
+    await submitPaper(pdfInput);
+    const panel = within(await screen.findByLabelText("Review progress"));
 
-    const panel = within(screen.getByLabelText("Review progress"));
-    act(() => FakeWebSocket.last().receive({ status: "started", steps: ["parse", "figures", "review", "save"] }));
-    act(() =>
-      FakeWebSocket.last().receive({
-        status: "progress",
+    await serverHas(
+      job({
+        status: "running",
+        position: null,
+        steps: ["parse", "figures", "review", "save"],
         step: "figures",
         progress: 40,
         message: "Describing figure 1/3",
       }),
     );
-
     const state = (label: RegExp) => panel.getByText(label).closest("li")?.dataset.state;
     expect(state(/Parse the PDF/)).toBe("done");
     expect(state(/Describe figures/)).toBe("active");
@@ -174,42 +218,87 @@ describe("review flow", () => {
     expect(panel.getByText("Describing figure 1/3")).toBeInTheDocument();
     expect(panel.getByRole("progressbar", { name: "Overall review progress" })).toHaveAttribute("aria-valuenow", "40");
 
-    act(() => FakeWebSocket.last().receive(completed));
+    await serverHas(job({ status: "completed", position: null, progress: 100, review_id: "r1", results }));
     expect(await panel.findByText("Review complete")).toBeInTheDocument();
     expect(state(/Save the review/)).toBe("done");
   });
 
-  it("marks the step that failed", async () => {
+  it("marks the step that failed and tells the user", async () => {
     mockApi(routes());
-    const { pdfInput } = renderReviewPage();
+    const { pdfInput, serverHas } = renderReviewPage();
     await screen.findByLabelText("Select Model for Review");
-    await userEvent.upload(pdfInput, pdf());
-    await userEvent.click(screen.getByRole("button", { name: /Start Review/ }));
-    await waitFor(() => expect(FakeWebSocket.instances).toHaveLength(1));
+    await submitPaper(pdfInput);
+    await screen.findByLabelText("Review progress");
 
-    act(() => FakeWebSocket.last().receive({ status: "started", steps: ["parse", "review", "save"] }));
-    act(() => FakeWebSocket.last().receive({ status: "progress", step: "review", progress: 50, message: "Reviewing" }));
-    act(() => FakeWebSocket.last().receive({ status: "error", message: "Model crashed" }));
+    await serverHas(job({ status: "running", position: null, step: "review", progress: 50, message: "Reviewing" }));
+    await serverHas(job({ status: "failed", position: null, step: "review", progress: 50, message: "Model crashed" }));
 
     const panel = within(screen.getByLabelText("Review progress"));
     expect(panel.getByText("Review failed")).toBeInTheDocument();
     expect(panel.getByText("Write the review").closest("li")?.dataset.state).toBe("failed");
     expect(panel.getByText("Model crashed")).toBeInTheDocument();
+    expect(toast).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Review Failed", description: "Model crashed" }),
+    );
+  });
+
+  it("shows reviews already on the server when the page opens, and the whole queue", async () => {
+    queue = [
+      job({
+        id: "theirs",
+        owner: "bob",
+        filename: "bobs.pdf",
+        status: "running",
+        position: null,
+        gpu: 0,
+        progress: 30,
+      }),
+      job({ id: "mine", owner: "alice", filename: "alices.pdf", status: "queued", position: 1 }),
+    ];
+    mockApi({ ...routes(), "GET /api/auth/me": { username: "alice", is_admin: false, auth_enabled: true } });
+    renderReviewPage();
+
+    const panel = within(await screen.findByLabelText("Review progress"));
+    expect(panel.getByText("alices.pdf")).toBeInTheDocument(); // the user's own review, found again
+    expect(panel.getByText("Queued: #1 in line")).toBeInTheDocument();
+
+    const list = within(screen.getByRole("list", { name: "Review queue" }));
+    const theirs = within(list.getByLabelText("bobs.pdf by bob"));
+    expect(theirs.getByText("GPU 0 · 30%")).toBeInTheDocument();
+    expect(theirs.queryByRole("button", { name: /Cancel/ })).not.toBeInTheDocument(); // not theirs to cancel
+    const mine = within(list.getByLabelText("alices.pdf by alice"));
+    expect(mine.getByText("you · llama3:8b")).toBeInTheDocument();
+    expect(mine.getByRole("button", { name: "Cancel alices.pdf" })).toBeInTheDocument();
+
+    await userEvent.click(theirs.getByRole("button", { name: "Show bobs.pdf" }));
+    expect(panel.getByText("bobs.pdf")).toBeInTheDocument();
+  });
+
+  it("cancels a review after confirmation", async () => {
+    const api = mockApi(routes());
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    queue = [job()];
+    renderReviewPage();
+
+    await userEvent.click(await screen.findByRole("button", { name: "Cancel paper.pdf" }));
+    await waitFor(() => expect(api.calls("DELETE /api/review-jobs/j1")).toBe(1));
+    expect(await screen.findByText("Review cancelled")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Dismiss paper.pdf" })).toBeInTheDocument();
   });
 
   it("sends the chosen review length and generation mode", async () => {
-    mockApi(routes());
+    const api = mockApi(routes());
     const { pdfInput } = renderReviewPage();
     await screen.findByLabelText("Select Model for Review");
     await userEvent.selectOptions(screen.getByLabelText("Review Length"), "Detailed");
     await userEvent.selectOptions(screen.getByLabelText("Generation"), "Section by section");
-    await userEvent.upload(pdfInput, pdf());
-    await userEvent.click(screen.getByRole("button", { name: /Start Review/ }));
+    await submitPaper(pdfInput);
 
-    await waitFor(() => expect(FakeWebSocket.instances).toHaveLength(1));
-    const params = new URL(FakeWebSocket.last().url).searchParams;
-    expect(params.get("detail")).toBe("detailed");
-    expect(params.get("mode")).toBe("sections");
+    await waitFor(() => expect(api.calls("POST /api/review-jobs")).toBe(1));
+    const [fields = {}] = await api.formFields("POST /api/review-jobs");
+    expect(fields.detail).toBe("detailed");
+    expect(fields.mode).toBe("sections");
+    expect(fields.gpu).toBeUndefined(); // Auto: the first free GPU
   });
 
   it("starts from the server's default length and mode", async () => {
@@ -220,30 +309,28 @@ describe("review flow", () => {
   });
 
   it("searches only the checked related-work sources", async () => {
-    mockApi(routes());
+    const api = mockApi(routes());
     const { pdfInput } = renderReviewPage();
     await screen.findByLabelText("Select Model for Review");
     await userEvent.click(screen.getByLabelText("Search arXiv for related work"));
-    await userEvent.upload(pdfInput, pdf());
-    await userEvent.click(screen.getByRole("button", { name: /Start Review/ }));
+    await submitPaper(pdfInput);
 
-    await waitFor(() => expect(FakeWebSocket.instances).toHaveLength(1));
-    const params = new URL(FakeWebSocket.last().url).searchParams;
-    expect(params.get("related")).toBe("true");
-    expect(params.get("sources")).toBe("semantic_scholar");
+    await waitFor(() => expect(api.calls("POST /api/review-jobs")).toBe(1));
+    const [fields = {}] = await api.formFields("POST /api/review-jobs");
+    expect(fields.related).toBe("true");
+    expect(fields.sources).toBe("semantic_scholar");
   });
 
   it("can skip the related-work search", async () => {
-    mockApi(routes());
+    const api = mockApi(routes());
     const { pdfInput } = renderReviewPage();
     await screen.findByLabelText("Select Model for Review");
     await userEvent.click(screen.getByLabelText("Search arXiv for related work"));
     await userEvent.click(screen.getByLabelText("Search Semantic Scholar for related work"));
-    await userEvent.upload(pdfInput, pdf());
-    await userEvent.click(screen.getByRole("button", { name: /Start Review/ }));
+    await submitPaper(pdfInput);
 
-    await waitFor(() => expect(FakeWebSocket.instances).toHaveLength(1));
-    expect(new URL(FakeWebSocket.last().url).searchParams.get("related")).toBe("false");
+    await waitFor(() => expect(api.calls("POST /api/review-jobs")).toBe(1));
+    expect((await api.formFields("POST /api/review-jobs"))[0]?.related).toBe("false");
   });
 
   it("shows each conference's page limit", async () => {
@@ -288,24 +375,20 @@ describe("review flow", () => {
       filename: "workshop_2026.md",
       created_at: "2026-11-23T00:00:00Z",
       size: 4,
+      owner: "local",
     };
     let forms: (typeof saved)[] = [];
     let savedName: string | undefined;
-    let uploadedFormId: string | undefined;
     // jsdom's File cannot be parsed back out of a multipart body, so read the text fields from the raw body.
     const field = async (request: Request, name: string) =>
       (await request.text()).match(new RegExp(`name="${name}"\\r\\n\\r\\n([^\\r]*)`))?.[1];
-    mockApi({
+    const api = mockApi({
       ...routes(),
       "GET /api/review-forms": () => ({ forms, count: forms.length }),
       "POST /api/review-forms": async (request: Request) => {
         savedName = await field(request, "name");
         forms = [saved];
         return { ...saved, content: "# Q1" };
-      },
-      "POST /api/upload": async (request: Request) => {
-        uploadedFormId = await field(request, "review_form_id");
-        return { session_id: "s1", filename: "paper.pdf" };
       },
     });
     const { pdfInput } = renderReviewPage();
@@ -325,40 +408,30 @@ describe("review flow", () => {
     expect(savedName).toBe("Workshop 2026");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 
-    await userEvent.upload(pdfInput, pdf());
-    await userEvent.click(screen.getByRole("button", { name: /Start Review/ }));
-    await waitFor(() => expect(uploadedFormId).toBe(saved.id));
+    await submitPaper(pdfInput);
+    await waitFor(() => expect(api.calls("POST /api/review-jobs")).toBe(1));
+    expect((await api.formFields("POST /api/review-jobs"))[0]?.review_form_id).toBe(saved.id);
   });
 
-  it("reports a failed review and lets the user retry", async () => {
-    mockApi(routes());
+  it("reports a submission the server refuses and keeps the paper", async () => {
+    mockApi({
+      ...routes(),
+      "POST /api/review-jobs": () =>
+        new Response(JSON.stringify({ detail: "You already have 10 reviews waiting or running" }), { status: 429 }),
+    });
     const { pdfInput } = renderReviewPage();
     await screen.findByLabelText("Select Model for Review");
-    await userEvent.upload(pdfInput, pdf());
-    await userEvent.click(screen.getByRole("button", { name: /Start Review/ }));
-    await waitFor(() => expect(FakeWebSocket.instances).toHaveLength(1));
+    await submitPaper(pdfInput);
 
-    act(() => FakeWebSocket.last().receive({ status: "error", message: "Model crashed" }));
-
-    expect(toast).toHaveBeenCalledWith(
-      expect.objectContaining({ title: "Review Failed", description: "Model crashed" }),
+    await waitFor(() =>
+      expect(toast).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: "Upload Failed",
+          description: "You already have 10 reviews waiting or running",
+        }),
+      ),
     );
     expect(screen.getByRole("button", { name: /Start Review/ })).toBeEnabled();
-  });
-
-  it("treats a connection that closes early as a failure", async () => {
-    mockApi(routes());
-    const { pdfInput } = renderReviewPage();
-    await screen.findByLabelText("Select Model for Review");
-    await userEvent.upload(pdfInput, pdf());
-    await userEvent.click(screen.getByRole("button", { name: /Start Review/ }));
-    await waitFor(() => expect(FakeWebSocket.instances).toHaveLength(1));
-
-    act(() => FakeWebSocket.last().serverClose());
-
-    expect(toast).toHaveBeenCalledWith(
-      expect.objectContaining({ title: "Review Failed", description: "The review connection closed unexpectedly." }),
-    );
   });
 
   it("rejects a file that is not a PDF", async () => {

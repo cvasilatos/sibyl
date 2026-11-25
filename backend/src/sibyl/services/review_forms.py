@@ -1,7 +1,7 @@
 """Custom reviewer forms that users upload and name, saved so they can be reused across reviews.
 
 Each form is one JSON file in ``<SIBYL_STORAGE_PATH>/review_forms/<id>.json`` holding its name, the original file
-name and the form text.
+name, the form text and who saved it. Everyone can use every form; only its owner (or an admin) can delete it.
 """
 
 from __future__ import annotations
@@ -38,6 +38,8 @@ class SavedForm(BaseModel):
     filename: str
     created_at: str
     content: str
+    owner: str | None = None
+    """Username of who saved the form; None for forms saved before Sibyl had users."""
 
     def summary(self) -> dict[str, str | int]:
         """Short description for listings."""
@@ -86,7 +88,7 @@ def get_form(form_id: str) -> SavedForm | None:
     return SavedForm.model_validate_json(path.read_text(encoding="utf-8"))
 
 
-def save_form(name: str, filename: str, content: str) -> SavedForm:
+def save_form(name: str, filename: str, content: str, owner: str | None = None) -> SavedForm:
     """Save a decoded form under a name no other saved form uses."""
     name = " ".join(name.split())
     if not name:
@@ -95,7 +97,7 @@ def save_form(name: str, filename: str, content: str) -> SavedForm:
         raise ReviewFormError(f"The name must be {MAX_NAME_LENGTH} characters or fewer")
     if any(f.name.lower() == name.lower() for f in list_forms()):
         raise ReviewFormError(f"A review form named '{name}' already exists", status_code=409)
-    form = SavedForm(id=uuid.uuid4().hex, name=name, filename=filename, created_at=datetime.now(UTC).isoformat(), content=content)
+    form = SavedForm(id=uuid.uuid4().hex, name=name, filename=filename, created_at=datetime.now(UTC).isoformat(), content=content, owner=owner)
     directory = forms_dir()
     directory.mkdir(parents=True, exist_ok=True)
     (directory / f"{form.id}.json").write_text(json.dumps(form.model_dump(), indent=2), encoding="utf-8")

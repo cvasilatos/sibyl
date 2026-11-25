@@ -14,7 +14,7 @@ const linkClass = "text-primary underline underline-offset-2 hover:no-underline"
 
 /** Picks the reviewer form to answer: a conference template or one of the user's saved forms. Uploading a new form saves it under a name. */
 export default function ReviewFormSelect() {
-  const { selectedFormKey, selectForm, isReviewing } = useReview();
+  const { selectedFormKey, selectForm, isSubmitting } = useReview();
   const { data: conferences = [] } = useQuery(queries.conferences());
   const { data: savedForms = [] } = useQuery(queries.reviewForms());
   const selected = parseFormKey(selectedFormKey);
@@ -30,7 +30,7 @@ export default function ReviewFormSelect() {
         id="review-form-select"
         value={selectedFormKey ?? ""}
         onChange={(e) => selectForm(e.target.value || null)}
-        disabled={isReviewing}
+        disabled={isSubmitting}
       >
         <option value="">Generic Sibyl review</option>
         {savedForms.length > 0 && (
@@ -77,7 +77,7 @@ export default function ReviewFormSelect() {
       </p>
       <AddReviewFormButton
         className="w-full"
-        disabled={isReviewing}
+        disabled={isSubmitting}
         onSaved={(form) => selectForm(formKey({ kind: "custom", id: form.id }))}
       />
       <p className="text-xs text-muted-foreground">

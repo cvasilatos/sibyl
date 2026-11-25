@@ -21,15 +21,17 @@ export type GpuProcess = Schemas["GpuProcess"];
 export type GpuStats = Schemas["GpuStats"];
 export type GpuResponse = Schemas["GpuList"];
 
-// WebSocket messages. OpenAPI has no WebSocket routes; the backend adds these models to the schema (sibyl.schemas.ws).
+export type CurrentUser = Schemas["CurrentUser"];
+/** A review in the background queue: queued, running or finished. */
+export type ReviewJob = Schemas["ReviewJob"];
+export type ReviewJobStatus = ReviewJob["status"];
 export type Review = Schemas["ReviewResult"];
 export type ReviewResults = Schemas["ReviewResults"];
-export type SocketError = Schemas["SocketError"];
-export type ReviewStarted = Schemas["ReviewStarted"];
 /** A stage of the review pipeline (parse, figures, related_work, review, save). */
-export type ReviewStep = ReviewStarted["steps"][number];
-/** Anything sent on /ws/session/{id}: the planned steps, progress within them, then the results or an error. */
-export type ReviewSessionMessage = ReviewStarted | Schemas["ReviewProgress"] | Schemas["ReviewCompleted"] | SocketError;
+export type ReviewStep = ReviewJob["steps"][number];
+
+// WebSocket messages. OpenAPI has no WebSocket routes; the backend adds these models to the schema (sibyl.schemas.ws).
+export type SocketError = Schemas["SocketError"];
 /** Anything sent on /ws/pull: engine progress lines, then status "success", or an error. */
 export type PullProgress = Schemas["PullProgress"];
 export type PullMessage = PullProgress | SocketError;

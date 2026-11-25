@@ -111,6 +111,14 @@ class InferenceEngine(ABC):
         """Describe this engine for the frontend."""
         return {"name": self.name, "label": self.label, "supports_downloads": self.supports_downloads}
 
+    def review_gpus(self) -> list[int]:
+        """GPUs the review queue runs one review on each (review slot n + 1 for GPU n).
+
+        Empty when the engine cannot pin a review to a GPU: the queue then runs one review at a time and lets the
+        engine place it.
+        """
+        return []
+
     async def release_gpus(self) -> None:  # noqa: B027
         """Free the GPU memory this engine holds (model servers, loaded models) while no review runs; reviews start them again."""
 

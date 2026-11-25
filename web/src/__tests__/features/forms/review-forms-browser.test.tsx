@@ -28,6 +28,7 @@ const saved = {
   filename: "lab.md",
   created_at: "2026-11-01T00:00:00Z",
   size: 10,
+  owner: "alice",
 };
 
 function Browser({ onUse }: { onUse?: (key: string) => void }) {
@@ -74,5 +75,16 @@ describe("ReviewFormsBrowser", () => {
     await waitFor(() => expect(screen.queryByRole("button", { name: "Lab Template" })).not.toBeInTheDocument());
     expect(api.calls(`DELETE /api/review-forms/${saved.id}`)).toBe(1);
     expect(screen.getByText("No saved forms yet.")).toBeInTheDocument();
+  });
+
+  it("offers to delete only the user's own forms", async () => {
+    mockApi({
+      "GET /api/auth/me": { username: "bob", is_admin: false, auth_enabled: true },
+      "GET /api/conferences": { conferences: [], count: 0 },
+      "GET /api/review-forms": { forms: [saved], count: 1 },
+    });
+    renderWithQuery(<Browser />);
+    expect(await screen.findByText("Lab Template")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Delete Lab Template" })).not.toBeInTheDocument();
   });
 });

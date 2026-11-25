@@ -11,6 +11,7 @@ class SavedFormSummary(BaseModel):
     filename: str
     created_at: str
     size: int
+    owner: str | None = None
 
 
 class SavedFormList(BaseModel):
@@ -28,6 +29,7 @@ class SavedFormDetail(BaseModel):
     filename: str
     created_at: str
     content: str
+    owner: str | None = None
 
 
 class DeletedForm(BaseModel):

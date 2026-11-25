@@ -9,6 +9,7 @@ import contextlib
 import os
 import shutil
 import signal
+import socket
 import subprocess
 import sys
 import threading
@@ -26,6 +27,10 @@ DEFAULT_WEB_DIR: Path = Path(__file__).resolve().parents[3] / "web"
 """``web/`` of the source checkout this package runs from (the Next.js app is not part of the Python package)."""
 
 STOP_TIMEOUT_S: float = 10
+DEFAULT_PORT = 8000
+DEFAULT_WEB_PORT = 3000
+PORT_ATTEMPTS = 20
+"""How many ports after a busy default ``run`` tries before giving up."""
 
 
 class LogLevel(StrEnum):
@@ -102,6 +107,33 @@ def stop_process_tree(process: subprocess.Popen[bytes]) -> None:
     process.wait()
 
 
+def port_is_free(host: str, port: int) -> bool:
+    """Return whether a server could listen on ``host``:``port`` now (a port another server listens on is not free)."""
+    family = socket.AF_INET6 if ":" in host else socket.AF_INET
+    with socket.socket(family, socket.SOCK_STREAM) as probe:
+        if sys.platform != "win32":  # as uvicorn does; ports left in TIME_WAIT are usable. On Windows it would steal ports.
+            probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        try:
+            probe.bind((host, port))
+        except OSError:
+            return False
+    return True
+
+
+def choose_port(host: str, requested: int | None, default: int, what: str) -> int:
+    """Return ``requested`` if given (failing when busy), else ``default`` or the first free port after it."""
+    if requested is not None:
+        if not port_is_free(host, requested):
+            raise _fail(f"Port {requested} for the {what} is in use. Pick another, or leave the option out to use a free one.")
+        return requested
+    for port in range(default, default + PORT_ATTEMPTS):
+        if port_is_free(host, port):
+            if port != default:
+                _say(f"Port {default} is in use; the {what} uses port {port}.")
+            return port
+    raise _fail(f"Ports {default}-{default + PORT_ATTEMPTS - 1} for the {what} are all in use. Pass a free one.")
+
+
 def _interrupt(_signum: int, _frame: FrameType | None) -> None:
     raise KeyboardInterrupt
 
@@ -109,8 +141,8 @@ def _interrupt(_signum: int, _frame: FrameType | None) -> None:
 @app.command()
 def run(  # noqa: PLR0913
     host: Annotated[str, typer.Option(help="Interface the backend binds to. Use 0.0.0.0 to reach it from other machines.")] = "127.0.0.1",
-    port: PortOption = 8000,
-    web_port: Annotated[int, typer.Option(help="Port of the web app.")] = 3000,
+    port: Annotated[int | None, typer.Option(help="Port of the backend API. Default: 8000, or the next free port.")] = None,
+    web_port: Annotated[int | None, typer.Option(help="Port of the web app. Default: 3000, or the next free port.")] = None,
     web_dir: Annotated[Path, typer.Option(envvar="SIBYL_WEB_DIR", help="Directory of the Next.js app.")] = DEFAULT_WEB_DIR,
     ssl_certfile: CertOption = None,
     ssl_keyfile: KeyOption = None,
@@ -118,6 +150,11 @@ def run(  # noqa: PLR0913
 ) -> None:
     """Run the whole application: the backend API and the web app, until Ctrl+C."""
     scheme = "https" if ssl_certfile else "http"
+    port = choose_port(host, port, DEFAULT_PORT, "backend")
+    # Next listens on every interface, so the web port must be free on all of them.
+    web_port = choose_port("0.0.0.0", web_port, DEFAULT_WEB_PORT, "web app")  # noqa: S104
+    if web_port == port:
+        web_port = choose_port("0.0.0.0", None, port + 1, "web app")  # noqa: S104
     web = start_web(web_dir, web_port, api_url=f"{scheme}://localhost:{port}")
     try:
         from sibyl.main import app as api  # noqa: PLC0415
@@ -149,7 +186,7 @@ def run(  # noqa: PLR0913
 @app.command()
 def serve(
     host: Annotated[str, typer.Option(help="Interface the backend binds to.")] = "0.0.0.0",  # noqa: S104
-    port: PortOption = 8000,
+    port: PortOption = DEFAULT_PORT,
     ssl_certfile: CertOption = None,
     ssl_keyfile: KeyOption = None,
     log_level: LogLevelOption = LogLevel.INFO,

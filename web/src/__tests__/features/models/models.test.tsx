@@ -110,4 +110,11 @@ describe("ModelManager", () => {
     expect(await screen.findByText(/Models are managed by your inference server/)).toBeInTheDocument();
     expect(screen.queryByText("Browse & Install Models")).not.toBeInTheDocument();
   });
+
+  it("lets only admins delete models", async () => {
+    mockApi({ ...routes(["qwen3:8b"]), "GET /api/auth/me": { username: "bob", is_admin: false, auth_enabled: true } });
+    renderManager();
+    expect(await screen.findByText("qwen3:8b")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Delete qwen3:8b" })).not.toBeInTheDocument();
+  });
 });

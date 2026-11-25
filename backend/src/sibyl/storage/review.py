@@ -14,3 +14,5 @@ class Review(BaseModel):
     review_summary: str
     created_at: str
     similarity_score: float | None = None
+    owner: str | None = None
+    """Username of who ran the review; None for reviews saved before Sibyl had users."""

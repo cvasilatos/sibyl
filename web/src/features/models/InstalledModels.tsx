@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LoadingBlock, Spinner } from "@/components/ui/spinner";
+import { useCurrentUser } from "@/hooks/use-current-user";
 import { toast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
 import { invalidates, queries } from "@/lib/api/queries";
@@ -11,6 +12,8 @@ import { formatBytes, formatDate } from "@/lib/format";
 
 export default function InstalledModels() {
   const queryClient = useQueryClient();
+  // Every user's reviews use the same models, so only admins delete them.
+  const isAdmin = useCurrentUser()?.is_admin ?? false;
   const { data: models = [], isPending } = useQuery(queries.installedModels());
   const remove = useMutation({
     mutationFn: api.deleteModel,
@@ -41,18 +44,20 @@ export default function InstalledModels() {
                     {formatBytes(model.size)} • Modified {formatDate(model.modified_at)}
                   </p>
                 </div>
-                <Button
-                  onClick={() =>
-                    window.confirm(`Delete ${model.model}? It will need to be downloaded again to use it.`) &&
-                    remove.mutate(model.model)
-                  }
-                  disabled={removing}
-                  size="sm"
-                  variant="destructive"
-                  aria-label={`Delete ${model.model}`}
-                >
-                  {removing ? <Spinner label="Removing" /> : <Trash2 className="h-4 w-4" />}
-                </Button>
+                {isAdmin && (
+                  <Button
+                    onClick={() =>
+                      window.confirm(`Delete ${model.model}? It will need to be downloaded again to use it.`) &&
+                      remove.mutate(model.model)
+                    }
+                    disabled={removing}
+                    size="sm"
+                    variant="destructive"
+                    aria-label={`Delete ${model.model}`}
+                  >
+                    {removing ? <Spinner label="Removing" /> : <Trash2 className="h-4 w-4" />}
+                  </Button>
+                )}
               </div>
             );
           })}

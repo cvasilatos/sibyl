@@ -190,6 +190,12 @@ class OllamaEngine(InferenceEngine):
             )
         return response.message.content or ""
 
+    def review_gpus(self) -> list[int]:
+        """Sibyl's per-GPU servers, or one GPU per host when ``OLLAMA_HOSTS`` lists several; none with a single server."""
+        if self.gpu_servers is not None:
+            return list(self.gpu_servers.gpus)
+        return list(range(len(self.hosts))) if len(self.hosts) > 1 else []
+
     async def release_gpus(self) -> None:
         """Stop Sibyl's per-GPU Ollama servers and unload the models Sibyl left loaded on the other Ollama servers.
 

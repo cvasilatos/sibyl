@@ -1,5 +1,4 @@
 import tempfile
-from pathlib import Path
 from unittest.mock import AsyncMock
 
 import pytest
@@ -95,79 +94,13 @@ def test_config_endpoint(client):
     assert data["max_score"] > 0
 
 
-def test_upload_pdf(client, sample_pdf):
-    """Test uploading a PDF file."""
-    with Path(sample_pdf).open("rb") as f:
-        response = client.post("/api/upload", files={"file": ("test.pdf", f, "application/pdf")})
-
-    assert response.status_code == 200
-    data = response.json()
-    assert "session_id" in data
-    assert "filename" in data
-    assert data["filename"] == "test.pdf"
-
-    Path(sample_pdf).unlink(missing_ok=True)
-
-
-def test_upload_non_pdf(client):
-    """Test uploading a non-PDF file is accepted by the upload endpoint."""
-    response = client.post("/api/upload", files={"file": ("test.txt", b"Not a PDF", "text/plain")})
-
-    assert response.status_code == 200
-    data = response.json()
-    assert "session_id" in data
-
-
-def test_upload_any_content(client):
-    """Test uploading a file with pdf extension but arbitrary content is accepted."""
-    response = client.post(
-        "/api/upload",
-        files={"file": ("fake.pdf", b"This is not a PDF", "application/pdf")},
-    )
-
-    assert response.status_code == 200
-    data = response.json()
-    assert "session_id" in data
-
-
-def test_upload_returns_session_id(client):
-    """Test uploading any file returns a session_id and filename."""
-    response = client.post(
-        "/api/upload",
-        files={"file": ("paper.pdf", b"%PDF-1.4\nContent", "application/pdf")},
-    )
-
-    assert response.status_code == 200
-    data = response.json()
-    assert "session_id" in data
-    assert "filename" in data
-
-
-def test_session_not_found(client):
-    """Test getting status for non-existent session returns 404."""
-    response = client.get("/api/session/invalid-session-id")
-    assert response.status_code == 404
-
-
 def test_response_models():
     """Test that response models are properly defined."""
     from sibyl.schemas.review_request import ReviewRequest
-    from sibyl.schemas.session_status import SessionStatus
 
     request = ReviewRequest(model_name="llama3.2", max_pages=10)
     assert request.model_name == "llama3.2"
     assert request.max_pages == 10
-
-    status = SessionStatus(
-        session_id="test-id",
-        status="processing",
-        progress=50,
-        message="Processing...",
-        paper_title="Test Paper",
-    )
-    assert status.session_id == "test-id"
-    assert status.status == "processing"
-    assert status.progress == 50
 
 
 def test_delete_all_reviews(client):
@@ -485,7 +418,14 @@ def test_ws_pull_model_success_path(client):
 
 @pytest.mark.parametrize(
     ("method", "path", "status", "logged"),
-    [("GET", "/api/gpu", 200, False), ("GET", "/api/gpu/1?x=1", 200, False), ("GET", "/api/gpu", 503, True), ("GET", "/api/models", 200, True), ("POST", "/api/upload", 200, True)],
+    [
+        ("GET", "/api/gpu", 200, False),
+        ("GET", "/api/gpu/1?x=1", 200, False),
+        ("GET", "/api/gpu", 503, True),
+        ("GET", "/api/models", 200, True),
+        ("GET", "/api/review-jobs", 200, False),
+        ("POST", "/api/review-jobs", 200, True),
+    ],
 )
 def test_access_log_skips_gpu_polling(method, path, status, logged):
     import logging

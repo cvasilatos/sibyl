@@ -7,7 +7,7 @@ import { useReview } from "./review-context";
 
 /** Click or drop target for the paper PDF. */
 export default function PaperDropzone() {
-  const { selectedFile, selectFile, isReviewing } = useReview();
+  const { selectedFile, selectFile, isSubmitting } = useReview();
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -23,13 +23,13 @@ export default function PaperDropzone() {
     event.preventDefault();
     setIsDragging(false);
     const file = event.dataTransfer.files?.[0];
-    if (file && !isReviewing) selectFile(file);
+    if (file && !isSubmitting) selectFile(file);
   };
 
   return (
     <button
       type="button"
-      disabled={isReviewing}
+      disabled={isSubmitting}
       className={cn(
         "w-full cursor-pointer rounded-lg border-2 border-dashed p-12 text-center transition-all disabled:cursor-not-allowed",
         isDragging ? "scale-[1.02] border-primary bg-primary/5" : "border-border hover:border-primary hover:bg-accent",

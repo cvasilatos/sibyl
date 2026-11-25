@@ -12,49 +12,16 @@ import httpx
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse
 
-from sibyl.config import MAX_SCORE
 from sibyl.inference import EngineOperationNotSupportedError
+from sibyl.routers.auth import Admin, SignedIn
 from sibyl.schemas.engines import AvailableModels, DeletedModel, EngineInfo, InstalledModels, ModelTags
 from sibyl.schemas.reviews import DeletedReview, DeletedReviews, FullReview, ReviewList, ReviewStatistics, SearchResults
 from sibyl.schemas.search_request import SearchRequest
-from sibyl.schemas.session_status import SessionStatus
-from sibyl.schemas.system import Health, ServiceConfig
-from sibyl.services.reviewer import DEFAULT_DETAIL, DEFAULT_MODE
-from sibyl.state import review_sessions, storage
+from sibyl.state import storage
 
 router = APIRouter()
 
 logger: CustomLogger = cast("CustomLogger", logging.getLogger(__name__))
-
-
-@router.get("/session/{session_id}")
-async def get_session_status(session_id: str) -> SessionStatus:
-    """Get the status of a review session."""
-    session = review_sessions.get(session_id)
-    if session is None:
-        raise HTTPException(status_code=404, detail="Session not found")
-    return SessionStatus(
-        session_id=session_id,
-        status=session["status"],
-        progress=session["progress"],
-        message=session["message"],
-        paper_title=session.get("paper_title"),
-    )
-
-
-@router.get("/health", response_model_exclude_none=True)
-async def health_check() -> Health:
-    """Check the health of the service."""
-    try:
-        return Health(status="healthy", storage_count=storage.count_reviews())
-    except Exception as e:
-        return Health(status="unhealthy", error=str(e))
-
-
-@router.get("/config")
-async def get_config() -> ServiceConfig:
-    """Get service configuration values."""
-    return ServiceConfig(max_score=MAX_SCORE, review_detail=DEFAULT_DETAIL, review_mode=DEFAULT_MODE)
 
 
 @router.post("/search")
@@ -82,15 +49,20 @@ async def get_review_details(review_id: str) -> FullReview:
 
 
 @router.delete("/reviews")
-async def delete_all_reviews() -> DeletedReviews:
-    """Delete all reviews from storage."""
-    count = storage.delete_all_reviews()
+async def delete_all_reviews(user: SignedIn) -> DeletedReviews:
+    """Delete the signed-in user's reviews; an admin's call deletes every review."""
+    count = storage.delete_all_reviews(owner=None if user.is_admin else user.username)
     return DeletedReviews(message=f"Deleted {count} reviews", count=count)
 
 
 @router.delete("/reviews/{review_id}")
-async def delete_review(review_id: str) -> DeletedReview:
-    """Delete a specific review by ID."""
+async def delete_review(review_id: str, user: SignedIn) -> DeletedReview:
+    """Delete a review; only the user who ran it (or an admin) may."""
+    review = storage.get_review(review_id)
+    if not review:
+        raise HTTPException(status_code=404, detail="Review not found")
+    if not user.can_manage(review.get("owner")):
+        raise HTTPException(status_code=403, detail="Only the person who ran this review (or an admin) can delete it")
     if not storage.delete_review(review_id):
         raise HTTPException(status_code=404, detail="Review not found")
     return DeletedReview(message="Review deleted successfully", id=review_id)
@@ -121,8 +93,8 @@ async def list_models(request: Request) -> InstalledModels:
 
 
 @router.delete("/models/{model_name:path}")
-async def delete_model(model_name: str, request: Request) -> DeletedModel:
-    """Delete a downloaded model."""
+async def delete_model(model_name: str, request: Request, _: Admin) -> DeletedModel:
+    """Delete a downloaded model (admins only: every user's reviews use the same models)."""
     engine: InferenceEngine = request.app.state.engine
     try:
         await engine.delete(model_name)

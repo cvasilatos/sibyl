@@ -1,10 +1,10 @@
-"""Messages sent over the WebSocket endpoints.
+"""Messages sent over the WebSocket endpoints, and the review results and progress the review queue reports.
 
 OpenAPI does not describe WebSockets, so ``sibyl.main`` adds these models to the exported schema by hand
 (``WS_MESSAGES``); the web app's types are generated from them like any response model.
 """
 
-from typing import Annotated, Literal
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -32,7 +32,7 @@ class ReviewResult(BaseModel):
 
 
 class ReviewResults(BaseModel):
-    """The reviews produced by a review session."""
+    """The reviews produced by one review job."""
 
     paper_title: str
     reviews: list[ReviewResult]
@@ -43,13 +43,6 @@ ReviewStep = Literal["parse", "figures", "related_work", "review", "save"]
 search arXiv for related work, write the review, save it."""
 
 
-class ReviewStarted(BaseModel):
-    """First message of a review: the steps this run will go through, in order (skipped steps are left out)."""
-
-    status: Literal["started"] = "started"
-    steps: list[ReviewStep]
-
-
 class ReviewProgress(BaseModel):
     """A progress update within one step of a running review."""
 
@@ -57,20 +50,6 @@ class ReviewProgress(BaseModel):
     step: ReviewStep
     progress: int = Field(ge=0, le=100)
     message: str
-
-
-class ReviewCompleted(BaseModel):
-    """Final message of a successful review."""
-
-    status: Literal["completed"] = "completed"
-    progress: int = 100
-    message: str = "Review complete!"
-    review_id: str
-    results: ReviewResults
-
-
-ReviewSessionMessage = Annotated[ReviewStarted | ReviewProgress | ReviewCompleted | SocketError, Field(discriminator="status")]
-"""Anything sent on ``/ws/session/{session_id}``."""
 
 
 class PullProgress(BaseModel):
@@ -86,5 +65,5 @@ class PullProgress(BaseModel):
     total: int | None = None
 
 
-WS_MESSAGES: tuple[type[BaseModel], ...] = (ReviewStarted, ReviewProgress, ReviewCompleted, SocketError, PullProgress)
+WS_MESSAGES: tuple[type[BaseModel], ...] = (SocketError, PullProgress)
 """Models added to the OpenAPI schema so clients can type WebSocket messages."""

@@ -8,6 +8,7 @@ import { ErrorAlert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingBlock, Spinner } from "@/components/ui/spinner";
+import { canManage, useCurrentUser } from "@/hooks/use-current-user";
 import { useMaxScore } from "@/hooks/use-max-score";
 import { api } from "@/lib/api";
 import { invalidates, queries } from "@/lib/api/queries";
@@ -23,6 +24,7 @@ function matches(review: StoredReview, query: string): boolean {
     review.reviewer_model,
     review.recommendation,
     review.review_summary,
+    review.owner ?? "",
   ].some((field) => field.toLowerCase().includes(query));
 }
 
@@ -35,6 +37,7 @@ type Props = {
 export default function ReviewLibrary({ expandedReviewId, onExpandedChange }: Props) {
   const queryClient = useQueryClient();
   const maxScore = useMaxScore();
+  const user = useCurrentUser();
   const reviews = useQuery(queries.reviews());
   const stats = useQuery(queries.statistics());
   const [searchQuery, setSearchQuery] = useState("");
@@ -62,6 +65,9 @@ export default function ReviewLibrary({ expandedReviewId, onExpandedChange }: Pr
   });
 
   const allReviews = reviews.data ?? [];
+  // Everyone sees every review, but deletes only their own (admins delete any, and "Delete All" deletes everything).
+  const deletable = allReviews.filter((review) => canManage(user, review.owner));
+  const deleteAllLabel = user?.is_admin ? "Delete All" : "Delete All Mine";
   const filteredReviews = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     return query ? (reviews.data ?? []).filter((review) => matches(review, query)) : (reviews.data ?? []);
@@ -74,19 +80,25 @@ export default function ReviewLibrary({ expandedReviewId, onExpandedChange }: Pr
         <div className="flex items-center justify-between">
           <div>
             <CardTitle>📚 Review Library</CardTitle>
-            <CardDescription>Browse and manage your saved reviews</CardDescription>
+            <CardDescription>
+              Everyone&apos;s reviews; you can delete {user?.is_admin ? "any of them" : "the ones you ran"}
+            </CardDescription>
           </div>
           <div className="flex items-center gap-2">
             <Button
               onClick={() =>
-                confirm("Are you sure you want to delete ALL reviews? This cannot be undone.") && deleteAll.mutate()
+                confirm(
+                  user?.is_admin
+                    ? "Are you sure you want to delete ALL reviews, everyone's? This cannot be undone."
+                    : `Are you sure you want to delete all ${deletable.length} of your reviews? This cannot be undone.`,
+                ) && deleteAll.mutate()
               }
-              disabled={deleteAll.isPending || reviews.isPending || allReviews.length === 0}
+              disabled={deleteAll.isPending || reviews.isPending || deletable.length === 0}
               size="sm"
               variant="destructive"
             >
               {deleteAll.isPending ? <Spinner label="Deleting" /> : <Trash2 className="h-4 w-4" />}
-              Delete All
+              {deleteAllLabel}
             </Button>
             <Button
               onClick={refresh}
@@ -125,8 +137,10 @@ export default function ReviewLibrary({ expandedReviewId, onExpandedChange }: Pr
                 expanded={expandedReviewId === review.id}
                 onToggle={() => onExpandedChange(expandedReviewId === review.id ? null : review.id)}
                 onShowPaper={() => setSelectedPaperTitle(review.paper_title)}
-                onDelete={() =>
-                  confirm("Are you sure you want to delete this review?") && deleteReview.mutate(review.id)
+                onDelete={
+                  canManage(user, review.owner)
+                    ? () => confirm("Are you sure you want to delete this review?") && deleteReview.mutate(review.id)
+                    : undefined
                 }
                 deleting={deleteReview.isPending && deleteReview.variables === review.id}
                 onError={setActionError}

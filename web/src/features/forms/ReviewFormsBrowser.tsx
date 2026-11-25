@@ -5,6 +5,7 @@ import { FileText, Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
 import AddReviewFormButton from "@/components/AddReviewFormButton";
 import { Button } from "@/components/ui/button";
+import { useCanManage } from "@/hooks/use-current-user";
 import { toast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
 import { invalidates, queries } from "@/lib/api/queries";
@@ -64,6 +65,7 @@ function Item({
 /** Every reviewer form available: the user's saved forms and the bundled conference forms, with the chosen one's text. */
 export default function ReviewFormsBrowser({ selectedKey, onSelect, onUse }: Props) {
   const queryClient = useQueryClient();
+  const mayDelete = useCanManage();
   const { data: conferences = [] } = useQuery(queries.conferences());
   const { data: savedForms = [], isSuccess: savedLoaded } = useQuery(queries.reviewForms());
   const selected = parseFormKey(selectedKey);
@@ -87,21 +89,23 @@ export default function ReviewFormsBrowser({ selectedKey, onSelect, onUse }: Pro
         aria-label="Review forms"
         className="space-y-4 rounded-lg border bg-card p-2 md:sticky md:top-4 md:max-h-[85vh] md:overflow-y-auto"
       >
-        <Group title="Your forms">
+        <Group title="Saved forms">
           {savedForms.map((form) => {
             const key = formKey({ kind: "custom", id: form.id });
             return (
               <Item key={form.id} label={form.name} active={key === selectedKey} onClick={() => onSelect(key)}>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 w-7 shrink-0 p-0 text-muted-foreground opacity-60 hover:text-destructive group-hover:opacity-100"
-                  aria-label={`Delete ${form.name}`}
-                  disabled={remove.isPending}
-                  onClick={() => window.confirm(`Delete the review form "${form.name}"?`) && remove.mutate(form.id)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                {mayDelete(form.owner) && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 shrink-0 p-0 text-muted-foreground opacity-60 hover:text-destructive group-hover:opacity-100"
+                    aria-label={`Delete ${form.name}`}
+                    disabled={remove.isPending}
+                    onClick={() => window.confirm(`Delete the review form "${form.name}"?`) && remove.mutate(form.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
               </Item>
             );
           })}

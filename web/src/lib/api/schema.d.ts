@@ -4,26 +4,6 @@
  */
 
 export interface paths {
-  "/api/session/{session_id}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get Session Status
-     * @description Get the status of a review session.
-     */
-    get: operations["get_session_status_api_session__session_id__get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   "/api/health": {
     parameters: {
       query?: never;
@@ -56,6 +36,66 @@ export interface paths {
      * @description Get service configuration values.
      */
     get: operations["get_config_api_config_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/auth/login": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Login
+     * @description Sign in with the username and password of a server account in ``SIBYL_AUTH_GROUP``; sets the session cookie.
+     */
+    post: operations["login_api_auth_login_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/auth/logout": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Logout
+     * @description Sign out: clear the session cookie.
+     */
+    post: operations["logout_api_auth_logout_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/auth/me": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Me
+     * @description Return the signed-in user; 401 when nobody is signed in.
+     */
+    get: operations["me_api_auth_me_get"];
     put?: never;
     post?: never;
     delete?: never;
@@ -100,7 +140,7 @@ export interface paths {
     post?: never;
     /**
      * Delete All Reviews
-     * @description Delete all reviews from storage.
+     * @description Delete the signed-in user's reviews; an admin's call deletes every review.
      */
     delete: operations["delete_all_reviews_api_reviews_delete"];
     options?: never;
@@ -124,7 +164,7 @@ export interface paths {
     post?: never;
     /**
      * Delete Review
-     * @description Delete a specific review by ID.
+     * @description Delete a review; only the user who ran it (or an admin) may.
      */
     delete: operations["delete_review_api_reviews__review_id__delete"];
     options?: never;
@@ -204,7 +244,7 @@ export interface paths {
     post?: never;
     /**
      * Delete Model
-     * @description Delete a downloaded model.
+     * @description Delete a downloaded model (admins only: every user's reviews use the same models).
      */
     delete: operations["delete_model_api_models__model_name__delete"];
     options?: never;
@@ -272,21 +312,55 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  "/api/upload": {
+  "/api/review-jobs": {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    get?: never;
+    /**
+     * List Review Jobs
+     * @description Everyone's queued and running reviews, and the signed-in user's finished ones, oldest first.
+     */
+    get: operations["list_review_jobs_api_review_jobs_get"];
     put?: never;
     /**
-     * Upload Paper
-     * @description Upload a PDF paper with at most one review form: a conference template, a saved form, or a UTF-8 text/Markdown file.
+     * Submit Review
+     * @description Queue a review of a PDF; it runs in the background, one review per GPU, whether or not the page stays open.
+     *
+     *     The review answers at most one form: a conference template (``conference_id``), a saved form (``review_form_id``)
+     *     or an uploaded UTF-8 text/Markdown file (``review_form``). ``gpu`` pins it to one GPU; omitted, it takes the first
+     *     free one. ``vlm``: vision model for figures (omitted: server default; ``none`` skips). ``related``/``sources``:
+     *     search for related work (omitted: ``SIBYL_RELATED_WORK`` / ``SIBYL_RELATED_WORK_SOURCES``). ``detail``/``mode``:
+     *     review length and generation mode (omitted: ``SIBYL_REVIEW_DETAIL`` / ``SIBYL_REVIEW_MODE``).
      */
-    post: operations["upload_paper_api_upload_post"];
+    post: operations["submit_review_api_review_jobs_post"];
     delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/review-jobs/{job_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Review Job
+     * @description One queued, running or finished review.
+     */
+    get: operations["get_review_job_api_review_jobs__job_id__get"];
+    put?: never;
+    post?: never;
+    /**
+     * Cancel Review Job
+     * @description Cancel a queued or running review, or dismiss a finished one; only its owner (or an admin) may.
+     */
+    delete: operations["cancel_review_job_api_review_jobs__job_id__delete"];
     options?: never;
     head?: never;
     patch?: never;
@@ -412,7 +486,7 @@ export interface paths {
     post?: never;
     /**
      * Delete Review Form
-     * @description Delete a saved form.
+     * @description Delete a saved form; only its owner or an admin may.
      */
     delete: operations["delete_review_form_api_review_forms__form_id__delete"];
     options?: never;
@@ -483,19 +557,31 @@ export interface components {
       /** Name */
       name: string;
     };
-    /** Body_upload_paper_api_upload_post */
-    Body_upload_paper_api_upload_post: {
+    /** Body_submit_review_api_review_jobs_post */
+    Body_submit_review_api_review_jobs_post: {
       /**
        * File
        * Format: binary
        */
       file: string;
+      /** Model */
+      model: string;
       /** Review Form */
       review_form?: string | null;
       /** Conference Id */
       conference_id?: string | null;
       /** Review Form Id */
       review_form_id?: string | null;
+      /** Gpu */
+      gpu?: number | null;
+      /** Vlm */
+      vlm?: string | null;
+      /** Related */
+      related?: boolean | null;
+      /** Sources */
+      sources?: string | null;
+      detail?: components["schemas"]["ReviewDetail"] | null;
+      mode?: components["schemas"]["ReviewMode"] | null;
     };
     /**
      * ChoiceOption
@@ -579,6 +665,18 @@ export interface components {
       question_count: number;
     };
     /**
+     * CurrentUser
+     * @description The signed-in user.
+     */
+    CurrentUser: {
+      /** Username */
+      username: string;
+      /** Is Admin */
+      is_admin: boolean;
+      /** Auth Enabled */
+      auth_enabled: boolean;
+    };
+    /**
      * DeletedForm
      * @description Confirmation of a deleted review form.
      */
@@ -610,7 +708,7 @@ export interface components {
     };
     /**
      * DeletedReviews
-     * @description Result of deleting all reviews.
+     * @description Result of deleting all the reviews the user may delete.
      */
     DeletedReviews: {
       /** Message */
@@ -668,6 +766,8 @@ export interface components {
        */
       related_work: components["schemas"]["RelatedPaper"][];
       config?: components["schemas"]["ReviewConfig"] | null;
+      /** Owner */
+      owner?: string | null;
     };
     /**
      * GpuList
@@ -770,6 +870,24 @@ export interface components {
       models: components["schemas"]["InstalledModel"][];
       /** Count */
       count: number;
+    };
+    /**
+     * LoggedOut
+     * @description Confirmation of signing out.
+     */
+    LoggedOut: {
+      /** Message */
+      message: string;
+    };
+    /**
+     * LoginRequest
+     * @description A username and password for the server's own accounts.
+     */
+    LoginRequest: {
+      /** Username */
+      username: string;
+      /** Password */
+      password: string;
     };
     /**
      * ModelTags
@@ -898,6 +1016,8 @@ export interface components {
       created_at: string;
       /** Similarity Score */
       similarity_score?: number | null;
+      /** Owner */
+      owner?: string | null;
     };
     /**
      * ReviewConfig
@@ -1052,6 +1172,69 @@ export interface components {
      */
     ReviewDetail: "auto" | "concise" | "standard" | "detailed";
     /**
+     * ReviewJob
+     * @description A review submitted to the queue. It runs on the server whether or not anyone has the page open.
+     */
+    ReviewJob: {
+      /** Id */
+      id: string;
+      /** Owner */
+      owner: string;
+      /** Filename */
+      filename: string;
+      /** Model */
+      model: string;
+      /** Form Name */
+      form_name?: string | null;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "queued" | "running" | "completed" | "failed" | "cancelled";
+      /** Position */
+      position?: number | null;
+      /** Requested Gpu */
+      requested_gpu?: number | null;
+      /** Gpu */
+      gpu?: number | null;
+      /**
+       * Steps
+       * @default []
+       */
+      steps: ("parse" | "figures" | "related_work" | "review" | "save")[];
+      /** Step */
+      step?: ("parse" | "figures" | "related_work" | "review" | "save") | null;
+      /**
+       * Progress
+       * @default 0
+       */
+      progress: number;
+      /**
+       * Message
+       * @default
+       */
+      message: string;
+      /** Created At */
+      created_at: string;
+      /** Started At */
+      started_at?: string | null;
+      /** Finished At */
+      finished_at?: string | null;
+      /** Review Id */
+      review_id?: string | null;
+      results?: components["schemas"]["ReviewResults"] | null;
+    };
+    /**
+     * ReviewJobList
+     * @description Every queued and running review (anyone's), and the signed-in user's finished ones.
+     */
+    ReviewJobList: {
+      /** Jobs */
+      jobs: components["schemas"]["ReviewJob"][];
+      /** Slots */
+      slots: number;
+    };
+    /**
      * ReviewList
      * @description One page of stored reviews.
      */
@@ -1071,6 +1254,35 @@ export interface components {
      * @enum {string}
      */
     ReviewMode: "single" | "sections";
+    /**
+     * ReviewResult
+     * @description One model's review of the paper, as sent when the review completes.
+     */
+    ReviewResult: {
+      /** Paper Title */
+      paper_title: string;
+      /** Reviewer Model */
+      reviewer_model: string;
+      criteria: components["schemas"]["ReviewCriteria"];
+      /** Raw Response */
+      raw_response: string;
+      /**
+       * Related Work
+       * @default []
+       */
+      related_work: components["schemas"]["RelatedPaper"][];
+      config?: components["schemas"]["ReviewConfig"] | null;
+    };
+    /**
+     * ReviewResults
+     * @description The reviews produced by one review job.
+     */
+    ReviewResults: {
+      /** Paper Title */
+      paper_title: string;
+      /** Reviews */
+      reviews: components["schemas"]["ReviewResult"][];
+    };
     /**
      * ReviewStatistics
      * @description Aggregate counts over all stored reviews.
@@ -1102,6 +1314,8 @@ export interface components {
       created_at: string;
       /** Content */
       content: string;
+      /** Owner */
+      owner?: string | null;
     };
     /**
      * SavedFormList
@@ -1128,6 +1342,8 @@ export interface components {
       created_at: string;
       /** Size */
       size: number;
+      /** Owner */
+      owner?: string | null;
     };
     /**
      * SearchRequest
@@ -1163,36 +1379,6 @@ export interface components {
       max_score: number;
       review_detail: components["schemas"]["ReviewDetail"];
       review_mode: components["schemas"]["ReviewMode"];
-    };
-    /**
-     * SessionStatus
-     * @description Status model for a review session.
-     */
-    SessionStatus: {
-      /** Session Id */
-      session_id: string;
-      /** Status */
-      status: string;
-      /** Progress */
-      progress: number;
-      /** Message */
-      message: string;
-      /** Paper Title */
-      paper_title?: string | null;
-    };
-    /**
-     * UploadResult
-     * @description A paper uploaded and waiting for review.
-     */
-    UploadResult: {
-      /** Session Id */
-      session_id: string;
-      /** Filename */
-      filename: string | null;
-      /** Review Form Filename */
-      review_form_filename: string | null;
-      /** Conference Id */
-      conference_id: string | null;
     };
     /** ValidationError */
     ValidationError: {
@@ -1246,96 +1432,6 @@ export interface components {
       [key: string]: unknown;
     };
     /**
-     * ReviewCompleted
-     * @description Final message of a successful review.
-     */
-    ReviewCompleted: {
-      /**
-       * Status
-       * @default completed
-       * @constant
-       */
-      status: "completed";
-      /**
-       * Progress
-       * @default 100
-       */
-      progress: number;
-      /**
-       * Message
-       * @default Review complete!
-       */
-      message: string;
-      /** Review Id */
-      review_id: string;
-      results: components["schemas"]["ReviewResults"];
-    };
-    /**
-     * ReviewProgress
-     * @description A progress update within one step of a running review.
-     */
-    ReviewProgress: {
-      /**
-       * Status
-       * @default progress
-       * @constant
-       */
-      status: "progress";
-      /**
-       * Step
-       * @enum {string}
-       */
-      step: "parse" | "figures" | "related_work" | "review" | "save";
-      /** Progress */
-      progress: number;
-      /** Message */
-      message: string;
-    };
-    /**
-     * ReviewResult
-     * @description One model's review of the paper, as sent when the review completes.
-     */
-    ReviewResult: {
-      /** Paper Title */
-      paper_title: string;
-      /** Reviewer Model */
-      reviewer_model: string;
-      criteria: components["schemas"]["ReviewCriteria"];
-      /** Raw Response */
-      raw_response: string;
-      /**
-       * Related Work
-       * @default []
-       */
-      related_work: components["schemas"]["RelatedPaper"][];
-      /** @default null */
-      config: components["schemas"]["ReviewConfig"] | null;
-    };
-    /**
-     * ReviewResults
-     * @description The reviews produced by a review session.
-     */
-    ReviewResults: {
-      /** Paper Title */
-      paper_title: string;
-      /** Reviews */
-      reviews: components["schemas"]["ReviewResult"][];
-    };
-    /**
-     * ReviewStarted
-     * @description First message of a review: the steps this run will go through, in order (skipped steps are left out).
-     */
-    ReviewStarted: {
-      /**
-       * Status
-       * @default started
-       * @constant
-       */
-      status: "started";
-      /** Steps */
-      steps: ("parse" | "figures" | "related_work" | "review" | "save")[];
-    };
-    /**
      * SocketError
      * @description Final message when a WebSocket operation fails.
      */
@@ -1358,37 +1454,6 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-  get_session_status_api_session__session_id__get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        session_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["SessionStatus"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
   health_check_api_health_get: {
     parameters: {
       query?: never;
@@ -1425,6 +1490,79 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["ServiceConfig"];
+        };
+      };
+    };
+  };
+  login_api_auth_login_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["LoginRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["CurrentUser"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  logout_api_auth_logout_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["LoggedOut"];
+        };
+      };
+    };
+  };
+  me_api_auth_me_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["CurrentUser"];
         };
       };
     };
@@ -1750,7 +1888,27 @@ export interface operations {
       };
     };
   };
-  upload_paper_api_upload_post: {
+  list_review_jobs_api_review_jobs_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ReviewJobList"];
+        };
+      };
+    };
+  };
+  submit_review_api_review_jobs_post: {
     parameters: {
       query?: never;
       header?: never;
@@ -1759,7 +1917,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        "multipart/form-data": components["schemas"]["Body_upload_paper_api_upload_post"];
+        "multipart/form-data": components["schemas"]["Body_submit_review_api_review_jobs_post"];
       };
     };
     responses: {
@@ -1769,7 +1927,69 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["UploadResult"];
+          "application/json": components["schemas"]["ReviewJob"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_review_job_api_review_jobs__job_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        job_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ReviewJob"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  cancel_review_job_api_review_jobs__job_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        job_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ReviewJob"];
         };
       };
       /** @description Validation Error */

@@ -40,6 +40,8 @@ class FullReview(BaseModel):
     raw_response: str
     related_work: list[RelatedPaper] = []
     config: ReviewConfig | None = None
+    owner: str | None = None
+    """Username of who ran the review; None for reviews saved before Sibyl had users."""
 
 
 class ReviewList(BaseModel):
@@ -76,7 +78,7 @@ class DeletedReview(BaseModel):
 
 
 class DeletedReviews(BaseModel):
-    """Result of deleting all reviews."""
+    """Result of deleting all the reviews the user may delete."""
 
     message: str
     count: int

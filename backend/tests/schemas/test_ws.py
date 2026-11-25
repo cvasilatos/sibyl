@@ -1,8 +1,9 @@
-"""WebSocket messages must carry everything their producers send."""
+"""WebSocket messages and review results must carry everything their producers send."""
 
 from sibyl.schemas.llm_reply import LLMReply, Recommendation
+from sibyl.schemas.review_jobs import ReviewJob
 from sibyl.schemas.reviews import ReviewCriteria
-from sibyl.schemas.ws import PullProgress, ReviewCompleted, ReviewResult, ReviewResults
+from sibyl.schemas.ws import PullProgress, ReviewResult, ReviewResults
 from tests.schemas.test_responses import assert_keeps_fields
 
 
@@ -19,10 +20,10 @@ def test_review_criteria_keeps_every_llm_reply_field() -> None:
     assert_keeps_fields(ReviewCriteria, reply.model_dump(mode="json"))
 
 
-def test_review_completed_serialises_recommendation_as_text() -> None:
+def test_finished_job_serialises_recommendation_as_text() -> None:
     """The recommendation enum goes over the wire as its text."""
     reply = LLMReply(score=1, recommendation=Recommendation.ACCEPT)
     result = ReviewResult(paper_title="P", reviewer_model="m", criteria=ReviewCriteria.model_validate(reply.model_dump(mode="json")), raw_response="{}")
-    message = ReviewCompleted(review_id="r1", results=ReviewResults(paper_title="P", reviews=[result])).model_dump(mode="json")
-    assert message["status"] == "completed"
+    results = ReviewResults(paper_title="P", reviews=[result])
+    message = ReviewJob(id="j", owner="u", filename="p.pdf", model="m", status="completed", created_at="now", review_id="r1", results=results).model_dump(mode="json")
     assert message["results"]["reviews"][0]["criteria"]["recommendation"] == "Accept"

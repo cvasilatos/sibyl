@@ -7,7 +7,7 @@ import { useReview } from "@/features/review/review-context";
 
 function FormsContent() {
   const router = useRouter();
-  const { selectForm, isReviewing } = useReview();
+  const { selectForm, isSubmitting } = useReview();
   const selectedKey = useSearchParams().get("form");
   const onSelect = useCallback(
     (key: string | null) =>
@@ -21,7 +21,7 @@ function FormsContent() {
     },
     [selectForm, router],
   );
-  return <ReviewFormsBrowser selectedKey={selectedKey} onSelect={onSelect} onUse={isReviewing ? undefined : onUse} />;
+  return <ReviewFormsBrowser selectedKey={selectedKey} onSelect={onSelect} onUse={isSubmitting ? undefined : onUse} />;
 }
 
 export default function FormsPage() {

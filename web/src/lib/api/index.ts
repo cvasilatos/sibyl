@@ -7,22 +7,64 @@ import type { components, paths } from "./schema";
 export type Schemas = components["schemas"];
 
 /** Typed client for the backend. Paths, parameters and responses are checked against the backend's OpenAPI schema. */
-// fetch is looked up on each call rather than captured once, so tests (and polyfills) can replace it.
-export const client = createClient<paths>({ baseUrl: API_URL, fetch: (request) => globalThis.fetch(request) });
+// fetch is looked up on each call rather than captured once, so tests (and polyfills) can replace it. The session
+// cookie goes with every request (the API runs on another port of the same host).
+export const client = createClient<paths>({
+  baseUrl: API_URL,
+  credentials: "include",
+  fetch: (request) => globalThis.fetch(request),
+});
 
 type Result<T> = { data?: T; error?: unknown; response: Response };
+
+/** Thrown for a 401: nobody is signed in, or the sign-in expired. The app shows the sign-in page. */
+export class UnauthorizedError extends Error {
+  constructor(message = "Sign in to use Sibyl") {
+    super(message);
+    this.name = "UnauthorizedError";
+  }
+}
 
 /** Return the response body, or throw the backend's `detail` message (or the status) as an Error. */
 async function unwrap<T>(request: Promise<Result<T>>): Promise<T> {
   const { data, error, response } = await request;
   if (error !== undefined || data === undefined) {
     const detail = typeof error === "object" && error !== null && "detail" in error ? error.detail : undefined;
-    throw new Error(typeof detail === "string" ? detail : `Request failed with status ${response.status}`);
+    const message = typeof detail === "string" ? detail : `Request failed with status ${response.status}`;
+    throw response.status === 401 ? new UnauthorizedError(message) : new Error(message);
   }
   return data;
 }
 
+/** What to review and how: the paper, the form it answers and the user's choices. */
+export interface ReviewSubmission {
+  file: File;
+  /** Conference template or saved custom form to answer, or null for the generic review. */
+  form: FormRef | null;
+  model: string;
+  /** Vision model that describes figures: "" for the server default, "none" to skip figures. */
+  vlm: string;
+  /** Where to search for related work; empty skips the search. */
+  relatedSources: string[];
+  /** GPU to run on, or null for the first free one. */
+  gpuIndex: number | null;
+  detail: Schemas["ReviewDetail"];
+  mode: Schemas["ReviewMode"];
+}
+
 export const api = {
+  /** The signed-in user, or null when nobody is signed in. */
+  async getCurrentUser() {
+    try {
+      return await unwrap(client.GET("/api/auth/me"));
+    } catch (error) {
+      if (error instanceof UnauthorizedError) return null;
+      throw error;
+    }
+  },
+  login: (username: string, password: string) =>
+    unwrap(client.POST("/api/auth/login", { body: { username, password } })),
+  logout: () => unwrap(client.POST("/api/auth/logout")),
   getConfig: () => unwrap(client.GET("/api/config")),
   /** The top of the overall score scale, validated so the UI can divide by it. */
   async getMaxScore(): Promise<number> {
@@ -69,13 +111,24 @@ export const api = {
     if (!data) throw new Error("Failed to download PDF");
     return data;
   },
-  /** Upload a paper to review against a conference template or a saved custom form, or neither. */
-  uploadPaper(file: File, form?: FormRef | null) {
+  listReviewJobs: () => unwrap(client.GET("/api/review-jobs")),
+  /** Queue a review; it runs on the server whether or not this page stays open. */
+  submitReview({ file, form, model, vlm, relatedSources, gpuIndex, detail, mode }: ReviewSubmission) {
     const formData = new FormData();
     formData.append("file", file);
+    formData.append("model", model);
     if (form?.kind === "conference") formData.append("conference_id", form.id);
     else if (form?.kind === "custom") formData.append("review_form_id", form.id);
+    if (gpuIndex !== null) formData.append("gpu", String(gpuIndex));
+    if (vlm) formData.append("vlm", vlm);
+    formData.append("related", String(relatedSources.length > 0));
+    formData.append("sources", relatedSources.join(","));
+    formData.append("detail", detail);
+    formData.append("mode", mode);
     // FormData goes through as-is; the generated body type describes the same multipart fields.
-    return unwrap(client.POST("/api/upload", { body: formData as never, bodySerializer: (body) => body }));
+    return unwrap(client.POST("/api/review-jobs", { body: formData as never, bodySerializer: (body) => body }));
   },
+  /** Cancel a queued or running review, or dismiss a finished one. */
+  cancelReviewJob: (jobId: string) =>
+    unwrap(client.DELETE("/api/review-jobs/{job_id}", { params: { path: { job_id: jobId } } })),
 };

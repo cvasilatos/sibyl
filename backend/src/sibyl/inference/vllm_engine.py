@@ -378,6 +378,9 @@ class VLLMEngine(InferenceEngine):
     def info(self) -> dict[str, Any]:  # noqa: D102
         return {**super().info(), "gpus": self.pool.gpus, "servers": self.pool.status()}
 
+    def review_gpus(self) -> list[int]:  # noqa: D102
+        return list(self.pool.gpus)
+
     async def list_installed(self) -> list[dict[str, Any]]:  # noqa: D102
         return await self.store.list_installed()
 

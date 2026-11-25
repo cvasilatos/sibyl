@@ -6,53 +6,10 @@
     "version": "0.1.0"
   },
   "paths": {
-    "/api/session/{session_id}": {
-      "get": {
-        "tags": [
-          "Reviews"
-        ],
-        "summary": "Get Session Status",
-        "description": "Get the status of a review session.",
-        "operationId": "get_session_status_api_session__session_id__get",
-        "parameters": [
-          {
-            "name": "session_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Session Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SessionStatus"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/health": {
       "get": {
         "tags": [
-          "Reviews"
+          "System"
         ],
         "summary": "Health Check",
         "description": "Check the health of the service.",
@@ -74,7 +31,7 @@
     "/api/config": {
       "get": {
         "tags": [
-          "Reviews"
+          "System"
         ],
         "summary": "Get Config",
         "description": "Get service configuration values.",
@@ -86,6 +43,92 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ServiceConfig"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Login",
+        "description": "Sign in with the username and password of a server account in ``SIBYL_AUTH_GROUP``; sets the session cookie.",
+        "operationId": "login_api_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentUser"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Logout",
+        "description": "Sign out: clear the session cookie.",
+        "operationId": "logout_api_auth_logout_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoggedOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Me",
+        "description": "Return the signed-in user; 401 when nobody is signed in.",
+        "operationId": "me_api_auth_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentUser"
                 }
               }
             }
@@ -209,7 +252,7 @@
           "Reviews"
         ],
         "summary": "Delete All Reviews",
-        "description": "Delete all reviews from storage.",
+        "description": "Delete the signed-in user's reviews; an admin's call deletes every review.",
         "operationId": "delete_all_reviews_api_reviews_delete",
         "responses": {
           "200": {
@@ -272,7 +315,7 @@
           "Reviews"
         ],
         "summary": "Delete Review",
-        "description": "Delete a specific review by ID.",
+        "description": "Delete a review; only the user who ran it (or an admin) may.",
         "operationId": "delete_review_api_reviews__review_id__delete",
         "parameters": [
           {
@@ -381,7 +424,7 @@
           "Reviews"
         ],
         "summary": "Delete Model",
-        "description": "Delete a downloaded model.",
+        "description": "Delete a downloaded model (admins only: every user's reviews use the same models).",
         "operationId": "delete_model_api_models__model_name__delete",
         "parameters": [
           {
@@ -524,19 +567,39 @@
         }
       }
     },
-    "/api/upload": {
+    "/api/review-jobs": {
+      "get": {
+        "tags": [
+          "Review Queue"
+        ],
+        "summary": "List Review Jobs",
+        "description": "Everyone's queued and running reviews, and the signed-in user's finished ones, oldest first.",
+        "operationId": "list_review_jobs_api_review_jobs_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewJobList"
+                }
+              }
+            }
+          }
+        }
+      },
       "post": {
         "tags": [
-          "Upload"
+          "Review Queue"
         ],
-        "summary": "Upload Paper",
-        "description": "Upload a PDF paper with at most one review form: a conference template, a saved form, or a UTF-8 text/Markdown file.",
-        "operationId": "upload_paper_api_upload_post",
+        "summary": "Submit Review",
+        "description": "Queue a review of a PDF; it runs in the background, one review per GPU, whether or not the page stays open.\n\nThe review answers at most one form: a conference template (``conference_id``), a saved form (``review_form_id``)\nor an uploaded UTF-8 text/Markdown file (``review_form``). ``gpu`` pins it to one GPU; omitted, it takes the first\nfree one. ``vlm``: vision model for figures (omitted: server default; ``none`` skips). ``related``/``sources``:\nsearch for related work (omitted: ``SIBYL_RELATED_WORK`` / ``SIBYL_RELATED_WORK_SOURCES``). ``detail``/``mode``:\nreview length and generation mode (omitted: ``SIBYL_REVIEW_DETAIL`` / ``SIBYL_REVIEW_MODE``).",
+        "operationId": "submit_review_api_review_jobs_post",
         "requestBody": {
           "content": {
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/Body_upload_paper_api_upload_post"
+                "$ref": "#/components/schemas/Body_submit_review_api_review_jobs_post"
               }
             }
           },
@@ -548,7 +611,91 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UploadResult"
+                  "$ref": "#/components/schemas/ReviewJob"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/review-jobs/{job_id}": {
+      "get": {
+        "tags": [
+          "Review Queue"
+        ],
+        "summary": "Get Review Job",
+        "description": "One queued, running or finished review.",
+        "operationId": "get_review_job_api_review_jobs__job_id__get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewJob"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Review Queue"
+        ],
+        "summary": "Cancel Review Job",
+        "description": "Cancel a queued or running review, or dismiss a finished one; only its owner (or an admin) may.",
+        "operationId": "cancel_review_job_api_review_jobs__job_id__delete",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewJob"
                 }
               }
             }
@@ -805,7 +952,7 @@
           "Review Forms"
         ],
         "summary": "Delete Review Form",
-        "description": "Delete a saved form.",
+        "description": "Delete a saved form; only its owner or an admin may.",
         "operationId": "delete_review_form_api_review_forms__form_id__delete",
         "parameters": [
           {
@@ -942,12 +1089,17 @@
         ],
         "title": "Body_save_review_form_api_review_forms_post"
       },
-      "Body_upload_paper_api_upload_post": {
+      "Body_submit_review_api_review_jobs_post": {
         "properties": {
           "file": {
             "type": "string",
             "format": "binary",
             "title": "File"
+          },
+          "model": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Model"
           },
           "review_form": {
             "anyOf": [
@@ -982,13 +1134,79 @@
               }
             ],
             "title": "Review Form Id"
+          },
+          "gpu": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gpu"
+          },
+          "vlm": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vlm"
+          },
+          "related": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Related"
+          },
+          "sources": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sources"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReviewDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "mode": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReviewMode"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
         "required": [
-          "file"
+          "file",
+          "model"
         ],
-        "title": "Body_upload_paper_api_upload_post"
+        "title": "Body_submit_review_api_review_jobs_post"
       },
       "ChoiceOption": {
         "properties": {
@@ -1180,6 +1398,30 @@
         "title": "ConferenceSummary",
         "description": "A conference template, without its questions."
       },
+      "CurrentUser": {
+        "properties": {
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "is_admin": {
+            "type": "boolean",
+            "title": "Is Admin"
+          },
+          "auth_enabled": {
+            "type": "boolean",
+            "title": "Auth Enabled"
+          }
+        },
+        "type": "object",
+        "required": [
+          "username",
+          "is_admin",
+          "auth_enabled"
+        ],
+        "title": "CurrentUser",
+        "description": "The signed-in user."
+      },
       "DeletedForm": {
         "properties": {
           "message": {
@@ -1254,7 +1496,7 @@
           "count"
         ],
         "title": "DeletedReviews",
-        "description": "Result of deleting all reviews."
+        "description": "Result of deleting all the reviews the user may delete."
       },
       "EngineInfo": {
         "properties": {
@@ -1383,6 +1625,17 @@
                 "type": "null"
               }
             ]
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner"
           }
         },
         "type": "object",
@@ -1677,6 +1930,43 @@
         "title": "InstalledModels",
         "description": "Models downloaded into the engine."
       },
+      "LoggedOut": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "title": "LoggedOut",
+        "description": "Confirmation of signing out."
+      },
+      "LoginRequest": {
+        "properties": {
+          "username": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Username"
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 1024,
+            "minLength": 1,
+            "title": "Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "username",
+          "password"
+        ],
+        "title": "LoginRequest",
+        "description": "A username and password for the server's own accounts."
+      },
       "ModelTags": {
         "properties": {
           "model": {
@@ -1907,6 +2197,17 @@
               }
             ],
             "title": "Similarity Score"
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner"
           }
         },
         "type": "object",
@@ -2168,6 +2469,206 @@
         "title": "ReviewDetail",
         "description": "How long and thorough the review should be. Steers the model through the prompt; never a token limit.\n\n``auto`` gives no length guidance at all: the model decides."
       },
+      "ReviewJob": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "owner": {
+            "type": "string",
+            "title": "Owner"
+          },
+          "filename": {
+            "type": "string",
+            "title": "Filename"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "form_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Form Name"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running",
+              "completed",
+              "failed",
+              "cancelled"
+            ],
+            "title": "Status"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          },
+          "requested_gpu": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requested Gpu"
+          },
+          "gpu": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gpu"
+          },
+          "steps": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "parse",
+                "figures",
+                "related_work",
+                "review",
+                "save"
+              ]
+            },
+            "type": "array",
+            "title": "Steps",
+            "default": []
+          },
+          "step": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "parse",
+                  "figures",
+                  "related_work",
+                  "review",
+                  "save"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Step"
+          },
+          "progress": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Progress",
+            "default": 0
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "default": ""
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "review_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Id"
+          },
+          "results": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReviewResults"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "owner",
+          "filename",
+          "model",
+          "status",
+          "created_at"
+        ],
+        "title": "ReviewJob",
+        "description": "A review submitted to the queue. It runs on the server whether or not anyone has the page open."
+      },
+      "ReviewJobList": {
+        "properties": {
+          "jobs": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewJob"
+            },
+            "type": "array",
+            "title": "Jobs"
+          },
+          "slots": {
+            "type": "integer",
+            "title": "Slots"
+          }
+        },
+        "type": "object",
+        "required": [
+          "jobs",
+          "slots"
+        ],
+        "title": "ReviewJobList",
+        "description": "Every queued and running review (anyone's), and the signed-in user's finished ones."
+      },
       "ReviewList": {
         "properties": {
           "reviews": {
@@ -2208,6 +2709,74 @@
         ],
         "title": "ReviewMode",
         "description": "``single``: the whole review in one generation. ``sections``: one generation per section, then the scores."
+      },
+      "ReviewResult": {
+        "properties": {
+          "paper_title": {
+            "type": "string",
+            "title": "Paper Title"
+          },
+          "reviewer_model": {
+            "type": "string",
+            "title": "Reviewer Model"
+          },
+          "criteria": {
+            "$ref": "#/components/schemas/ReviewCriteria"
+          },
+          "raw_response": {
+            "type": "string",
+            "title": "Raw Response"
+          },
+          "related_work": {
+            "items": {
+              "$ref": "#/components/schemas/RelatedPaper"
+            },
+            "type": "array",
+            "title": "Related Work",
+            "default": []
+          },
+          "config": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReviewConfig"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "paper_title",
+          "reviewer_model",
+          "criteria",
+          "raw_response"
+        ],
+        "title": "ReviewResult",
+        "description": "One model's review of the paper, as sent when the review completes."
+      },
+      "ReviewResults": {
+        "properties": {
+          "paper_title": {
+            "type": "string",
+            "title": "Paper Title"
+          },
+          "reviews": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewResult"
+            },
+            "type": "array",
+            "title": "Reviews"
+          }
+        },
+        "type": "object",
+        "required": [
+          "paper_title",
+          "reviews"
+        ],
+        "title": "ReviewResults",
+        "description": "The reviews produced by one review job."
       },
       "ReviewStatistics": {
         "properties": {
@@ -2262,6 +2831,17 @@
           "content": {
             "type": "string",
             "title": "Content"
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner"
           }
         },
         "type": "object",
@@ -2318,6 +2898,17 @@
           "size": {
             "type": "integer",
             "title": "Size"
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner"
           }
         },
         "type": "object",
@@ -2398,96 +2989,6 @@
         ],
         "title": "ServiceConfig",
         "description": "Configuration values the frontend needs."
-      },
-      "SessionStatus": {
-        "properties": {
-          "session_id": {
-            "type": "string",
-            "title": "Session Id"
-          },
-          "status": {
-            "type": "string",
-            "title": "Status"
-          },
-          "progress": {
-            "type": "integer",
-            "title": "Progress"
-          },
-          "message": {
-            "type": "string",
-            "title": "Message"
-          },
-          "paper_title": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Paper Title"
-          }
-        },
-        "type": "object",
-        "required": [
-          "session_id",
-          "status",
-          "progress",
-          "message"
-        ],
-        "title": "SessionStatus",
-        "description": "Status model for a review session."
-      },
-      "UploadResult": {
-        "properties": {
-          "session_id": {
-            "type": "string",
-            "title": "Session Id"
-          },
-          "filename": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Filename"
-          },
-          "review_form_filename": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Review Form Filename"
-          },
-          "conference_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Conference Id"
-          }
-        },
-        "type": "object",
-        "required": [
-          "session_id",
-          "filename",
-          "review_form_filename",
-          "conference_id"
-        ],
-        "title": "UploadResult",
-        "description": "A paper uploaded and waiting for review."
       },
       "ValidationError": {
         "properties": {
@@ -2600,178 +3101,6 @@
           "status"
         ],
         "title": "PullProgress",
-        "type": "object"
-      },
-      "ReviewCompleted": {
-        "description": "Final message of a successful review.",
-        "properties": {
-          "status": {
-            "const": "completed",
-            "default": "completed",
-            "title": "Status",
-            "type": "string"
-          },
-          "progress": {
-            "default": 100,
-            "title": "Progress",
-            "type": "integer"
-          },
-          "message": {
-            "default": "Review complete!",
-            "title": "Message",
-            "type": "string"
-          },
-          "review_id": {
-            "title": "Review Id",
-            "type": "string"
-          },
-          "results": {
-            "$ref": "#/components/schemas/ReviewResults"
-          }
-        },
-        "required": [
-          "review_id",
-          "results"
-        ],
-        "title": "ReviewCompleted",
-        "type": "object"
-      },
-      "ReviewProgress": {
-        "description": "A progress update within one step of a running review.",
-        "properties": {
-          "status": {
-            "const": "progress",
-            "default": "progress",
-            "title": "Status",
-            "type": "string"
-          },
-          "step": {
-            "enum": [
-              "parse",
-              "figures",
-              "related_work",
-              "review",
-              "save"
-            ],
-            "title": "Step",
-            "type": "string"
-          },
-          "progress": {
-            "maximum": 100,
-            "minimum": 0,
-            "title": "Progress",
-            "type": "integer"
-          },
-          "message": {
-            "title": "Message",
-            "type": "string"
-          }
-        },
-        "required": [
-          "step",
-          "progress",
-          "message"
-        ],
-        "title": "ReviewProgress",
-        "type": "object"
-      },
-      "ReviewResult": {
-        "description": "One model's review of the paper, as sent when the review completes.",
-        "properties": {
-          "paper_title": {
-            "title": "Paper Title",
-            "type": "string"
-          },
-          "reviewer_model": {
-            "title": "Reviewer Model",
-            "type": "string"
-          },
-          "criteria": {
-            "$ref": "#/components/schemas/ReviewCriteria"
-          },
-          "raw_response": {
-            "title": "Raw Response",
-            "type": "string"
-          },
-          "related_work": {
-            "default": [],
-            "items": {
-              "$ref": "#/components/schemas/RelatedPaper"
-            },
-            "title": "Related Work",
-            "type": "array"
-          },
-          "config": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ReviewConfig"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          }
-        },
-        "required": [
-          "paper_title",
-          "reviewer_model",
-          "criteria",
-          "raw_response"
-        ],
-        "title": "ReviewResult",
-        "type": "object"
-      },
-      "ReviewResults": {
-        "description": "The reviews produced by a review session.",
-        "properties": {
-          "paper_title": {
-            "title": "Paper Title",
-            "type": "string"
-          },
-          "reviews": {
-            "items": {
-              "$ref": "#/components/schemas/ReviewResult"
-            },
-            "title": "Reviews",
-            "type": "array"
-          }
-        },
-        "required": [
-          "paper_title",
-          "reviews"
-        ],
-        "title": "ReviewResults",
-        "type": "object"
-      },
-      "ReviewStarted": {
-        "description": "First message of a review: the steps this run will go through, in order (skipped steps are left out).",
-        "properties": {
-          "status": {
-            "const": "started",
-            "default": "started",
-            "title": "Status",
-            "type": "string"
-          },
-          "steps": {
-            "items": {
-              "enum": [
-                "parse",
-                "figures",
-                "related_work",
-                "review",
-                "save"
-              ],
-              "type": "string"
-            },
-            "title": "Steps",
-            "type": "array"
-          }
-        },
-        "required": [
-          "steps"
-        ],
-        "title": "ReviewStarted",
         "type": "object"
       },
       "SocketError": {
